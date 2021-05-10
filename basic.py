@@ -144,6 +144,33 @@ running = True
 def command_parse(input_command_string):
     if input_command_string == "vomit":
         print ("ewwwww")
+        
+def callAction(sender, actionKey, target):
+    targetJson = battleTable["combatants"][int(target)]
+    senderJson = battleTable["combatants"][int(sender)]
+    actionJson = senderJson.get("actions")
+    if actionJson:
+            if actionKey == "Multiattack":
+                    canMultiattack = False
+                    multiAction = {}
+                    for x in actionJson:
+                            if x["name"] == actionKey:
+                                    multiAction = x
+                                    canMultiAttack = True
+                    if canMultiAttack:
+                            for i in range(int(multiAction["options"]["choose"])):
+                                    for action in random.choice(multiAction["options"]["from"]):
+                                            applyAction(senderJson,targetJson,action["name"])
+                                    
+                    else:
+                            print("This combatant cannot multiattack")              
+            else:
+                    applyAction(actionJson,targetJson,actionKey)
+                    
+def parseTargets(targets):
+    return targets.split(",")
+    
+
 
 while running:
     try:
@@ -153,28 +180,9 @@ while running:
         if command == "action":
                 sender = args[1]
                 actionKey = args[2]
-                target = args[3]
-
-                targetJson = battleTable["combatants"][int(target)]
-                senderJson = battleTable["combatants"][int(sender)]
-                actionJson = senderJson.get("actions")
-                if actionJson:
-                        if actionKey == "Multiattack":
-                                canMultiattack = False
-                                multiAction = {}
-                                for x in actionJson:
-                                        if x["name"] == actionKey:
-                                                multiAction = x
-                                                canMultiAttack = True
-                                if canMultiAttack:
-                                        for i in range(int(multiAction["options"]["choose"])):
-                                                for action in random.choice(multiAction["options"]["from"]):
-                                                        applyAction(senderJson,targetJson,action["name"])
-                                                
-                                else:
-                                        print("This combatant cannot multiattack")              
-                        else:
-                                applyAction(actionJson,targetJson,actionKey)
+                targets = parseTargets(args[3])
+                for x in targets:
+                    callAction(sender, actionKey, x)
                                 
         if command == "weapon":
                 '''This should do bonuses to 

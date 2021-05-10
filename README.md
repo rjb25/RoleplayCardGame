@@ -7,15 +7,21 @@ Instructions:
     python3 basic.py
 
 Prep (if you want venv goodness):
-
-    python3 -m venv dmslave-env # may need to use just python if you're on Winblow$
-    source dmslave-env/bin/activate
+    #LINUX
+    python3 -m venv dm-env
+    source dm-env/bin/activate
     pip install -r requirements.txt
+    #WINDOWS
+    py -m venv dm-env
+    dm-env\Scripts\activate.bat
+    pip install -r requirements.txt
+    
+    
 
 
 Example usage: 
 
-    (dmslave-env) 5e-dm-assistant[main !?]$ pip install -r requirements.txt
+    (dm-env) 5e-dm-assistant[main !?]$ pip install -r requirements.txt
     Collecting requests==2.25.1
       Downloading requests-2.25.1-py2.py3-none-any.whl (61 kB)
          |████████████████████████████████| 61 kB 2.8 MB/s 
@@ -31,4 +37,4 @@ Example usage:
       Using cached certifi-2020.12.5-py2.py3-none-any.whl (147 kB)
     Installing collected packages: urllib3, idna, chardet, certifi, requests
     Successfully installed certifi-2020.12.5 chardet-4.0.0 idna-2.10 requests-2.25.1 urllib3-1.26.4
-    (dmslave-env) 5e-dm-assistant[main !?]$ 
+    (dm-env) 5e-dm-assistant[main !?]$ 
