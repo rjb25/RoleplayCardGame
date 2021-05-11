@@ -7,10 +7,12 @@ Instructions:
     python3 basic.py
 
 Prep (if you want venv goodness):
+
     #LINUX
     python3 -m venv dm-env
     source dm-env/bin/activate
     pip install -r requirements.txt
+    
     #WINDOWS
     py -m venv dm-env
     dm-env\Scripts\activate.bat
