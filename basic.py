@@ -191,7 +191,7 @@ def callAction(sender, actionKey, targetInfo):
             else:
                 print("This combatant cannot multiattack")              
         else:
-            applyAction(actions,targetInfo,actionKey)
+            applyAction(senderJson,targetInfo,actionKey)
                     
 
 
