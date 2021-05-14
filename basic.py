@@ -1,8 +1,9 @@
+import requests
 import json
+from fractions import Fraction
 from operator import itemgetter
 import math
 import random
-import requests
 import traceback
 from functools import reduce
 from operator import getitem
@@ -105,14 +106,67 @@ def roll(dice):
         for x in range(diceCount):
                 sum += math.ceil(diceType*random.random())
         return int(sum + diceMod)
+def crToProf(cr):
+    crVal = float(sum(Fraction(s) for s in cr.split()))
+    if cr < 5:
+        return 2
+    if cr <9:
+        return 3
+    if cr<13:
+        return 4
+    elif cr<17:
+        return 5
+    elif cr<21:
+        return 6
+    elif cr<25:
+        return 7
+    elif cr <29:
+        return 8
+    elif cr < 31:
+        return 9
+    else:
+        print("Hmm is a monster really this high level? Proficiency issue")
+        return 10
+
+def expandStatWord(stat):
+    if stat == "wis":
+        return "wisdom"
+    elif stat == "str":
+        return "strength"
+    elif stat == "dex":
+        return "dexterity"
+    elif stat == "con":
+        return "constitution"
+    elif stat == "cha":
+        return "charisma"
+    elif stat == "int":
+        return "intelligence"
+    else:
+        print("Hmm I couldn't expand that stat shorthand. Assuming you wanted strength")
+        return "strength"
+
+def getProf(combatant):
+    proficiency = combatant["procifiency_bonus"]
+    cr = combatant["challenge_rating"]
+    if proficiency:
+        return proficiency
+    elif cr:
+        newProficiency = crToProf(cr)
+        combatant["proficiency_bonus"] = newProficiency
+        return newProficiency
+    else:
+        print("This combatant has neither a proficiency_bonus nor a CR. Defaulting to 2.")
+        return 2
         
 def getMod(modType, attackJson, senderJson):
         modSum = 0
         if modType == "hit" or modType == "dmg":
             finesse = False
-            for x in attackJson["properties"]:
-                if x["index"] == "finesse":
-                    finesse = True
+            properties = attackJson.get["properties"]
+            if properties:
+                for x in properties:
+                    if x["index"] == "finesse":
+                        finesse = True
             if finesse:
                 modSum += max(statMod(int(senderJson["strength"])),statMod(int(senderJson["dexterity"])))
             else:
@@ -122,7 +176,20 @@ def getMod(modType, attackJson, senderJson):
             if senderJson.get("weapon_proficiencies"):
                 if attackJson["weapon_category"] in senderJson["weapon_proficiencies"]:
                     modSum += senderJson["proficiency_bonus"]
+
+        if modType == "spellHit":
+            special_abilities = senderJson.get("special_abilities")
+            if special_abilities:
+                for ability in senderJson["special_abilities"]:
+                    spellcasting = ability.get("spellcasting")
+                    if spellcasting:
+                        modifier = spellcasting["modifier"]
+                        if modifier:
+                            modSum += spellcasting["modifier"]
+                        else:
+                            modsum += getProf(senderJson) + statMod(senderJson[expandStatWord(spellcasting["ability"]["index"])])
         return modSum
+
 
 def statMod(stat):
         return math.floor((stat-10)/2)
@@ -213,6 +280,24 @@ def callInit(args):
         
     battleTable["combatants"] = sorted(battleTable["combatants"], key=itemgetter("initiative"), reverse=True)
 
+def callCast(args):
+    sender = args[1]
+    attackPath = args[2]
+    target = args[3]
+    level = args[4]
+    times = geti(args, 5, 1)
+    attackJson = getJson(["spells",attackPath])
+    targetJson = battleTable["combatants"][int(target)]
+    senderJson = battleTable["combatants"][int(sender)]
+    if attackJson:
+        for x in range(times):
+            hit = roll("1d20")
+            hit += getMod("spellHit",attackJson,senderJson)
+            print("hit",hit)
+            if hit >= targetJson["armor_class"]:
+                targetJson["current_hp"] -= roll(attackJson["damage"]["damage_at_slot_level"][level])
+    
+
 while running:
     try:
         getState()
@@ -227,6 +312,9 @@ while running:
                 callAction(sender, actionKey, targetInfo.split("."))
         elif command == "init" or command == "initiative":
             callInit(args)
+
+        elif command == "cast":
+            callCast(args)
                                 
         elif command == "weapon":
             '''This should do bonuses too
@@ -241,11 +329,12 @@ while running:
             targetJson = battleTable["combatants"][int(target)]
             senderJson = battleTable["combatants"][int(sender)]
             if attackJson:
-                hit = roll("1d20")
-                hit += getMod("hit",attackJson,senderJson)
-                print("hit",hit)
-                if hit >= targetJson["armor_class"]:
-                    targetJson["current_hp"] -= roll(attackJson["damage"]["damage_dice"]+"+"+str(getMod("dmg",attackJson,senderJson)))
+                for x in range(times):
+                    hit = roll("1d20")
+                    hit += getMod("hit",attackJson,senderJson)
+                    print("hit",hit)
+                    if hit >= targetJson["armor_class"]:
+                        targetJson["current_hp"] -= roll(attackJson["damage"]["damage_dice"]+"+"+str(getMod("dmg",attackJson,senderJson)))
         elif command == "list":
             steps = args[1].split(",")
             battle = battleTable.copy()
