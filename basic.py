@@ -1,4 +1,5 @@
 import json
+from operator import itemgetter
 import math
 import random
 import requests
@@ -143,10 +144,10 @@ def applyAction(senderJson,targetInfo,actionKey):
             adv = ""
         elif advantage == 1:
             hit = max(roll("1d20"),roll("1d20"))
-            adv = " at advantage"
+            adv = " with advantage"
         elif advantage == -1:
             hit = min(roll("1d20"),roll("1d20"))
-            adv = " at disadvantage"
+            adv = " with disadvantage"
         else:
             print("invalid advantage type")
             hit = roll("1d20")
@@ -160,10 +161,10 @@ def applyAction(senderJson,targetInfo,actionKey):
                         hurt += roll(random.choice(damage["from"])["damage_dice"])
                 else:   
                      hurt += roll(damage["damage_dice"])
-            print(senderJson["index"], "used", actionKey + str(adv),"with a hit of",hit, "and dealt",hurt,"damage to",targetJson["index"])
+            print(senderJson["index"], "used", actionKey + str(adv),"for a hit of",hit, "and dealt",hurt,"damage to",targetJson["index"])
             targetJson["current_hp"] -= hurt
         else:
-            print(senderJson["index"], "used", actionKey + str(adv),"with a hit of", hit, "and missed",targetJson["index"])
+            print(senderJson["index"], "used", actionKey + str(adv),"for a hit of", hit, "and missed",targetJson["index"])
     else:
         print("Invalid action for this combatant")
 
@@ -192,23 +193,43 @@ def callAction(sender, actionKey, targetInfo):
                 print("This combatant cannot multiattack")              
         else:
             applyAction(senderJson,targetInfo,actionKey)
+def applyInit(combatant):
+    combatant["initiative"] = statMod(combatant["dexterity"]) + roll("1d20")
                     
-
+def callInit(args):
+    try:
+        who = args[1]
+    except:
+        who = "all"
+    if who == "all":
+        for combatant in battleTable["combatants"]:
+            applyInit(combatant)
+    elif geti(battleTable["combatants"],int(who),False):
+        combatant = battleTable["combatants"][int(who)]
+        applyInit(combatant)
+    else:
+        print("Can't find what you are trying to roll initiative for.")
+        return
+        
+    battleTable["combatants"] = sorted(battleTable["combatants"], key=itemgetter("initiative"), reverse=True)
 
 while running:
     try:
         getState()
         args = input("Command?").split(" ")
         command = args[0]
+
         if command == "action":
             sender = args[1]
             actionKey = args[2]
             targetInfos = args[3].split(",")
             for targetInfo in targetInfos:
                 callAction(sender, actionKey, targetInfo.split("."))
+        elif command == "init" or command == "initiative":
+            callInit(args)
                                 
         elif command == "weapon":
-            '''This should do bonuses to 
+            '''This should do bonuses too
             Looks at the strength of the sender
             then applies the strength of the sender
             to the hit roll of the weapon.'''
@@ -252,6 +273,7 @@ while running:
                     combatant["max_hp"] = hitPoints
                     combatant["current_hp"] = hitPoints
             
+                applyInit(combatant)
                 battleTable["combatants"].append(combatant)
                                 
         elif command == "remove":
