@@ -290,12 +290,17 @@ def callCast(args):
     targetJson = battleTable["combatants"][int(target)]
     senderJson = battleTable["combatants"][int(sender)]
     if attackJson:
+        dc = attackJson.get("dc")
         for x in range(times):
-            hit = roll("1d20")
-            hit += getMod("spellHit",attackJson,senderJson)
-            print("hit",hit)
-            if hit >= targetJson["armor_class"]:
-                targetJson["current_hp"] -= roll(attackJson["damage"]["damage_at_slot_level"][level])
+            if dc:
+                statMod(targetJson[expandStatWord(dc["type"])])
+                print("Insert dc logic here")
+            else:
+                hit = roll("1d20")
+                hit += getMod("spellHit",attackJson,senderJson)
+                print("hit",hit)
+                if hit >= targetJson["armor_class"]:
+                    targetJson["current_hp"] -= roll(attackJson["damage"]["damage_at_slot_level"][level])
     
 
 while running:
