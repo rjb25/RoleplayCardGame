@@ -147,7 +147,7 @@ def expandStatWord(stat):
         raise Exception("not a valid stat word", stat)
 
 def getProf(combatant):
-    proficiency = combatant.get("procifiency_bonus")
+    proficiency = combatant.get("proficiency_bonus")
     cr = combatant["challenge_rating"]
     if proficiency:
         return proficiency
@@ -156,8 +156,13 @@ def getProf(combatant):
         combatant["proficiency_bonus"] = newProficiency
         return newProficiency
     else:
-        print("This combatant has neither a proficiency_bonus nor a CR. Defaulting to 2.")
-        return 2
+        raise Exception("This combatant has neither a proficiency_bonus nor a CR", combatant)
+def canCast(combatantJson):
+    for ability in combatantJson["special_abilities"]:
+        spellcasting = ability.get("spellcasting")
+        if spellcasting:
+            return spellcasting
+    return False
         
 def getMod(modType, attackJson, combatantJson, additional = 0):
         modSum = 0
@@ -186,15 +191,15 @@ def getMod(modType, attackJson, combatantJson, additional = 0):
         if modType == "spellHit" or modType == "spellDc" or modType == "saveDc":
             special_abilities = combatantJson.get("special_abilities")
             if special_abilities:
-                for ability in combatantJson["special_abilities"]:
-                    spellcasting = ability.get("spellcasting")
-                    if spellcasting:
+                spellcasting = canCast(combatantJson)
+                if spellcasting:
+                    if modType == "spellHit" or modType == "spellDc":
+                        modSum += statMod(combatantJson[expandStatWord(spellcasting["ability"]["index"])])
 
-                        if modType == "spellHit" or modType == "spellDc":
-                            modSum += statMod(combatantJson[expandStatWord(spellcasting["ability"]["index"])])
-
-                        if modType == "spellDc":
-                            modSum += additional + 8 #In this case additional should be level of spell
+                    if modType == "spellDc":
+                        modSum += additional + 8 #In this case additional should be level of spell
+                else:
+                    raise Exception("Attempted to have a non spellcaster cast a spell")
 
                         #modifier = spellcasting["modifier"]
                         #if modifier and modType == "spellHit":
@@ -343,14 +348,18 @@ while running:
 
         elif command == "cast":
             sender = args[1]
+            senderJson = battleTable["combatants"][int(sender)]
             actionKey = args[2]
             targetInfos = args[3].split(",")
             level = args[4]
             times = int(geti(args, 5, 1))
 
-            for time in range(times):
-                for targetInfo in targetInfos:
-                    callCast(sender, actionKey, targetInfo, level)
+            if canCast(senderJson):
+                for time in range(times):
+                    for targetInfo in targetInfos:
+                        callCast(sender, actionKey, targetInfo, level)
+            else:
+                print("Did nothing. This creature has no cast type and cannot cast.")
                                 
         elif command == "weapon":
             '''This should do bonuses too
@@ -413,22 +422,27 @@ while running:
             with open('battle.json', 'w') as f:
                 json.dump(dictify(battleTable),f)
             running = False
+
+        elif command == "abort":
+            running = False
     
         elif command == "character":
             name = input("Name?")
 
             monsterCache = cacheTable["monsters"][name]
             monsterCache["index"] = name
-            monsterCache["strength"] = input("str?")
-            monsterCache["dexterity"] = input("dex?")
-            monsterCache["constitution"] = input("con?")
-            monsterCache["intelligence"] = input("int?")
-            monsterCache["wisdom"] = input("wis?")
-            monsterCache["charisma"] = input("cha?")
+            monsterCache["strength"] = int(input("str?"))
+            monsterCache["dexterity"] = int(input("dex?"))
+            monsterCache["constitution"] = int(input("con?"))
+            monsterCache["intelligence"] = int(input("int?"))
+            monsterCache["wisdom"] = int(input("wis?"))
+            monsterCache["charisma"] = int(input("cha?"))
+            monsterCache["special_abilities"] = []
+            monsterCache["special_abilities"].append({"spellcasting": {"ability": {"index" : input("caster stat? (eg. int)")}}})
             monsterCache["weapon_proficiencies"] = input("Weapon proficiencies? (eg simple,martial)")
-            monsterCache["proficiency_bonus"] = input("Proficiency Bonus?")
-            monsterCache["max_hp"] = input("Max Hp?")
-            monsterCache["current_hp"] = monsterCache["max_hp"]
+            monsterCache["proficiency_bonus"] = int(input("Proficiency Bonus?"))
+            monsterCache["max_hp"] = int(input("Max Hp?"))
+            monsterCache["current_hp"] = int(monsterCache["max_hp"])
             
             with open('data.json', 'w') as f:
                 json.dump(dictify(cacheTable),f)
