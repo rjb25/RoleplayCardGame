@@ -148,7 +148,7 @@ def expandStatWord(stat):
 
 def getProf(combatant):
     proficiency = combatant.get("proficiency_bonus")
-    cr = combatant["challenge_rating"]
+    cr = combatant.get("challenge_rating")
     if proficiency:
         return proficiency
     elif cr:
@@ -253,7 +253,6 @@ def applyAction(senderJson,targetInfo,actionKey):
     else:
         print("Invalid action for this combatant")
 
-running = True
 
 def command_parse(input_command_string):
     if input_command_string == "vomit":
@@ -282,11 +281,7 @@ def callAction(sender, actionKey, targetInfo):
 def applyInit(combatant):
     combatant["initiative"] = statMod(combatant["dexterity"]) + roll("1d20")
                     
-def callInit(args):
-    try:
-        who = args[1]
-    except:
-        who = "all"
+def callInit(who):
     if who == "all":
         for combatant in battleTable["combatants"]:
             applyInit(combatant)
@@ -298,37 +293,87 @@ def callInit(args):
         return
         
     battleTable["combatants"] = sorted(battleTable["combatants"], key=itemgetter("initiative"), reverse=True)
+def spellType(attackJson):
+    if attackJson["damage"].get("damage_at_character_level"):
+        return "damage_at_character_level"
+    elif attackJson["damage"].get("damage_at_level"):
+        return "damage_at_level"
+    else:
+        raise Exception("Oops this is not a spell")
+
+def isCantrip(attackJson):
+    if attackJson["damage"].get("damage_at_character_level"):
+        return True
+    elif attackJson["damage"].get("damage_at_level"):
+        return False
+    else:
+        raise Exception("Oops this is not a spell", attackJson)
 
 def callCast(sender, attackPath, target, level):
     attackJson = getJson(["spells",attackPath])
     targetJson = battleTable["combatants"][int(target)]
     senderJson = battleTable["combatants"][int(sender)]
+    dmgAtKey = spellType(attackJson)
+    cantrip = isCantrip(attackJson)
+    dmgString = ""
+    spellcasting = canCast(senderJson)
+    if cantrip:
+        level = spellcasting["level"]
+        for levelKey, damage in attackJson["damage"][dmgAtKey].items():
+            if level >= int(levelKey):
+                dmgString = attackJson["damage"][dmgAtKey][levelKey]
+    elif level == -1:
+        dmgString = attackJson["damage"][dmgAtKey][0]
+        print("No spell slot level specified, using lowest")
+    print("Casting", dmgString)
+
+
+    if dmgString == "":
+        raise Exception("No damage found for spell", attackJson)
+
     if attackJson:
         dc = attackJson.get("dc")
+        success = False
+        successMult = 0
         if dc:
             saveMod = getMod("saveDc", attackJson, targetJson)
             saveRoll = roll("1d20")
             totalSave = saveMod + saveRoll
             successEffect = dc["dc_success"]
-            successMult = 0
             if successEffect == "half":
                 successMult = 0.5
+            if cantrip:
+                level = 0
             saveThreshold = getMod("spellDc",attackJson,senderJson,int(level))
 
             if totalSave < saveThreshold:
-                targetJson["current_hp"] -= roll(attackJson["damage"]["damage_at_slot_level"][level])
-            elif successMult != 0:
-                targetJson["current_hp"] -= math.floor(successMult*roll(attackJson["damage"]["damage_at_slot_level"][level]))
+                success = True
 
         else:
             hit = roll("1d20")
             hit += getMod("spellHit",attackJson,senderJson)
             print("hit",hit)
             if hit >= targetJson["armor_class"]:
-                targetJson["current_hp"] -= roll(attackJson["damage"]["damage_at_slot_level"][level])
+                success = True
 
+        if success:
+            targetJson["current_hp"] -= roll(dmgString)
+        elif successMult != 0:
+            targetJson["current_hp"] -= math.floor(successMult*roll(dmgString))
+
+
+def removeDown():
+    index = 0
+    for combatant in battleTable["combatants"]:
+        if combatant["current_hp"] <= 0:
+            battleTable["combatants"].pop(index)
+        else:
+            index +=1
+
+running = True
 while running:
     try:
+        removeDown()
         getState()
         args = input("Command?").split(" ")
         command = args[0]
@@ -344,14 +389,18 @@ while running:
                     callAction(sender, actionKey, targetInfo.split("."))
 
         elif command == "init" or command == "initiative":
-            callInit(args)
+            try:
+                who = args[1]
+            except:
+                who = "all"
+            callInit(who)
 
         elif command == "cast":
             sender = args[1]
             senderJson = battleTable["combatants"][int(sender)]
             actionKey = args[2]
             targetInfos = args[3].split(",")
-            level = args[4]
+            level = geti(args,4,-1)
             times = int(geti(args, 5, 1))
 
             if canCast(senderJson):
@@ -409,6 +458,7 @@ while running:
             
                 applyInit(combatant)
                 battleTable["combatants"].append(combatant)
+                callInit(len(battleTable["combatants"])-1)
                                 
         elif command == "remove":
                 index = int(args[1])
@@ -440,9 +490,13 @@ while running:
             monsterCache["special_abilities"] = []
             monsterCache["special_abilities"].append({"spellcasting": {"ability": {"index" : input("caster stat? (eg. int)")}}})
             monsterCache["weapon_proficiencies"] = input("Weapon proficiencies? (eg simple,martial)")
-            monsterCache["proficiency_bonus"] = int(input("Proficiency Bonus?"))
             monsterCache["max_hp"] = int(input("Max Hp?"))
             monsterCache["current_hp"] = int(monsterCache["max_hp"])
+            monsterCache["armor_class"] = int(input("Armor Class?"))
+            spellcasting = canCast(monsterCache)
+            level = int(input("Level?"))
+            spellcasting["level"] = level
+            monsterCache["proficiency_bonus"] = crToProf(level)
             
             with open('data.json', 'w') as f:
                 json.dump(dictify(cacheTable),f)
