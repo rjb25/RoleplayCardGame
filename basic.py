@@ -94,19 +94,22 @@ def window():
     tkMessageBox.showinfo(title=" ", message=" hola")
 
 def roll(dice):
-        dsplit = dice.split("d")
-        
-        diceCount = int(dsplit[0])
+    dsplit = dice.split("d")
+    usesDice = len(dsplit)>1
+    sum = 0
+    diceMod = 0
+    if usesDice:
         remaining = dsplit[1].split("+")
-        diceType = float(remaining[0])
         if "+" in dice:
-                diceMod = float(remaining[1])
-        else:
-                diceMod = 0
-        sum = 0
+            diceMod = float(remaining[1])
+        diceCount = int(dsplit[0])
+        diceType = float(remaining[0])
         for x in range(diceCount):
-                sum += math.ceil(diceType*random.random())
-        return int(sum + diceMod)
+            sum += math.ceil(diceType*random.random())
+    else:
+        sum = int(dice)
+    
+    return int(sum + diceMod)
 
 def crToProf(cr):
     crVal = float(sum(Fraction(s) for s in str(cr).split()))
@@ -157,18 +160,45 @@ def getProf(combatant):
         return newProficiency
     else:
         raise Exception("This combatant has neither a proficiency_bonus nor a CR", combatant)
+
 def canCast(combatantJson):
     for ability in combatantJson["special_abilities"]:
         spellcasting = ability.get("spellcasting")
         if spellcasting:
             return spellcasting
     return False
+
+def applyDamage(targetJson,damage,dmgType):
+    immunities = targetJson.get("damage_immunities")
+    vulnerabilities = targetJson.get("damage_vulnerabilities")
+    resistances = targetJson.get("damage_resistances")
+
+    damageDealt = damage
+    damageType = dmgType["index"]
+    searching = True
+    if immunities and searching:
+        for method in immunities:
+            if method == damageType:
+                damageDealt = 0
+                searching = False
+    if vulnerabilities and searching:
+        for method in vulnerabilities:
+            if method == damageType:
+                damageDealt *= 2 
+                searching = False
+    if resistances and searching:
+        for method in resistances:
+            if method == damageType:
+                damageDealt *= 0.5
+
+    targetJson["current_hp"] -= math.floor(damageDealt)
+
         
 def getMod(modType, attackJson, combatantJson, additional = 0):
         modSum = 0
         if modType == "hit" or modType == "dmg":
             finesse = False
-            properties = attackJson.get["properties"]
+            properties = attackJson.get("properties")
             if properties:
                 for x in properties:
                     if x["index"] == "finesse":
@@ -243,13 +273,10 @@ def applyAction(senderJson,targetInfo,actionKey):
             for damage in action["damage"]:         
                 if damage.get("choose"):
                     for actions in range(int(damage["choose"])):
-                        hurt += roll(random.choice(damage["from"])["damage_dice"])
+                        chosenAction = random.choice(damage["from"])
+                        applyDamage(targetJson,roll(chosenAction["damage_dice"]),chosenAction["damage_type"])
                 else:   
-                     hurt += roll(damage["damage_dice"])
-            print(senderJson["index"], "used", actionKey + str(adv),"for a hit of",hit, "and dealt",hurt,"damage to",targetJson["index"])
-            targetJson["current_hp"] -= hurt
-        else:
-            print(senderJson["index"], "used", actionKey + str(adv),"for a hit of", hit, "and missed",targetJson["index"])
+                    applyDamage(targetJson,roll(damage["damage_dice"]),hh)
     else:
         print("Invalid action for this combatant")
 
@@ -357,9 +384,9 @@ def callCast(sender, attackPath, target, level):
                 success = True
 
         if success:
-            targetJson["current_hp"] -= roll(dmgString)
+            applyDamage(targetJson,roll(dmgString),attackJson["damage"]["damage_type"])
         elif successMult != 0:
-            targetJson["current_hp"] -= math.floor(successMult*roll(dmgString))
+            applyDamage(targetJson,successMult*roll(dmgString),attackJson["damage"]["damage_type"])
 
 
 def removeDown():
@@ -428,7 +455,8 @@ while running:
                     hit += getMod("hit",attackJson,senderJson)
                     print("hit",hit)
                     if hit >= targetJson["armor_class"]:
-                        targetJson["current_hp"] -= roll(attackJson["damage"]["damage_dice"]+"+"+str(getMod("dmg",attackJson,senderJson)))
+                        hurt = roll(attackJson["damage"]["damage_dice"]+"+"+str(getMod("dmg",attackJson,senderJson)))
+                        applyDamage(targetJson,hurt,attackJson["damage"]["damage_type"])
         elif command == "list":
             steps = args[1].split(",")
             battle = battleTable.copy()
