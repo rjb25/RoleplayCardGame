@@ -10,10 +10,7 @@ from operator import getitem
 from collections import defaultdict
 from collections import defaultdict
 import pprint
-import tkinter
-from tkinter import *
-import tkinter.messagebox
-import tkinter.ttk
+import tkinter as tk
 import argparse
 import re
 
@@ -92,14 +89,26 @@ def getState():
             x = battleTable[nick]
             print(x["initiative"],nick,x["index"],str(x["current_hp"])+"/"+str(x["max_hp"]))
 
-def window():
-    window = tkinter.Tk()
-    window.wm_withdraw()
+text_box = ""
+text_box2 = ""
+def windowLog():
+    root = tk.Tk()
+    global text_box
+    text_box = tk.Text(root, width = 25, height = 2)
+    text_box.grid(row = 10, column = 0, columnspan = 20)
 
-    #centre screen message
-    window.geometry("1x1+"+str(window.winfo_screenwidth()/2)
-                    +"+"+str(window.winfo_screenheight()/2))
-    tkMessageBox.showinfo(title=" ", message=" hola")
+def windowState():
+    root = tk.Tk()
+    global text_box2
+    text_box2 = tk.Text(root, width = 25, height = 2)
+    text_box2.grid(row = 1, column = 0, columnspan = 2)
+
+def log(content):
+    text_box.insert("end-1c", content+"\n")
+
+def setState(content):
+    text_box2.delete(1.0,"end-1c")
+    text_box2.insert("end-1c",content+"\n")
 
 def roll(dice):
     print(dice)
@@ -443,6 +452,9 @@ while running:
                 who = "all"
             callInit(who)
 
+        elif command == "auto":
+            print("attempting auto")
+
         elif command == "mod" or command == "set" or command == "list" or command == "listkeys":
             steps = args[1].split(",")
             diff = geti(args, 2, False)
@@ -560,6 +572,18 @@ while running:
 
         elif command == "abort":
             running = False
+
+        elif command == "log":
+            log(args[1])
+
+        elif command == "state":
+            setState(args[1])
+
+        elif command == "windowLog":
+            windowLog()
+
+        elif command == "windowState":
+            windowState()
     
         elif command == "character":
             name = input("Name?")
