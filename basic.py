@@ -102,6 +102,7 @@ def window():
     tkMessageBox.showinfo(title=" ", message=" hola")
 
 def roll(dice):
+    print(dice)
     dsplit = dice.split("d")
     usesDice = len(dsplit)>1
     sum = 0
@@ -226,7 +227,7 @@ def getMod(modType, attackJson, combatantJson, additional = 0):
         if modType == "saveDc":
             modSum += statMod(combatantJson[expandStatWord(attackJson["dc"]["dc_type"]["index"])])
 
-        if modType == "spellHit" or modType == "spellDc" or modType == "saveDc":
+        if modType == "spellHit" or modType == "spellDc":
             special_abilities = combatantJson.get("special_abilities")
             if special_abilities:
                 spellcasting = canCast(combatantJson)
@@ -238,11 +239,6 @@ def getMod(modType, attackJson, combatantJson, additional = 0):
                         modSum += additional + 8 #In this case additional should be level of spell
                 else:
                     raise Exception("Attempted to have a non spellcaster cast a spell")
-
-                        #modifier = spellcasting["modifier"]
-                        #if modifier and modType == "spellHit":
-                            #NOTE THE HARD = HERE
-                            #modSum = spellcasting["modifier"]
 
         return modSum
 
@@ -340,40 +336,45 @@ def callInit(who):
 def spellType(attackJson):
     if attackJson["damage"].get("damage_at_character_level"):
         return "damage_at_character_level"
-    elif attackJson["damage"].get("damage_at_level"):
-        return "damage_at_level"
+    elif attackJson["damage"].get("damage_at_slot_level"):
+        return "damage_at_slot_level"
     else:
         raise Exception("Oops this is not a spell")
 
 def isCantrip(attackJson):
     if attackJson["damage"].get("damage_at_character_level"):
         return True
-    elif attackJson["damage"].get("damage_at_level"):
+    elif attackJson["damage"].get("damage_at_slot_level"):
         return False
     else:
         raise Exception("Oops this is not a spell", attackJson)
 
 def callCast(sender, attackPath, target, level):
     attackJson = getJson(["spells",attackPath])
-    targetJson = battleTable[target]
-    senderJson = battleTable[sender]
+    targetJson = battleTable.get(target)
+    senderJson = battleTable.get(sender)
+    if not targetJson or not senderJson:
+        print("target or sender no longer exists")
+        return
+
     dmgAtKey = spellType(attackJson)
     cantrip = isCantrip(attackJson)
     dmgString = ""
+
     spellcasting = canCast(senderJson)
+
     if cantrip:
-        level = spellcasting["level"]
-        for levelKey, damage in attackJson["damage"][dmgAtKey].items():
-            if level >= int(levelKey):
-                dmgString = attackJson["damage"][dmgAtKey][levelKey]
-    elif level == -1:
-        dmgString = attackJson["damage"][dmgAtKey][0]
-        print("No spell slot level specified, using lowest")
-    print("Casting", dmgString)
+        level = geti(spellcasting, "level", -1)
 
-
+    lowestLevel = "1000000"
+    for levelKey, damage in attackJson["damage"][dmgAtKey].items():
+        if int(levelKey) < int(lowestLevel):
+            lowestLevel = levelKey
+        if int(level) >= int(levelKey):
+            dmgString = attackJson["damage"][dmgAtKey][levelKey]
     if dmgString == "":
-        raise Exception("No damage found for spell", attackJson)
+        dmgString = attackJson["damage"][dmgAtKey][lowestLevel]
+        print("Defaulting cast to lowest level",lowestLevel)
 
     if attackJson:
         dc = attackJson.get("dc")
@@ -471,18 +472,20 @@ while running:
 
         elif command == "cast":
             sender = args[1]
-            senderJson = battleTable[sender]
+            senderJson = battleTable.get(sender)
             actionKey = args[2]
             targetInfos = args[3].split(",")
             level = geti(args,4,-1)
             times = int(geti(args, 5, 1))
-
-            if canCast(senderJson):
-                for time in range(times):
-                    for targetInfo in targetInfos:
-                        callCast(sender, actionKey, targetInfo, level)
+            if senderJson:
+                if canCast(senderJson):
+                    for time in range(times):
+                        for targetInfo in targetInfos:
+                            callCast(sender, actionKey, targetInfo, level)
+                else:
+                    print("Did nothing. This creature has no cast type and cannot cast.")
             else:
-                print("Did nothing. This creature has no cast type and cannot cast.")
+                print("The creature you are attempting to make a cast from does not exist.")
                                 
         elif command == "weapon":
             '''This should do bonuses too
@@ -542,8 +545,9 @@ while running:
                 callInit(nick)
                                 
         elif command == "remove":
-                index = int(args[1])
-                battleTable.pop(index)
+                nick = args[1]
+                battleTable.pop(nick)
+                battleOrder.remove(nick)
                 
         elif command == "save":
             with open('battle.json', 'w') as f:
