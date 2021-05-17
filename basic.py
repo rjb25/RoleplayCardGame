@@ -289,7 +289,7 @@ def applyAction(senderJson,targetInfo,actionKey):
                         chosenAction = random.choice(damage["from"])
                         applyDamage(targetJson,roll(chosenAction["damage_dice"]),chosenAction["damage_type"])
                 else:   
-                    applyDamage(targetJson,roll(damage["damage_dice"]),hh)
+                    applyDamage(targetJson,roll(damage["damage_dice"]),damage["damage_type"])
     else:
         print("Invalid action for this combatant")
 
