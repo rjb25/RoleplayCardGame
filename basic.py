@@ -85,9 +85,12 @@ def getJson(steps):
         
 def getState():
         print("initiative name type hp/max_hp")
-        for nick in battleOrder:        
+        state_result = []
+        for nick in battleOrder:
             x = battleTable[nick]
             print(x["initiative"],nick,x["index"],str(x["current_hp"])+"/"+str(x["max_hp"]))
+            state_result.append(str(x["initiative"]) + ' ' + nick + ' ' + str(x["index"]) + ' ' + str(x["current_hp"]) + "/" + str(x["max_hp"]))
+        return state_result
 
 text_box = ""
 text_box2 = ""
@@ -259,9 +262,10 @@ def statMod(stat):
 def applyAction(senderJson,targetInfo,actionKey):
     targetJson = battleTable[targetInfo[0]]
     advantage = int(geti(targetInfo,1,0))
+    action_result = ''
     actions = senderJson.get("actions")
     action = False
-    adv = ""
+    adv = ''
     for act in actions:
         if act["name"] == actionKey:
             action = act
@@ -278,6 +282,7 @@ def applyAction(senderJson,targetInfo,actionKey):
             adv = " with disadvantage"
         else:
             print("invalid advantage type")
+            action_result += '\n' + advantage + ' is an invalid advantage type.'
             hit = roll("1d20")
         hit += action["attack_bonus"]
         
@@ -291,8 +296,11 @@ def applyAction(senderJson,targetInfo,actionKey):
                 else:   
                     applyDamage(targetJson,roll(damage["damage_dice"]),damage["damage_type"])
     else:
-        print("Invalid action for this combatant")
+        print('Invalid action for this combatant')
+        action_result = 'Invalid action for this combatant'
 
+    action_result = '' # This will be returned at the end
+    return action_result
 
 def command_parse(input_command_string):
     if input_command_string == "vomit":
@@ -301,6 +309,7 @@ def command_parse(input_command_string):
 def callAction(sender, actionKey, targetInfo):
     senderJson = battleTable[sender]
     actions = senderJson.get("actions")
+    action_result = ''
     if actions:
         if actionKey == "Multiattack":
             canMultiAttack = False
@@ -314,9 +323,11 @@ def callAction(sender, actionKey, targetInfo):
                     for action in random.choice(multiAction["options"]["from"]):
                         applyAction(senderJson,targetInfo,action["name"])
             else:
-                print("This combatant cannot multiattack")              
+                print("This combatant cannot multiattack")
+                action_result = 'This combatant cannot use ' + actionKey
         else:
             applyAction(senderJson,targetInfo,actionKey)
+    return action_result
 
 def applyInit(combatant):
     combatant["initiative"] = statMod(combatant["dexterity"]) + roll("1d20")
@@ -424,10 +435,12 @@ def removeDown():
 def callRequest(steps):
     pprint.pprint(dictify(getJsonFromApi(steps,False)), sort_dicts=False)
 
-def parse_command(command_to_parse, args_to_parse):
+def parse_command(command_string_to_parse):
 
-    command = command_to_parse
-    args = args_to_parse
+    args = command_string_to_parse.split(" ")
+    command = args[0]
+
+    command_result = ''
 
     if command == "action":
         sender = args[1]
@@ -437,7 +450,10 @@ def parse_command(command_to_parse, args_to_parse):
 
         for time in range(times):
             for targetInfo in targetInfos:
-                callAction(sender, actionKey, targetInfo.split("."))
+                command_result = callAction(sender, 
+                        actionKey, 
+                        targetInfo.split("."))
+
     elif command == "request":
         callRequest(args[1].split(","))
 
@@ -491,9 +507,15 @@ def parse_command(command_to_parse, args_to_parse):
                     for targetInfo in targetInfos:
                         callCast(sender, actionKey, targetInfo, level)
             else:
-                print("Did nothing. This creature has no cast type and cannot cast.")
+                print("Did nothing. This creature has no cast \
+                        type and cannot cast.")
+                command_result = "Did nothing. This creature has \
+                        no cast type and cannot cast."
         else:
-            print("The creature you are attempting to make a cast from does not exist.")
+            print("The creature you are attempting to make a cast \
+                    from does not exist.")
+            command_result = "The creature you are attempting \
+                    to make a cast from does not exist."
                             
     elif command == "weapon":
         '''This should do bonuses too
@@ -607,6 +629,9 @@ def parse_command(command_to_parse, args_to_parse):
             json.dump(dictify(cacheTable),f)
     else: 
         print('incorrect command')
+        command_result = 'incorrect command was entered. Try again?'
+
+    return command_result
 
 def run_assistant():
     running = True
@@ -615,10 +640,8 @@ def run_assistant():
         try:
             removeDown()
             getState()
-            args = input("Command?").split(" ")
-            command = args[0]
-            
-            parse_command(command, args)
+            command_input_string = input("Command?")
+            parse_command(command_input_string)
 
         except Exception:
             print("oneechan makes awkward-sounding noises at you, enter the 'exit' command to exit.")

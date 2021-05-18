@@ -1,12 +1,10 @@
+# README.dm
 
-
-
-
-Instructions:
+## TL;DR Instructions:
 
     python3 basic.py
 
-Code Prep:
+## Code Prep:
 
 0. Read this whole page.
 
@@ -24,7 +22,7 @@ Code Prep:
 
     cd 5e-dm-assistant
 
-Virtual Environment Prep (if you want [venv](https://bfy.tw/Qwyh) goodness):
+6. Virtual Environment Prep (if you want [venv](https://bfy.tw/Qwyh) goodness):
 
     #LINUX
     python3 -m venv dm-env
@@ -43,7 +41,17 @@ that you've already done this preparatory step. If you get a lot of errors,
 try just deleting your -env folders and remaking the environment,
 or ignoring the whole `venv` thing and any activation of it entirely.
 
-Web App Instructions for using the functionality in `web_app.py`:
+## CLI Instructions
+
+To run the app interactively in a terminal, just invoke it through that terminal.
+
+    python3 basic.py
+
+You'll then get prompted for a command, and shown the characters in play.
+
+## Web App Instructions
+
+These are the Web App Instructions for using the functionality in `web_app.py`.
 
 Step 1: Run the Web App in the background.
 
@@ -51,11 +59,34 @@ Step 1: Run the Web App in the background.
     pip install -r requirements.txt
     python3 web_app.py
 
+NOTE: You can also run it with the following `gunicorn`
+invocation: 
+
+    source dm-env/bin/activate
+    pip install -r requirements.txt
+    gunicorn -w 1 -t 0 --reload web_app:dmapp
+
+You might not get all of the logs, though. Not sure why.
+
 Step 2: Open a browser and visit the new page
 
 [DM Assistant Web Page at http://127.0.0.1:8000/](http://127.0.0.1:8000/)
 
 There, you can try entering updates and see them appear in the update log.
+
+NOTE: You can also run it from `ngrok`:
+
+    ngrok http 8000
+
+If successful, it will display a URL like 
+`https://8feeb7deadff.ngrok.io` that anybody
+can visit. If you want it less stupid-looking
+you can pay for an account. Worth it if
+it helps you impress people who can pay you, I
+guess.
+
+But before you do that, you have to download ngrok, 
+sign up at ngrok.com, and get a free auth token.
 
 Example usage for the basic.py CLI:
 
@@ -80,8 +111,28 @@ Example usage for the basic.py CLI:
 
 Example usage for the Web Application: 
 
-    (dmslave-env) 5e-dm-assistant1[main !?]$ python web_app.py 
-    2021-05-17 18:27:14,604 itty3 INFO itty3 1.1.1: Now serving requests at http://127.0.0.1:8000...
-    2021-05-17 18:27:17,235 itty3 INFO "GET / HTTP/1.1" 200
-    2021-05-17 18:27:28,366 itty3 INFO "POST /update_cmd/ HTTP/1.1" 302
-    2021-05-17 18:27:28,569 itty3 INFO "GET / HTTP/1.1" 200
+    5e-dm-assistant[main !?]$ source dm-env/bin/activate
+    (dm-env) 5e-dm-assistant1[develop-nathan !?]$ python3 web_app.py 
+    2021-05-18 00:50:30,958 itty3 INFO itty3 1.1.1: Now serving requests at http://127.0.0.1:8000...
+    initiative name type hp/max_hp
+    22 giant-rat giant-rat 3/3
+    16 rat rat 1/1
+    12 sahuagin#1 sahuagin 11/11
+    9 goblin goblin 9/9
+    3 druid druid 23/23
+    2021-05-18 00:50:34,180 itty3 INFO ['22 giant-rat giant-rat 3/3', '16 rat rat 1/1', '12 sahuagin#1 sahuagin 11/11', '9 goblin goblin 9/9', '3 druid druid 23/23']
+    2021-05-18 00:50:34,181 itty3 INFO <li>22 giant-rat giant-rat 3/3</li><li>16 rat rat 1/1</li><li>12 sahuagin#1 sahuagin 11/11</li><li>9 goblin goblin 9/9</li><li>3 druid druid 23/23</li>
+    2021-05-18 00:50:34,181 itty3 INFO "GET / HTTP/1.1" 200
+    2021-05-18 01:02:01,021 itty3 INFO Command List is as follows: action giant-rat Bite goblin
+    1d20
+    1d4+2
+    2021-05-18 01:02:01,021 itty3 INFO "POST /update_cmd/ HTTP/1.1" 302
+    initiative name type hp/max_hp
+    22 giant-rat giant-rat 3/3
+    16 rat rat 1/1
+    12 sahuagin#1 sahuagin 11/11
+    9 goblin goblin 6/9
+    3 druid druid 23/23
+    2021-05-18 01:02:01,222 itty3 INFO ['22 giant-rat giant-rat 3/3', '16 rat rat 1/1', '12 sahuagin#1 sahuagin 11/11', '9 goblin goblin 6/9', '3 druid druid 23/23']
+    2021-05-18 01:02:01,222 itty3 INFO <li>22 giant-rat giant-rat 3/3</li><li>16 rat rat 1/1</li><li>12 sahuagin#1 sahuagin 11/11</li><li>9 goblin goblin 6/9</li><li>3 druid druid 23/23</li>
+    2021-05-18 01:02:01,222 itty3 INFO "GET / HTTP/1.1" 200

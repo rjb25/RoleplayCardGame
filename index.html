@@ -37,6 +37,16 @@
             <h3>Last Output:</h3>
         </header>
 
+        <content>
+            <ul>
+                <!--
+                   This will get replaced and a list with some kind of formatting
+		   will, as in the previous list, get stuck in here by replacing
+		   the battle_state_content that is in {{}}. 
+                -->
+                {{ battle_state_content }}
+            </ul>
+
             <p>
                 <form method="post" action="/update_cmd/">
 			<label for="id_update_cmd">Enter your DM Update Here <p> (e.g. action sahuagin Multiattack druid):</label>
