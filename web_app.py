@@ -1,5 +1,6 @@
 import json # Yes, we're using this instead of a DB. I know.
 import itty3 # Should be installed already, as indicated by requirements.txt, https://itty3.readthedocs.io
+import basic # This is how we'll reference the functions of the main game logic
 
 dmapp = itty3.App() # Object creation function for itty3
 
