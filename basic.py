@@ -13,6 +13,7 @@ import pprint
 import tkinter as tk
 import argparse
 import re
+import shlex
 
 def geti(list, index, default_value):
     try:
@@ -260,8 +261,9 @@ def statMod(stat):
 
 
 def applyAction(senderJson,targetInfo,actionKey):
-    targetJson = battleTable[targetInfo[0]]
-    advantage = int(geti(targetInfo,1,0))
+    targetSplit = targetInfo.split(".")
+    targetJson = battleTable[targetSplit[0]]
+    advantage = 0#int(geti(targetSplit,1,0))
     action_result = ''
     actions = senderJson.get("actions")
     action = False
@@ -306,29 +308,6 @@ def command_parse(input_command_string):
     if input_command_string == "vomit":
         print ("ewwwww")
         
-def callAction(sender, actionKey, targetInfo):
-    senderJson = battleTable[sender]
-    actions = senderJson.get("actions")
-    action_result = ''
-    if actions:
-        if actionKey == "Multiattack":
-            canMultiAttack = False
-            multiAction = {}
-            for act in actions:
-                if act["name"] == actionKey:
-                    multiAction = act
-                    canMultiAttack = True
-            if canMultiAttack:
-                for i in range(int(multiAction["options"]["choose"])):
-                    for action in random.choice(multiAction["options"]["from"]):
-                        applyAction(senderJson,targetInfo,action["name"])
-            else:
-                print("This combatant cannot multiattack")
-                action_result = 'This combatant cannot use ' + actionKey
-        else:
-            applyAction(senderJson,targetInfo,actionKey)
-    return action_result
-
 def applyInit(combatant):
     combatant["initiative"] = statMod(combatant["dexterity"]) + roll("1d20")
 
@@ -426,52 +405,62 @@ def callCast(sender, attackPath, target, level):
         elif successMult != 0:
             applyDamage(targetJson,successMult*roll(dmgString),attackJson["damage"]["damage_type"])
 
-def removeDown():
+def removeDown(a):
     for nick, combatant in battleTable.copy().items():
         if combatant["current_hp"] <= 0:
-            battleTable.pop(nick)
-            battleOrder.remove(nick)
+            remove({"target": nick})
 
-def callRequest(steps):
+def callRequest(a):
+    steps = a["path"]
     pprint.pprint(dictify(getJsonFromApi(steps,False)), sort_dicts=False)
 
-def parse_command(command_string_to_parse):
+def remove(a):
+    nick = a["target"]
+    battleTable.pop(nick)
+    battleOrder.remove(nick)
+    return "removed " + nick
 
-    args = command_string_to_parse.split(" ")
-    command = args[0]
+def callAction(a):
+    actionKey = a["do"]
+    sender = a["sender"]
+    targetInfo = a["target"]
+    senderJson = battleTable[sender]
+    actions = senderJson.get("actions")
+    action_result = ''
+    if actions:
+        if actionKey == "Multiattack":
+            canMultiAttack = False
+            multiAction = {}
+            for act in actions:
+                if act["name"] == actionKey:
+                    multiAction = act
+                    canMultiAttack = True
+            if canMultiAttack:
+                for i in range(int(multiAction["options"]["choose"])):
+                    for action in random.choice(multiAction["options"]["from"]):
+                        applyAction(senderJson,targetInfo,action["name"])
+            else:
+                print("This combatant cannot multiattack")
+                action_result = 'This combatant cannot use ' + actionKey
+        else:
+            applyAction(senderJson,targetInfo,actionKey)
+    return action_result
 
-    command_result = ''
+def followPath(a):
+    steps = a["path"]
+    diff = a.get("change")
+    command = a["command"]
+    target = a["target"]
+    battle = battleTable
+    
+    finalStep = False
+    if steps:
+        finalStep = geti(steps,len(steps)-1,False)
 
-    if command == "action":
-        sender = args[1]
-        actionKey = args[2]
-        targetInfos = args[3].split(",")
-        times = geti(args, 4, 1)
-
-        for time in range(times):
-            for targetInfo in targetInfos:
-                command_result = callAction(sender, 
-                        actionKey, 
-                        targetInfo.split("."))
-
-    elif command == "request":
-        callRequest(args[1].split(","))
-
-    elif command == "init" or command == "initiative":
-        try:
-            who = args[1]
-        except:
-            who = "all"
-        callInit(who)
-
-    elif command == "auto":
-        print("attempting auto")
-
-    elif command == "mod" or command == "set" or command == "list" or command == "listkeys":
-        steps = args[1].split(",")
-        diff = geti(args, 2, False)
-        battle = battleTable.copy()
-        
+    if not finalStep:
+        finalStep = target
+    else:
+        battle = battle[target]
         for i,key in enumerate(steps):
             if i < len(steps)-1:
                 if key.isnumeric():
@@ -479,169 +468,259 @@ def parse_command(command_string_to_parse):
                 else:
                     battle = battle[key]
 
-        finalStep = steps[len(steps)-1]
-        if command == "mod":
-            battle[finalStep] += int(diff)
-        elif command == "set":
-            battle[finalStep] = int(diff)
-        elif command == "list":
-            pprint.pprint(dictify(battle[finalStep]), sort_dicts=False)
-        elif command == "listkeys":
-            string = ""
-            for key, val in battle[finalStep].items():
-                string += key + ","
-            string[:-1]
-            print(string)
+    if finalStep.isnumeric():
+        finalStep = int(finalStep)
 
+    if command == "mod":
+        battle[finalStep] += int(diff)
+    elif command == "set":
+        battle[finalStep] = int(diff)
+    elif command == "list":
+        pprint.pprint(dictify(battle[finalStep]), sort_dicts=False)
+    elif command == "listkeys":
+        string = ""
+        for key, val in battle[finalStep].items():
+            string += key + ","
+        string[:-1]
+        print(string)
 
-    elif command == "cast":
-        sender = args[1]
-        senderJson = battleTable.get(sender)
-        actionKey = args[2]
-        targetInfos = args[3].split(",")
-        level = geti(args,4,-1)
-        times = int(geti(args, 5, 1))
-        if senderJson:
-            if canCast(senderJson):
-                for time in range(times):
-                    for targetInfo in targetInfos:
-                        callCast(sender, actionKey, targetInfo, level)
-            else:
-                print("Did nothing. This creature has no cast \
-                        type and cannot cast.")
-                command_result = "Did nothing. This creature has \
-                        no cast type and cannot cast."
+def populateParserArguments(command,parser,has):
+    parser.add_argument("--times", "-n", help='How many times to run the command',type=int, default=1)
+
+    if has.get("sender"):
+        parser.add_argument("--sender", "-s", required=True, help='sender/s for command', nargs='+')
+        parser.add_argument("--do", "-d", required=True, help='What the sender is using on the target')
+
+    if has.get("path"):
+        parser.add_argument("--path", "-p", nargs='+',help='Path for json or api parsing with command. Space seperated like:\n -p equipment greatsword\nor -p sahuagin actions\nfinally for health changes it would be -p sahuagin current_hp 5')
+        if has.get("change"):
+            parser.add_argument("--change", "-c", required=True, help='What you like to set or modify a number by')
+
+    if has.get("target"):
+        parser.add_argument("--target", "-t", required=True, help='Target/s for command', nargs='+')
+
+def parse_command(command_string_to_parse):
+    args = command_string_to_parse.split(" ")
+    command = args[0]
+
+    parser = argparse.ArgumentParser(prog=command,description='Dnd dm assistant')
+    hasSender = ["action","weapon","cast"]
+    hasPath = ["request","add","mod","set","list","listkeys"]
+    hasChange = ["mod","set"]
+    hasTarget = ["init","initiative","remove"] + hasSender + hasPath
+    has = {"sender" : hasSender, "path" : hasPath, "target" : hasTarget, "change" : hasChange}
+
+    for key, hasList in has.items():
+        if hasList.count(command) > 0:
+            has[key] = True
         else:
-            print("The creature you are attempting to make a cast \
-                    from does not exist.")
-            command_result = "The creature you are attempting \
-                    to make a cast from does not exist."
-                            
-    elif command == "weapon":
-        '''This should do bonuses too
-        Looks at the strength of the sender
-        then applies the strength of the sender
-        to the hit roll of the weapon.'''
-        sender = args[1]
-        attackPath = args[2]
-        target = args[3]
-        times = int(geti(args, 4, 1))
-        attackJson = getJson(["equipment",attackPath])
-        targetJson = battleTable[target]
-        senderJson = battleTable[sender]
-        if attackJson:
-            for x in range(times):
-                hit = roll("1d20")
-                hit += getMod("hit",attackJson,senderJson)
-                print("hit",hit)
-                if hit >= targetJson["armor_class"]:
-                    hurt = roll(attackJson["damage"]["damage_dice"]+"+"+str(getMod("dmg",attackJson,senderJson)))
-                    applyDamage(targetJson,hurt,attackJson["damage"]["damage_type"])
-    
-    elif command == "add":
-        name = args[1]
-        combatant = getJson(["monsters",name])
+            has[key] = False
 
-        nick = geti(args,2,"")
-        if nick == "":
-            nick = combatant["index"]
+    populateParserArguments(command,parser,has)
+    entryString = " ".join(args[1:])
+    entries = shlex.split(entryString)
+    #parameters
+    a = parser.parse_args(entries)
 
-        nickPair = nick.split("#")
-        nickName = geti(nickPair,0,"")
-        nickNumber = int(geti(nickPair,1,1))
-        findingAvailableNick = True
-        while findingAvailableNick:
-            findingAvailableNick = False
-            for existingNick,existingCombatant in battleTable.items():
-                if existingNick == nick:
-                    nick = nickName + "#" + str(nickNumber)
-                    nickNumber += 1 
-                    findingAvailableNick = True
-        
-        if combatant:
-            hitDice = combatant.get("hit_dice")
-            hitPoints = combatant.get("hit_points")
-            if hitDice:
-                hp = roll(hitDice)
-                combatant["max_hp"] = hp
-                combatant["current_hp"] = hp
-                
-            elif hitPoints:
-                combatant["max_hp"] = hitPoints
-                combatant["current_hp"] = hitPoints
-        
-            applyInit(combatant)
-            battleTable[nick] = combatant
-            callInit(nick)
-                            
-    elif command == "remove":
-            nick = args[1]
-            battleTable.pop(nick)
-            battleOrder.remove(nick)
-            
-    elif command == "save":
-        with open('battle.json', 'w') as f:
-            json.dump(dictify(battleTable),f)       
-        
-    elif command == "exit":
-        with open('battle.json', 'w') as f:
-            json.dump(dictify(battleTable),f)
-        running = False
+    command_result = ''
+    times = a.times
+    funcDict = {
+    "action" : callAction,
+    "remove" : remove,
+    "request" : callRequest,
+    "set" : followPath,
+    "mod" : followPath,
+    "list" : followPath,
+    "listkeys" : followPath
 
-    elif command == "abort":
-        running = False
+            }
 
-    elif command == "log":
-        log(args[1])
 
-    elif command == "state":
-        setState(args[1])
+    if not has["sender"]:
+        a.sender = ["none"]
 
-    elif command == "windowLog":
-        windowLog()
+    if not has["target"]:
+        a.target = ["none"]
 
-    elif command == "windowState":
-        windowState()
+    argDictMain = vars(a)
+    argDictMain["command"] = command
+    argDictCopy = argDictMain.copy()
 
-    elif command == "character":
-        name = input("Name?")
-
-        monsterCache = cacheTable["monsters"][name]
-        monsterCache["index"] = name
-        monsterCache["strength"] = int(input("str?"))
-        monsterCache["dexterity"] = int(input("dex?"))
-        monsterCache["constitution"] = int(input("con?"))
-        monsterCache["intelligence"] = int(input("int?"))
-        monsterCache["wisdom"] = int(input("wis?"))
-        monsterCache["charisma"] = int(input("cha?"))
-        monsterCache["special_abilities"] = []
-        monsterCache["special_abilities"].append({"spellcasting": {"ability": {"index" : input("caster stat? (eg. int)")}}})
-        monsterCache["weapon_proficiencies"] = input("Weapon proficiencies? (eg simple,martial)")
-        monsterCache["max_hp"] = int(input("Max Hp?"))
-        monsterCache["current_hp"] = int(monsterCache["max_hp"])
-        monsterCache["armor_class"] = int(input("Armor Class?"))
-        spellcasting = canCast(monsterCache)
-        level = int(input("Level?"))
-        spellcasting["level"] = level
-        monsterCache["proficiency_bonus"] = crToProf(level)
-        
-        with open('data.json', 'w') as f:
-            json.dump(dictify(cacheTable),f)
-    else: 
-        print('incorrect command')
-        command_result = 'incorrect command was entered. Try again?'
+    for time in range(times):
+        for sender in argDictMain["sender"]:
+            argDictCopy["sender"] = sender
+            for target in argDictMain["target"]:
+                argDictCopy["target"] = target
+                if command in funcDict:
+                    if battleTable.get(target):
+                        command_result += str(funcDict[command](argDictCopy))
+                        command_result += "ignored an invalid target"
+                        print('ignored an invalid target')
+                else:
+                    print('incorrect command')
+                    command_result += 'incorrect command was entered. Try again?'
 
     return command_result
+
+'''
+if command == "request":
+    callRequest(a.steps)
+
+elif command == "init" or command == "initiative":
+    try:
+        who = args[1]
+    except:
+        who = "all"
+    callInit(who)
+
+elif command == "auto":
+    print("attempting auto")
+
+
+
+elif command == "cast":
+    sender = args[1]
+    senderJson = battleTable.get(sender)
+    actionKey = args[2]
+    targetInfos = args[3].split(",")
+    level = geti(args,4,-1)
+    times = int(geti(args, 5, 1))
+    if senderJson:
+        if canCast(senderJson):
+            for time in range(times):
+                for targetInfo in targetInfos:
+                    callCast(sender, actionKey, targetInfo, level)
+        else:
+            print("Did nothing. This creature has no cast \
+                    type and cannot cast.")
+            command_result += "Did nothing. This creature has \
+                    no cast type and cannot cast."
+    else:
+        print("The creature you are attempting to make a cast \
+                from does not exist.")
+        command_result += "The creature you are attempting \
+                to make a cast from does not exist."
+                        
+elif command == "weapon":
+    sender = args[1]
+    attackPath = args[2]
+    target = args[3]
+    times = int(geti(args, 4, 1))
+    attackJson = getJson(["equipment",attackPath])
+    targetJson = battleTable[target]
+    senderJson = battleTable[sender]
+    if attackJson:
+        for x in range(times):
+            hit = roll("1d20")
+            hit += getMod("hit",attackJson,senderJson)
+            print("hit",hit)
+            if hit >= targetJson["armor_class"]:
+                hurt = roll(attackJson["damage"]["damage_dice"]+"+"+str(getMod("dmg",attackJson,senderJson)))
+                applyDamage(targetJson,hurt,attackJson["damage"]["damage_type"])
+
+elif command == "add":
+    name = args[1]
+    combatant = getJson(["monsters",name])
+
+    nick = geti(args,2,"")
+    if nick == "":
+        nick = combatant["index"]
+
+    nickPair = nick.split("#")
+    nickName = geti(nickPair,0,"")
+    nickNumber = int(geti(nickPair,1,1))
+    findingAvailableNick = True
+    while findingAvailableNick:
+        findingAvailableNick = False
+        for existingNick,existingCombatant in battleTable.items():
+            if existingNick == nick:
+                nick = nickName + "#" + str(nickNumber)
+                nickNumber += 1 
+                findingAvailableNick = True
+    
+    if combatant:
+        hitDice = combatant.get("hit_dice")
+        hitPoints = combatant.get("hit_points")
+        if hitDice:
+            hp = roll(hitDice)
+            combatant["max_hp"] = hp
+            combatant["current_hp"] = hp
+            
+        elif hitPoints:
+            combatant["max_hp"] = hitPoints
+            combatant["current_hp"] = hitPoints
+    
+        applyInit(combatant)
+        battleTable[nick] = combatant
+        callInit(nick)
+                        
+elif command == "remove":
+        
+elif command == "save":
+    with open('battle.json', 'w') as f:
+        json.dump(dictify(battleTable),f)       
+    
+elif command == "exit":
+    with open('battle.json', 'w') as f:
+        json.dump(dictify(battleTable),f)
+    running = False
+
+elif command == "abort":
+    running = False
+
+elif command == "log":
+    log(args[1])
+
+elif command == "state":
+    setState(args[1])
+
+elif command == "windowLog":
+    windowLog()
+
+elif command == "windowState":
+    windowState()
+
+elif command == "character":
+    name = input("Name?")
+
+    monsterCache = cacheTable["monsters"][name]
+    monsterCache["index"] = name
+    monsterCache["strength"] = int(input("str?"))
+    monsterCache["dexterity"] = int(input("dex?"))
+    monsterCache["constitution"] = int(input("con?"))
+    monsterCache["intelligence"] = int(input("int?"))
+    monsterCache["wisdom"] = int(input("wis?"))
+    monsterCache["charisma"] = int(input("cha?"))
+    monsterCache["special_abilities"] = []
+    monsterCache["special_abilities"].append({"spellcasting": {"ability": {"index" : input("caster stat? (eg. int)")}}})
+    monsterCache["weapon_proficiencies"] = input("Weapon proficiencies? (eg simple,martial)")
+    monsterCache["max_hp"] = int(input("Max Hp?"))
+    monsterCache["current_hp"] = int(monsterCache["max_hp"])
+    monsterCache["armor_class"] = int(input("Armor Class?"))
+    spellcasting = canCast(monsterCache)
+    level = int(input("Level?"))
+    spellcasting["level"] = level
+    monsterCache["proficiency_bonus"] = crToProf(level)
+    
+    with open('data.json', 'w') as f:
+        json.dump(dictify(cacheTable),f)
+else: 
+    print('incorrect command')
+    command_result += 'incorrect command was entered. Try again?'
+'''
+
 
 def run_assistant():
     running = True
     setBattleOrder()
     while running:
         try:
-            removeDown()
+            #removeDown()
             getState()
             command_input_string = input("Command?")
             parse_command(command_input_string)
+        except SystemExit:
+            print("")
 
         except Exception:
             print("oneechan makes awkward-sounding noises at you, enter the 'exit' command to exit.")
