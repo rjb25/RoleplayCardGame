@@ -564,7 +564,27 @@ def parse_command(command_string_to_parse):
     args = command_string_to_parse.split(" ")
     command = args[0]
 
-    parser = argparse.ArgumentParser(prog=command,description='Dnd dm assistant', formatter_class=argparse.RawTextHelpFormatter)
+    command_descriptions_dict = {
+    "action" : 'Do a generic action.',
+    "weapon" : 'Use a weapon.',
+    "cast" : 'Cast a spell.',
+    "remove" : 'Remove an item.',
+    "request" : 'Make a request.',
+    "set" : 'Set some aspect of the character or other item.',
+    "mod" : 'Create a modifier.',
+    "list" : 'List the features of an item.',
+    "listkeys" : 'List the keys for an item.',
+    "add" : 'Add a creature.',
+    "init" : 'Roll for initiative.',
+    "initiative" : 'Roll for initiative.',
+    "character" : 'Add a character',
+    }
+
+    parser = argparse.ArgumentParser(
+            prog=command,
+            description=geti(command_descriptions_dict,command,'Dnd DM Assistant Command Updates Game State'),
+            formatter_class=argparse.RawTextHelpFormatter
+            )
 
     has = {
     "sender" : ["action","weapon","cast"],
