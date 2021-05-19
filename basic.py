@@ -544,7 +544,7 @@ def populateParserArguments(command,parser,has):
     if has.get("path"):
         parser.add_argument("--path", "-p", nargs='+',help='Path for json or api parsing with command. Space seperated like:\n-p equipment greatsword\n-p actions\nmod -t sahuagin -p current_hp -c 5')
         if has.get("change"):
-            parser.add_argument("--change", "-c", required=True, help='What you like to set or modify a number by')
+            parser.add_argument("--change", "-c", required=True, help='What you would like to set or modify a number by')
 
     if has.get("level"):
         parser.add_argument("--level", "-l", type=int, help='Level to cast a spell at')
@@ -559,6 +559,13 @@ def populateParserArguments(command,parser,has):
         parser.add_argument("--identity", "-i", help='Identities for added monsters. Example:\nadd -t sahuagin kobold goblin -i sahy koby -n 2\nThe above adds 6 new creatures. 2 creature types have nicknames, the other type "goblin" does not have a nick name.', nargs='+')
     if has.get("advantage"):
         parser.add_argument("--advantage", "-a", type=int, help='Advantage for attacks', nargs='+')
+
+class ArgumentParser(argparse.ArgumentParser):
+    def error(self, message):
+        print(self.format_help())
+        self.exit(2, '%s: error: %s\n' % (self.prog,message))
+    def print_help(self, file=None):
+        print(self.format_help())
 
 def parse_command(command_string_to_parse):
     args = command_string_to_parse.split(" ")
@@ -579,8 +586,8 @@ def parse_command(command_string_to_parse):
     "initiative" : 'Roll for initiative.',
     "character" : 'Add a character',
     }
-
-    parser = argparse.ArgumentParser(
+    
+    parser = ArgumentParser(
             prog=command,
             description=geti(command_descriptions_dict,command,'Dnd DM Assistant Command Updates Game State'),
             formatter_class=argparse.RawTextHelpFormatter
@@ -688,7 +695,7 @@ def run_assistant():
     setBattleOrder()
     while running:
         try:
-            #removeDown()
+            removeDown()
             getState()
             command_input_string = input("Command?")
             running = parse_command(command_input_string)
