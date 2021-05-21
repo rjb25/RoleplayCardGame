@@ -136,3 +136,30 @@ Example usage for the Web Application:
     2021-05-18 01:02:01,222 itty3 INFO ['22 giant-rat giant-rat 3/3', '16 rat rat 1/1', '12 sahuagin#1 sahuagin 11/11', '9 goblin goblin 6/9', '3 druid druid 23/23']
     2021-05-18 01:02:01,222 itty3 INFO <li>22 giant-rat giant-rat 3/3</li><li>16 rat rat 1/1</li><li>12 sahuagin#1 sahuagin 11/11</li><li>9 goblin goblin 6/9</li><li>3 druid druid 23/23</li>
     2021-05-18 01:02:01,222 itty3 INFO "GET / HTTP/1.1" 200
+
+
+## Vagrant Instructions
+
+If you want to use Vagrant as a virtual development environment,
+you can download it, and Virtualbox, from vagrantup.com
+and virtualbox.org, respectively.
+
+After you've installed them, simply navigate to the root of this
+repo using the `cd` command in a terminal, and run the following: 
+
+    vagrant up # Wait for a while, here.
+    vagrant ssh # Your prompt should change.
+    cd /vagrant
+    ls # You should see all of the files from this repo here.
+    python3 -m venv dm-env-vagrant
+    source dm-env-vagrant/bin/activate
+    pip install -r requirements.txt
+    python3 web_app.py # or python3 basic.py
+
+You can use `curl` to interact with the server at 127.0.0.1:8000
+or use the CLI as usual and documented in earlier instruction
+sections.
+
+Or, if you [update the host address for the server](https://itty3.readthedocs.io/en/latest/troubleshooting.html#my-server-isn-t-responding-to-traffic), 
+you can navigate to http://192.168.33.10:8000/ to see the page
+in your browser.
