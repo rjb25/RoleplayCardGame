@@ -31,6 +31,7 @@ def index(request):
 
     content = ''
     battle_state_content = ''
+    last_roll_content = ''
 
     # Make the list that we'll be pushing in later and replacing
     # {{ content }} with.
@@ -56,6 +57,14 @@ def index(request):
 
     # Find and replace "{{ battle_state_content }}" in the HTML with our new update
     template = template.replace('{{ battle_state_content }}', battle_state_content)
+
+    # Show the last Roll Result
+
+    for offset, item in enumerate(data.get("rolls", [])):
+        last_roll_content = '<li>{}</li>'.format(item)
+
+    # Find and replace "{{ last_roll_content }}" in the HTML with our new update
+    template = template.replace('{{ last_roll_content }}', last_roll_content)
 
     # Build and render an HttpResponse object including our content
     # and various boilerplate things like headers
@@ -103,6 +112,37 @@ def append_update_cmd(request):
 
     # For a single-page application like this, we should
     # usually re-route back to the main index page, typically at "/".
+    return dmapp.redirect(request, "/")
+
+@dmapp.post("/roll/")
+def roll(request):
+    '''Roll dice or something
+
+    You can invoke it by adding web links to an HTML page
+    that refer to /roll/.
+
+    Inputs expected are the type and number of dice.
+
+    Outputs will be the results, in a list or dict of
+    integers.
+    '''
+
+    dice_string = request.POST.get("dice_string", "1d20").strip()
+    LOGGER.info('dice_string indicating the dice to roll is: ' + str(dice_string))
+
+    # Load JSON web_data.json
+    with open("web_data.json") as data_file:
+        data = json.load(data_file)
+
+    # Roll the dice
+    roll_result = basic.roll(dice_string)
+    LOGGER.info('Roll result is: ' + str(roll_result))
+
+    # Update rolls
+    data["rolls"].append(roll_result)
+    with open("web_data.json", "w") as data_file:
+        json.dump(data, data_file, indent=4)
+
     return dmapp.redirect(request, "/")
 
 # This just makes sure that we can still import this as 
