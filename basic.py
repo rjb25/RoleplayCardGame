@@ -1,3 +1,4 @@
+import sys
 import requests
 import json
 from fractions import Fraction
@@ -94,22 +95,34 @@ def getState():
             state_result.append(str(x["initiative"]) + ' ' + nick + ' ' + str(x["index"]) + ' ' + str(x["current_hp"]) + "/" + str(x["max_hp"]))
         return state_result
 
-def roll(dice):
-    print(dice)
-    dsplit = dice.split("d")
+def roll(dice_string):
+    '''
+    # PRECONDITIONS #
+    Input: String with dice number, type, and modifier, e.g. 3d20+1
+
+    Example Input: '1d20'
+    Another Example Input: '1d4+2'
+    Side Effects/State: None
+
+    # POSTCONDITIONS #
+    Return: Integer returned, representing the dice roll result
+    Side Effects/State: None
+    '''
+    print(dice_string)
+    dsplit = dice_string.split("d")
     usesDice = len(dsplit)>1
     sum = 0
     diceMod = 0
     if usesDice:
         remaining = dsplit[1].split("+")
-        if "+" in dice:
+        if "+" in dice_string:
             diceMod = float(remaining[1])
         diceCount = int(dsplit[0])
         diceType = float(remaining[0])
         for x in range(diceCount):
             sum += math.ceil(diceType*random.random())
     else:
-        sum = int(dice)
+        sum = int(dice_string)
     
     return int(sum + diceMod)
 
@@ -286,8 +299,8 @@ def command_parse(input_command_string):
     if input_command_string == "vomit":
         print ("ewwwww")
         
-def applyInit(a):
-    who = a["target"]
+def applyInit(participant):
+    who = participant["target"]
     combatant = battleTable[who]
     combatant["initiative"] = statMod(combatant["dexterity"]) + roll("1d20")
 
@@ -393,7 +406,7 @@ def callCast(a):
         elif successMult != 0:
             applyDamage(targetJson,successMult*roll(dmgString),attackJson["damage"]["damage_type"])
 
-def removeDown(a):
+def removeDown(a=''):
     for nick, combatant in battleTable.copy().items():
         if combatant["current_hp"] <= 0:
             remove({"target": nick})
@@ -692,6 +705,7 @@ def parse_command(command_string_to_parse):
 
 def run_assistant():
     running = True
+    error_count = 0 # Detect error spam
     setBattleOrder()
     while running:
         try:
@@ -700,12 +714,22 @@ def run_assistant():
             command_input_string = input("Command?")
             running = parse_command(command_input_string)
         except SystemExit:
-            print("")
+            print("System Exited, running != True")
 
         except Exception:
             print("oneechan makes awkward-sounding noises at you, enter the 'exit' command to exit.")
             traceback.print_exc()
             running = True
+
+            # Error Spam Prevention #
+            error_count = error_count + 1
+            if error_count >= 10:
+                error_spam_prompt = input('Error count has reached 10. \n Program will now exit. \n But you can enter "continue" if you still \n want to keep this up? ->')
+                if error_spam_prompt.lower() != 'continue':
+                    running = False # Brute force error spam prevention
+                    sys.exit('Exit due to error Spam')
+                else:
+                    error_count = 0
 
 if __name__ == "__main__":
     run_assistant()

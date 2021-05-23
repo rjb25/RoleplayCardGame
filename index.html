@@ -46,6 +46,21 @@
                 -->
                 {{ battle_state_content }}
             </ul>
+	    <p>
+
+        <header>
+            <h3>Last Roll:</h3>
+        </header>
+
+        <content>
+            <ul>
+                <!--
+                   This will get replaced and a list with some kind of formatting
+		   will, as in the previous list, get stuck in here by replacing
+		   the battle_state_content that is in {{}}. 
+                -->
+                {{ last_roll_content }}
+            </ul>
 
             <p>
                 <form method="post" action="/update_cmd/">
@@ -54,6 +69,15 @@
                     <input type="submit" value="Update Command">
                 </form>
             </p>
+
+            <p>
+                <form method="post" action="/roll/">
+			<label for="id_dice_roll">Enter dice to roll: <p> (e.g. 2d20+1 or 1d4)</label>
+                    <input type="text" id="id_dice_roll" name="dice_string">
+                    <input type="submit" value="Roll">
+                </form>
+            </p>
+
         </content>
 
         <content>
