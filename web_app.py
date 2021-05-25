@@ -163,4 +163,9 @@ if __name__ == "__main__":
 
     # This runs the app. This won't be run if
     # web_app gets imported.
-    dmapp.run()
+    dmapp.run(addr="0.0.0.0",
+        port=8000,
+        debug=None,
+        static_url_path=None,
+        static_root=None,
+    )

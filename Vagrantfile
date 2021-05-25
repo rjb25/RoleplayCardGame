@@ -12,7 +12,7 @@ Vagrant.configure("2") do |config|
 
   # Every Vagrant development environment requires a box. You can search for
   # boxes at https://vagrantcloud.com/search.
-  config.vm.box = "bento/centos-8"
+  config.vm.box = "ubuntu/focal64"
 
   # Disable automatic box update checking. If you disable this, then
   # boxes will only be checked for updates when the user runs
@@ -43,7 +43,8 @@ Vagrant.configure("2") do |config|
   # the path on the host to the actual folder. The second argument is
   # the path on the guest to mount the folder. And the optional third
   # argument is a set of non-required options.
-  # config.vm.synced_folder "../data", "/vagrant_data"
+  # config.vm.synced_folder "./data", "/vagrant_data"
+  # config.vm.synced_folder ".", "/vagrant"
 
   # Provider-specific configuration so you can fine-tune various
   # backing providers for Vagrant. These expose provider-specific options.
@@ -64,12 +65,21 @@ Vagrant.configure("2") do |config|
   # Ansible, Chef, Docker, Puppet and Salt are also available. Please see the
   # documentation for more information about their specific syntax and use.
    config.vm.provision "shell", inline: <<-SHELL
-       dnf --quiet -y install python3 git
-       pip install --upgrade pip
-       python3 --version
-       pip3 --version
-       python --version
-       pip --version
-       git --version
+        # Install Python3 and Git
+        export DEBIAN_FRONTEND=noninteractive
+        sudo apt-get update; sudo apt-get upgrade
+        apt --quiet -y install python3 python3-pip python3-venv git
+        pip install --upgrade pip
+        python3 --version
+        pip3 --version
+        python --version
+        pip --version
+        git --version
+        # Install and Start NGinX
+        apt-get -q -y install nginx
+        cp /etc/nginx/nginx.conf /etc/nginx/nginx.conf.old
+        cp /vagrant/nginx.conf /etc/nginx/nginx.conf
+        systemctl start nginx
+        systemctl enable nginx
    SHELL
 end
