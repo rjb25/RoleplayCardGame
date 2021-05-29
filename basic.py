@@ -301,8 +301,11 @@ def command_parse(input_command_string):
         
 def applyInit(participant):
     who = participant["target"]
-    combatant = battleTable[who]
-    combatant["initiative"] = statMod(combatant["dexterity"]) + roll("1d20")
+    combatant = geti(battleTable,who,False)
+    if combatant:
+        combatant["initiative"] = statMod(combatant["dexterity"]) + roll("1d20")
+    else:
+        print("I'm sorry I couldn't find that combatant to apply init to.")
 
 def setBattleOrder():
     initiativeOrder = sorted(battleTable.items(), key=lambda x: x[1]["initiative"], reverse=True)
@@ -507,7 +510,9 @@ def addCreature(a):
                 nickNumber += 1 
                 findingAvailableNick = True
     
+    print(nick)
     if combatant:
+        pprint.pprint(dictify(combatant), sort_dicts=False)
         hitDice = combatant.get("hit_dice")
         hitPoints = combatant.get("hit_points")
         if hitDice:
@@ -519,10 +524,34 @@ def addCreature(a):
             combatant["max_hp"] = hitPoints
             combatant["current_hp"] = hitPoints
     
-        applyInit({"target" : nick})
         battleTable[nick] = combatant
+        applyInit({"target" : nick})
 
-def createCharacter(a):
+def legacyCreateCharacter(a):
+    name = input("Name?")
+    monsterCache = cacheTable["monsters"][name]
+    monsterCache["index"] = name
+    monsterCache["strength"] = int(input("str?"))
+    monsterCache["dexterity"] = int(input("dex?"))
+    monsterCache["constitution"] = int(input("con?"))
+    monsterCache["intelligence"] = int(input("int?"))
+    monsterCache["wisdom"] = int(input("wis?"))
+    monsterCache["charisma"] = int(input("cha?"))
+    monsterCache["special_abilities"] = []
+    monsterCache["special_abilities"].append({"spellcasting": {"ability": {"index" : input("caster stat? (eg. int)")}}})
+    monsterCache["weapon_proficiencies"] = input("Weapon proficiencies? (eg simple,martial)")
+    monsterCache["max_hp"] = int(input("Max Hp?"))
+    monsterCache["current_hp"] = int(monsterCache["max_hp"])
+    monsterCache["armor_class"] = int(input("Armor Class?"))
+    spellcasting = canCast(monsterCache)
+    level = int(input("Level?"))
+    spellcasting["level"] = level
+    monsterCache["proficiency_bonus"] = crToProf(level)
+    
+    with open('data.json', 'w') as f:
+        json.dump(dictify(cacheTable),f)
+
+def createCreature(a):
     name = input("Name?")
     monsterCache = cacheTable["monsters"][name]
     monsterCache["index"] = name
@@ -647,7 +676,7 @@ def parse_command(command_string_to_parse):
     "add" : addCreature,
     "init" : applyInit,
     "initiative" : applyInit,
-    "character" : createCharacter,
+    "creature" : createCreature,
     }
 
     if not has["sender"]:
