@@ -510,9 +510,7 @@ def addCreature(a):
                 nickNumber += 1 
                 findingAvailableNick = True
     
-    print(nick)
     if combatant:
-        pprint.pprint(dictify(combatant), sort_dicts=False)
         hitDice = combatant.get("hit_dice")
         hitPoints = combatant.get("hit_points")
         if hitDice:
