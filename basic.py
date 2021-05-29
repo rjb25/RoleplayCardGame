@@ -700,10 +700,10 @@ def parse_command(command_string_to_parse):
     if command == "exit":
         with open('battle.json', 'w') as f:
             json.dump(dictify(battleTable),f)
-        return False
+        return "EXIT"
 
     if command == "abort":
-        return False
+        return "EXIT"
 
     for time in range(times):
         for sender in argDictMain["sender"]:
@@ -731,29 +731,29 @@ def parse_command(command_string_to_parse):
     return command_result
 
 def run_assistant():
-    running = True
+    result = ""
     error_count = 0 # Detect error spam
     setBattleOrder()
-    while running:
+    while result != "EXIT":
         try:
             removeDown()
             getState()
             command_input_string = input("Command?")
-            running = parse_command(command_input_string)
+            result = parse_command(command_input_string)
         except SystemExit:
             print("System Exited, running != True")
 
         except Exception:
             print("oneechan makes awkward-sounding noises at you, enter the 'exit' command to exit.")
             traceback.print_exc()
-            running = True
+            result = ""
 
             # Error Spam Prevention #
             error_count = error_count + 1
             if error_count >= 10:
                 error_spam_prompt = input('Error count has reached 10. \n Program will now exit. \n But you can enter "continue" if you still \n want to keep this up? ->')
                 if error_spam_prompt.lower() != 'continue':
-                    running = False # Brute force error spam prevention
+                    result = "EXIT" # Brute force error spam prevention
                     sys.exit('Exit due to error Spam')
                 else:
                     error_count = 0
