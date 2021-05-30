@@ -600,6 +600,11 @@ def populateParserArguments(command,parser,has):
     if has.get("advantage"):
         parser.add_argument("--advantage", "-a", type=int, help='Advantage for attacks', nargs='+')
 
+def helpMessage(a):
+    for key, value in a["commandDescriptions"].items():
+        print(key, ":", value)
+    print("For more detailed help on a given *commandName* run:\n commandName --help")
+
 class ArgumentParser(argparse.ArgumentParser):
     def error(self, message):
         print(self.format_help())
@@ -624,7 +629,25 @@ def parse_command(command_string_to_parse):
     "add" : 'Add a creature.',
     "init" : 'Roll for initiative.',
     "initiative" : 'Roll for initiative.',
-    "character" : 'Add a character',
+    #"load" : 'Load a creature by file name',
+    "help" : 'Display this message',
+    }
+
+    funcDict = {
+    "action" : callAction,
+    "weapon" : callWeapon,
+    "cast" : callCast,
+    "remove" : remove,
+    "request" : callRequest,
+    "set" : followPath,
+    "mod" : followPath,
+    "list" : followPath,
+    "listkeys" : followPath,
+    "add" : addCreature,
+    "init" : applyInit,
+    "initiative" : applyInit,
+    #"load" : loadCreature,
+    "help" : helpMessage,
     }
     
     parser = ArgumentParser(
@@ -661,21 +684,6 @@ def parse_command(command_string_to_parse):
 
     command_result = ''
     times = a.times
-    funcDict = {
-    "action" : callAction,
-    "weapon" : callWeapon,
-    "cast" : callCast,
-    "remove" : remove,
-    "request" : callRequest,
-    "set" : followPath,
-    "mod" : followPath,
-    "list" : followPath,
-    "listkeys" : followPath,
-    "add" : addCreature,
-    "init" : applyInit,
-    "initiative" : applyInit,
-    "creature" : createCreature,
-    }
 
     if not has["sender"]:
         a.sender = ["none"]
@@ -687,6 +695,9 @@ def parse_command(command_string_to_parse):
         a.target = []
         for nick, combatant in battleTable.items():
             a.target.append(nick)
+
+    if command == "help":
+        a.commandDescriptions = command_descriptions_dict
 
     argDictMain = vars(a)
     argDictMain["command"] = command
@@ -704,6 +715,9 @@ def parse_command(command_string_to_parse):
 
     if command == "abort":
         return "EXIT"
+
+    
+
 
     for time in range(times):
         for sender in argDictMain["sender"]:
@@ -741,7 +755,7 @@ def run_assistant():
             command_input_string = input("Command?")
             result = parse_command(command_input_string)
         except SystemExit:
-            print("System Exited, running != True")
+            print("")#This catches argParses attempts to exit.
 
         except Exception:
             print("oneechan makes awkward-sounding noises at you, enter the 'exit' command to exit.")
