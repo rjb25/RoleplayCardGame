@@ -26,9 +26,11 @@ set laststatus=2
 set nrformats=bin,hex
 set ruler
 set scrolloff=5
+set shiftwidth=4
 set showcmd
 set showmatch
 set statusline=%f%h%m%r\ [%{&ff}]\ (%{strftime(\"%H:%M\ %d/%m/%Y\",getftime(expand(\"%:p\")))})%=%l,%c%V\ %P
+set tabstop=4
 set ttimeout
 set ttimeoutlen=100
 set visualbell
@@ -47,6 +49,9 @@ set shortmess=aoO
 argglobal
 %argdel
 $argadd basic.py
+set stal=2
+tabnew
+tabrewind
 edit basic.py
 set splitbelow splitright
 set nosplitbelow
@@ -182,60 +187,215 @@ setlocal wrap
 setlocal wrapmargin=0
 silent! normal! zE
 25,41fold
-55,70fold
-72,80fold
-82,85fold
-87,94fold
-96,109fold
-96,110fold
-111,131fold
-133,146fold
-149,160fold
-149,160fold
-162,204fold
-162,204fold
-162,205fold
-211,249fold
-211,251fold
-257,275fold
-280,295fold
-280,295fold
+56,71fold
+73,84fold
+87,90fold
+92,99fold
+101,114fold
+101,115fold
+116,136fold
+138,151fold
+154,165fold
+154,165fold
+167,209fold
+167,209fold
+167,210fold
+216,254fold
+216,256fold
+262,280fold
+285,300fold
+285,300fold
+25
+normal! zo
+56
+normal! zo
+73
+normal! zo
 87
 normal! zo
-96
+92
 normal! zo
-96
+101
 normal! zo
-111
+101
 normal! zo
-133
+116
 normal! zo
-149
+138
 normal! zo
-149
+154
 normal! zo
-162
+154
 normal! zo
-162
+167
 normal! zo
-162
+167
 normal! zo
-211
+167
 normal! zo
-211
+216
 normal! zo
-257
+216
 normal! zo
-280
+262
 normal! zo
-let s:l = 314 - ((63 * winheight(0) + 38) / 77)
+285
+normal! zo
+285
+normal! zo
+let s:l = 750 - ((65 * winheight(0) + 38) / 76)
 if s:l < 1 | let s:l = 1 | endif
 exe s:l
 normal! zt
-314
-normal! 017|
+750
+normal! 085|
+tabnext
+edit new_creature.json
+set splitbelow splitright
+set nosplitbelow
+set nosplitright
+wincmd t
+set winminheight=0
+set winheight=1
+set winminwidth=0
+set winwidth=1
+argglobal
+setlocal keymap=
+setlocal noarabic
+setlocal autoindent
+setlocal backupcopy=
+setlocal balloonexpr=
+setlocal nobinary
+setlocal nobreakindent
+setlocal breakindentopt=
+setlocal bufhidden=
+setlocal buflisted
+setlocal buftype=
+setlocal nocindent
+setlocal cinkeys=0{,0},0),0],:,0#,!^F,o,O,e
+setlocal cinoptions=
+setlocal cinwords=if,else,while,do,for,switch
+setlocal colorcolumn=
+setlocal comments=
+setlocal commentstring=
+setlocal complete=.,w,b,u,t,i
+setlocal concealcursor=
+setlocal conceallevel=0
+setlocal completefunc=
+setlocal nocopyindent
+setlocal cryptmethod=
+setlocal nocursorbind
+setlocal nocursorcolumn
+setlocal nocursorline
+setlocal cursorlineopt=both
+setlocal define=
+setlocal dictionary=
+setlocal nodiff
+setlocal equalprg=
+setlocal errorformat=
+setlocal noexpandtab
+if &filetype != 'json'
+setlocal filetype=json
+endif
+setlocal fixendofline
+setlocal foldcolumn=0
+setlocal foldenable
+setlocal foldexpr=0
+setlocal foldignore=#
+setlocal foldlevel=0
+setlocal foldmarker={{{,}}}
+setlocal foldmethod=manual
+setlocal foldminlines=1
+setlocal foldnestmax=20
+setlocal foldtext=foldtext()
+setlocal formatexpr=
+setlocal formatoptions=cq
+setlocal formatlistpat=^\\s*\\d\\+[\\]:.)}\\t\ ]\\s*
+setlocal formatprg=
+setlocal grepprg=
+setlocal iminsert=0
+setlocal imsearch=-1
+setlocal include=
+setlocal includeexpr=
+setlocal indentexpr=GetJSONIndent(v:lnum)
+setlocal indentkeys=0{,0},0),0[,0],!^F,o,O,e
+setlocal noinfercase
+setlocal iskeyword=@,48-57,_,192-255
+setlocal keywordprg=
+setlocal nolinebreak
+setlocal nolisp
+setlocal lispwords=
+setlocal nolist
+setlocal makeencoding=
+setlocal makeprg=
+setlocal matchpairs=(:),{:},[:]
+setlocal modeline
+setlocal modifiable
+setlocal nrformats=bin,hex
+set number
+setlocal number
+setlocal numberwidth=4
+setlocal omnifunc=
+setlocal path=
+setlocal nopreserveindent
+setlocal nopreviewwindow
+setlocal quoteescape=\\
+setlocal noreadonly
+setlocal norelativenumber
+setlocal norightleft
+setlocal rightleftcmd=search
+setlocal noscrollbind
+setlocal scrolloff=-1
+setlocal shiftwidth=4
+setlocal noshortname
+setlocal showbreak=
+setlocal sidescrolloff=-1
+setlocal signcolumn=auto
+setlocal nosmartindent
+setlocal softtabstop=0
+setlocal nospell
+setlocal spellcapcheck=[.?!]\\_[\\])'\"\	\ ]\\+
+setlocal spellfile=
+setlocal spelllang=en
+setlocal spelloptions=
+setlocal statusline=
+setlocal suffixesadd=
+setlocal swapfile
+setlocal synmaxcol=3000
+if &syntax != 'json'
+setlocal syntax=json
+endif
+setlocal tabstop=4
+setlocal tagcase=
+setlocal tagfunc=
+setlocal tags=
+setlocal termwinkey=
+setlocal termwinscroll=10000
+setlocal termwinsize=
+setlocal textwidth=0
+setlocal thesaurus=
+setlocal noundofile
+setlocal undolevels=-123456
+setlocal varsofttabstop=
+setlocal vartabstop=
+setlocal wincolor=
+setlocal nowinfixheight
+setlocal nowinfixwidth
+setlocal wrap
+setlocal wrapmargin=0
+silent! normal! zE
+let s:l = 1 - ((0 * winheight(0) + 38) / 76)
+if s:l < 1 | let s:l = 1 | endif
+exe s:l
+normal! zt
+1
+normal! 0
+lcd ~/Desktop/dnd/dm-assistant
 tabnext 1
-badd +0 basic.py
+set stal=1
+badd +0 ~/Desktop/dnd/dm-assistant/basic.py
+badd +1 ~/Desktop/dnd/dm-assistant/new_creature.json
+badd +1 ~/Desktop/dnd/dm-assistant/battle.json
 if exists('s:wipebuf') && len(win_findbuf(s:wipebuf)) == 0
   silent exe 'bwipe ' . s:wipebuf
 endif

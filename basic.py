@@ -41,17 +41,18 @@ def set_nested_item(dataDict, mapList, val):
     reduce(getitem, mapList[:-1], dataDict)[mapList[-1]] = val
     return dataDict
                 
-def loadData():
-        with open('data.json') as f:
-                return json.load(f)
-                
-def loadBattle():
-        with open('battle.json') as f:
-                return json.load(f)
-                
+def load(a):
+    with open(a["file"]) as f:
+            return json.load(f)
+
+def loadCreature(a):
+    creatureJson = load(a)
+    global cacheTable
+    cacheTable["monsters"][creatureJson["index"]] = creatureJson
+
  
-cacheTable = defaultify(loadData());
-battleTable = defaultify(loadBattle());
+cacheTable = defaultify(load({"file":"data.json"}))
+battleTable = defaultify(load({"file":"battle.json"}))
 battleOrder = []
 
 def getJsonFromApi(steps,save=True):
@@ -63,7 +64,7 @@ def getJsonFromApi(steps,save=True):
         package = requests.get(api_base)
         response = package.json()
         if response.get("error"):
-            print("Content not in api nor cache", steps);
+            print("Content not in api nor cache", steps)
             return False
 
         if save:
@@ -75,10 +76,14 @@ def getJsonFromApi(steps,save=True):
                 json.dump(dictify(cacheTable),f)
 
         return response
+
+def printJson(json):
+    pprint.pprint(dictify(json), sort_dicts=False)
                 
 def getJson(steps):
         global cacheTable
         cache = cacheTable
+        
         for i,x in enumerate(steps):
                 cache = cache[x]
                 if cache == {} and i > 0:
@@ -274,7 +279,7 @@ def applyAction(senderJson,target,actionKey,advantage=0):
             hit = min(roll("1d20"),roll("1d20"))
             adv = " with disadvantage"
         else:
-            print("invalid advantage type")
+            print("invalid advantage type", advantage)
             action_result += '\n' + advantage + ' is an invalid advantage type.'
             hit = roll("1d20")
         hit += action["attack_bonus"]
@@ -485,10 +490,13 @@ def followPath(a):
         pprint.pprint(dictify(battle[finalStep]), sort_dicts=False)
     elif command == "listkeys":
         string = ""
-        for key, val in battle[finalStep].items():
-            string += key + ","
-        string[:-1]
-        print(string)
+        if isinstance(battle[finalStep],list):
+            print("Can't list the keys of a list. Try `list` instead of `listkeys`")
+        else:
+            for key, val in battle[finalStep].items():
+                string += key + ","
+            string[:-1]
+            print(string)
 
 def addCreature(a):
     name = a["target"]
@@ -575,14 +583,15 @@ def createCreature(a):
 
 
 def populateParserArguments(command,parser,has):
-    parser.add_argument("--times", "-n", help='How many times to run the command',type=int, default=1)
+    if has.get("times"):
+        parser.add_argument("--times", "-n", help='How many times to run the command',type=int, default=1)
 
     if has.get("sender"):
         parser.add_argument("--sender", "-s", required=True, help='sender/s for command', nargs='+')
         parser.add_argument("--do", "-d", required=True, help='What the sender is using on the target')
 
     if has.get("path"):
-        parser.add_argument("--path", "-p", nargs='+',help='Path for json or api parsing with command. Space seperated like:\n-p equipment greatsword\n-p actions\nmod -t sahuagin -p current_hp -c 5')
+        parser.add_argument("--path", "-p", nargs='+',help='Path for json or api parsing with command. Space seperated')
         if has.get("change"):
             parser.add_argument("--change", "-c", required=True, help='What you would like to set or modify a number by')
 
@@ -590,15 +599,19 @@ def populateParserArguments(command,parser,has):
         parser.add_argument("--level", "-l", type=int, help='Level to cast a spell at')
 
     if has.get("target"):
-        if has.get("identity"):
-            parser.add_argument("--target", "-t", required=True, help='Target/s creature types to fetch from the cache or the api like:\nadd -t sahuagin kobold goblin -n 2\nThe above would add 2 of each', nargs='+')
+        if has.get("identity") or has.get("file"):
+            parser.add_argument("--target", "-t", required=True, help='Target/s creature types to fetch from the cache the api or a file', nargs='+')
         else:
-            parser.add_argument("--target", "-t", required=True, help='Target/s for command like:\n-t sahuagin kobold sahuagin#2', nargs='+')
+            parser.add_argument("--target", "-t", required=True, help='Target/s for command', nargs='+')
 
     if has.get("identity"):
-        parser.add_argument("--identity", "-i", help='Identities for added monsters. Example:\nadd -t sahuagin kobold goblin -i sahy koby -n 2\nThe above adds 6 new creatures. 2 creature types have nicknames, the other type "goblin" does not have a nick name.', nargs='+')
+        parser.add_argument("--identity", "-i", help='Identities for added monsters', nargs='+')
+
     if has.get("advantage"):
         parser.add_argument("--advantage", "-a", type=int, help='Advantage for attacks', nargs='+')
+
+    if has.get("file"):
+        parser.add_argument("--file", "-f", help='The file you would like to interact with')
 
 def helpMessage(a):
     for key, value in a["commandDescriptions"].items():
@@ -617,20 +630,20 @@ def parse_command(command_string_to_parse):
     command = args[0]
 
     command_descriptions_dict = {
-    "action" : 'Do a generic action.',
-    "weapon" : 'Use a weapon.',
-    "cast" : 'Cast a spell.',
-    "remove" : 'Remove an item.',
-    "request" : 'Make a request.',
-    "set" : 'Set some aspect of the character or other item.',
-    "mod" : 'Create a modifier.',
-    "list" : 'List the features of an item.',
-    "listkeys" : 'List the keys for an item.',
-    "add" : 'Add a creature.',
-    "init" : 'Roll for initiative.',
-    "initiative" : 'Roll for initiative.',
-    #"load" : 'Load a creature by file name',
-    "help" : 'Display this message',
+    "action" : 'Do a generic action. Like:\n\taction --do Multiattack --sender sahuagin#2 --target druid#3 --times 1 --advantage 1\n',
+    "weapon" : 'Use a weapon. Like:\n\t weapon --do greatsword --sender sahuagin#2 --target druid#3 --times 3 --advantage -1\n',
+    "cast" : 'Cast a spell. Like:\n\t cast --sender druid#3 --target sahuagin#2 --times 2 --do fire-bolt --level 4 --advantage 0\n',
+    "remove" : 'Remove an item. Like:\n\t remove --target sahuagin#2\n',
+    "request" : 'Make a request. Like:\n\t request --path monsters sahuagin\n',
+    "set" : 'Set some aspect of the character or other item. Like:\n\t set --target sahuagin# --path initiative --change 18\n',
+    "mod" : 'Modify a stat on a creature. Like:\n\t mod --target sahuagin#2 --path initiative --change -5\n',
+    "list" : 'List the features of a creature. Like:\n\t list --target sahuagin#2 --path actions\n',
+    "listkeys" : 'List the keys for an item. Like:\n\t listkeys --target sahuagin#2 --path actions\n',
+    "add" : 'Add a creature. Like:\n\t add --target sahuagin --times 2 --identity Aqua-Soldier\n',
+    "init" : 'Roll for initiative. Like:\n\t initiative --target sahuagin#2\n',
+    "initiative" : 'Roll for initiative. Like:\n\t initiative --target sahuagin#2\n',
+    "load" : 'Load a creature by file name. Like:\n\t load --file new_creature.json\n',
+    "help" : 'Display this message. Like:\n\t help\n',
     }
 
     funcDict = {
@@ -646,15 +659,9 @@ def parse_command(command_string_to_parse):
     "add" : addCreature,
     "init" : applyInit,
     "initiative" : applyInit,
-    #"load" : loadCreature,
+    "load" : loadCreature,
     "help" : helpMessage,
     }
-    
-    parser = ArgumentParser(
-            prog=command,
-            description=geti(command_descriptions_dict,command,'Dnd DM Assistant Command Updates Game State'),
-            formatter_class=argparse.RawTextHelpFormatter
-            )
 
     has = {
     "sender" : ["action","weapon","cast"],
@@ -665,10 +672,20 @@ def parse_command(command_string_to_parse):
     "identity" : ["add"],
     "advantage" : [],
     "sort" : ["add","init","initiative"],
+    "file" : ["load"],
+    "times" : ["mod", "add"],
     }
 
     has["target"] = has["target"] + has["sender"]
     has["advantage"] = has["advantage"] + has["sender"]
+    has["times"] = has["times"] + has["sender"]
+    
+    parser = ArgumentParser(
+            prog=command,
+            description=geti(command_descriptions_dict,command,'Dnd DM Assistant Command Updates Game State'),
+            formatter_class=argparse.RawTextHelpFormatter
+            )
+
 
     for key, hasList in has.items():
         if hasList.count(command) > 0:
@@ -683,7 +700,11 @@ def parse_command(command_string_to_parse):
     a = parser.parse_args(entries)
 
     command_result = ''
-    times = a.times
+
+    times = 1;
+
+    if has["times"]:
+        times = a.times
 
     if not has["sender"]:
         a.sender = ["none"]
@@ -728,10 +749,10 @@ def parse_command(command_string_to_parse):
                 if has["identity"]:
                     argDictCopy["identity"] = geti(argDictMain["identity"],number,argDictCopy["target"])
                 if has["advantage"]:
-                    argDictCopy["advantage"] = geti(argDictMain["advantage"],number,argDictCopy["target"])
+                    argDictCopy["advantage"] = geti(argDictMain["advantage"],number,0)
 
                 if command in funcDict:
-                    if battleTable.get(target) or not has["target"] or command == "add":
+                    if battleTable.get(target) or not has["target"] or command == "add" or command == "load":
                         command_result += str(funcDict[command](argDictCopy))
                     else:
                         command_result += "ignored an invalid target"
