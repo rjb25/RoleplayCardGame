@@ -557,31 +557,6 @@ def legacyCreateCharacter(a):
     with open('data.json', 'w') as f:
         json.dump(dictify(cacheTable),f)
 
-def createCreature(a):
-    name = input("Name?")
-    monsterCache = cacheTable["monsters"][name]
-    monsterCache["index"] = name
-    monsterCache["strength"] = int(input("str?"))
-    monsterCache["dexterity"] = int(input("dex?"))
-    monsterCache["constitution"] = int(input("con?"))
-    monsterCache["intelligence"] = int(input("int?"))
-    monsterCache["wisdom"] = int(input("wis?"))
-    monsterCache["charisma"] = int(input("cha?"))
-    monsterCache["special_abilities"] = []
-    monsterCache["special_abilities"].append({"spellcasting": {"ability": {"index" : input("caster stat? (eg. int)")}}})
-    monsterCache["weapon_proficiencies"] = input("Weapon proficiencies? (eg simple,martial)")
-    monsterCache["max_hp"] = int(input("Max Hp?"))
-    monsterCache["current_hp"] = int(monsterCache["max_hp"])
-    monsterCache["armor_class"] = int(input("Armor Class?"))
-    spellcasting = canCast(monsterCache)
-    level = int(input("Level?"))
-    spellcasting["level"] = level
-    monsterCache["proficiency_bonus"] = crToProf(level)
-    
-    with open('data.json', 'w') as f:
-        json.dump(dictify(cacheTable),f)
-
-
 def populateParserArguments(command,parser,has):
     if has.get("times"):
         parser.add_argument("--times", "-n", help='How many times to run the command',type=int, default=1)
