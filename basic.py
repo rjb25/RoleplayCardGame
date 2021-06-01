@@ -342,7 +342,7 @@ def isCantrip(attackJson):
         raise Exception("Oops this is not a spell", attackJson)
 
 def callWeapon(a):
-    attackPath = a["do"]
+    attackPath = a["do"].lower()
     sender = a["sender"]
     target = a["target"]
     advantage = a["advantage"]
@@ -365,7 +365,7 @@ def checkHit(mod,threshold,advantage=0,save=False):
     return success
 
 def callCast(a):
-    attackPath = a["do"]
+    attackPath = a["do"].lower()
     sender = a["sender"]
     target = a["target"]
     level = a["level"]
@@ -436,6 +436,7 @@ def remove(a):
     return "removed " + nick
 
 def callAction(a):
+    a["do"] = a["do"].title()
     actionKey = a["do"]
     sender = a["sender"]
     senderJson = battleTable[sender]
