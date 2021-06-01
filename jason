@@ -53,8 +53,12 @@ $argadd basic.py
 set stal=2
 tabnew
 tabrewind
-edit basic.py
+edit battle_info.json
 set splitbelow splitright
+wincmd _ | wincmd |
+vsplit
+1wincmd h
+wincmd w
 set nosplitbelow
 set nosplitright
 wincmd t
@@ -62,7 +66,139 @@ set winminheight=0
 set winheight=1
 set winminwidth=0
 set winwidth=1
+exe 'vert 1resize ' . ((&columns * 86 + 86) / 173)
+exe 'vert 2resize ' . ((&columns * 86 + 86) / 173)
 argglobal
+setlocal keymap=
+setlocal noarabic
+setlocal autoindent
+setlocal backupcopy=
+setlocal balloonexpr=
+setlocal nobinary
+setlocal nobreakindent
+setlocal breakindentopt=
+setlocal bufhidden=
+setlocal buflisted
+setlocal buftype=
+setlocal nocindent
+setlocal cinkeys=0{,0},0),0],:,0#,!^F,o,O,e
+setlocal cinoptions=
+setlocal cinwords=if,else,while,do,for,switch
+setlocal colorcolumn=
+setlocal comments=
+setlocal commentstring=
+setlocal complete=.,w,b,u,t,i
+setlocal concealcursor=
+setlocal conceallevel=0
+setlocal completefunc=
+setlocal nocopyindent
+setlocal cryptmethod=
+setlocal nocursorbind
+setlocal nocursorcolumn
+setlocal nocursorline
+setlocal define=
+setlocal dictionary=
+setlocal nodiff
+setlocal equalprg=
+setlocal errorformat=
+setlocal noexpandtab
+if &filetype != 'json'
+setlocal filetype=json
+endif
+setlocal fixendofline
+setlocal foldcolumn=0
+setlocal foldenable
+setlocal foldexpr=0
+setlocal foldignore=#
+setlocal foldlevel=0
+setlocal foldmarker={{{,}}}
+setlocal foldmethod=manual
+setlocal foldminlines=1
+setlocal foldnestmax=20
+setlocal foldtext=foldtext()
+setlocal formatexpr=
+setlocal formatoptions=cq
+setlocal formatlistpat=^\\s*\\d\\+[\\]:.)}\\t\ ]\\s*
+setlocal formatprg=
+setlocal grepprg=
+setlocal iminsert=0
+setlocal imsearch=-1
+setlocal include=
+setlocal includeexpr=
+setlocal indentexpr=GetJSONIndent()
+setlocal indentkeys=0{,0},0),0[,0],!^F,o,O,e
+setlocal noinfercase
+setlocal iskeyword=@,48-57,_,192-255
+setlocal keywordprg=
+setlocal nolinebreak
+setlocal nolisp
+setlocal lispwords=
+setlocal nolist
+setlocal makeencoding=
+setlocal makeprg=
+setlocal matchpairs=(:),{:},[:]
+setlocal modeline
+setlocal modifiable
+setlocal nrformats=bin,hex
+set number
+setlocal number
+setlocal numberwidth=4
+setlocal omnifunc=
+setlocal path=
+setlocal nopreserveindent
+setlocal nopreviewwindow
+setlocal quoteescape=\\
+setlocal noreadonly
+setlocal norelativenumber
+setlocal norightleft
+setlocal rightleftcmd=search
+setlocal noscrollbind
+setlocal scrolloff=-1
+setlocal shiftwidth=4
+setlocal noshortname
+setlocal sidescrolloff=-1
+setlocal signcolumn=auto
+setlocal nosmartindent
+setlocal softtabstop=0
+setlocal nospell
+setlocal spellcapcheck=[.?!]\\_[\\])'\"\	\ ]\\+
+setlocal spellfile=
+setlocal spelllang=en
+setlocal statusline=
+setlocal suffixesadd=
+setlocal swapfile
+setlocal synmaxcol=3000
+if &syntax != 'json'
+setlocal syntax=json
+endif
+setlocal tabstop=4
+setlocal tagcase=
+setlocal tags=
+setlocal termmode=
+setlocal termwinkey=
+setlocal termwinscroll=10000
+setlocal termwinsize=
+setlocal textwidth=0
+setlocal thesaurus=
+setlocal noundofile
+setlocal undolevels=-123456
+setlocal varsofttabstop=
+setlocal vartabstop=
+setlocal nowinfixheight
+setlocal nowinfixwidth
+setlocal wrap
+setlocal wrapmargin=0
+silent! normal! zE
+let s:l = 1 - ((0 * winheight(0) + 35) / 71)
+if s:l < 1 | let s:l = 1 | endif
+exe s:l
+normal! zt
+1
+normal! 05|
+lcd ~/Desktop/5e-dm-assistant
+wincmd w
+argglobal
+if bufexists("~/Desktop/5e-dm-assistant/basic.py") | buffer ~/Desktop/5e-dm-assistant/basic.py | else | edit ~/Desktop/5e-dm-assistant/basic.py | endif
 setlocal keymap=
 setlocal noarabic
 setlocal autoindent
@@ -184,70 +320,78 @@ setlocal wrap
 setlocal wrapmargin=0
 silent! normal! zE
 25,41fold
-56,71fold
-73,84fold
-87,90fold
-92,99fold
-101,114fold
-101,115fold
-116,136fold
-138,151fold
-154,165fold
-154,165fold
-167,209fold
-167,209fold
-167,210fold
-216,254fold
-216,256fold
-262,280fold
-285,300fold
-285,300fold
+57,72fold
+74,91fold
+94,97fold
+99,109fold
+111,122fold
+111,123fold
+124,144fold
+146,159fold
+162,173fold
+162,173fold
+175,217fold
+175,217fold
+175,218fold
+224,262fold
+224,264fold
+270,288fold
+293,308fold
+293,308fold
+448,473fold
+475,514fold
+516,549fold
+551,573fold
 25
 normal! zo
-56
+57
 normal! zo
-73
+74
 normal! zo
-87
+94
 normal! zo
-92
+99
 normal! zo
-101
+111
 normal! zo
-101
+111
 normal! zo
-116
+124
 normal! zo
-138
+146
 normal! zo
-154
+162
 normal! zo
-154
+162
 normal! zo
-167
+175
 normal! zo
-167
+175
 normal! zo
-167
+175
 normal! zo
-216
+224
 normal! zo
-216
+224
 normal! zo
-262
+270
 normal! zo
-285
+293
 normal! zo
-285
+293
 normal! zo
-let s:l = 349 - ((45 * winheight(0) + 35) / 71)
+let s:l = 448 - ((20 * winheight(0) + 35) / 71)
 if s:l < 1 | let s:l = 1 | endif
 exe s:l
 normal! zt
-349
-normal! 09|
+448
+normal! 0
+wincmd w
+2wincmd w
+exe 'vert 1resize ' . ((&columns * 86 + 86) / 173)
+exe 'vert 2resize ' . ((&columns * 86 + 86) / 173)
 tabnext
-edit new_creature.json
+edit ~/Desktop/5e-dm-assistant/new_creature.json
 set splitbelow splitright
 set nosplitbelow
 set nosplitright
@@ -385,11 +529,12 @@ normal! zt
 normal! 0
 tabnext 1
 set stal=1
-badd +0 basic.py
-badd +0 new_creature.json
+badd +0 ~/Desktop/5e-dm-assistant/basic.py
+badd +1 ~/Desktop/5e-dm-assistant/new_creature.json
 badd +1 ~/Desktop/dnd/dm-assistant/basic.py
 badd +1 ~/Desktop/dnd/dm-assistant/new_creature.json
 badd +1 ~/Desktop/dnd/dm-assistant/battle.json
+badd +0 ~/Desktop/5e-dm-assistant/battle_info.json
 if exists('s:wipebuf') && len(win_findbuf(s:wipebuf)) == 0
   silent exe 'bwipe ' . s:wipebuf
 endif

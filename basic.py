@@ -49,10 +49,11 @@ def loadCreature(a):
     creatureJson = load(a)
     global cacheTable
     cacheTable["monsters"][creatureJson["index"]] = creatureJson
-
  
 cacheTable = defaultify(load({"file":"data.json"}))
 battleTable = defaultify(load({"file":"battle.json"}))
+global battleInfo
+battleInfo = defaultify(load({"file":"battle_info.json"}))
 battleOrder = []
 
 def getJsonFromApi(steps,save=True):
@@ -77,6 +78,12 @@ def getJsonFromApi(steps,save=True):
 
         return response
 
+def saveBattle():
+        with open('battle.json', 'w') as f:
+            json.dump(dictify(battleTable),f)       
+        with open('battle_info.json', 'w') as f:
+            json.dump(dictify(battleInfo),f)
+
 def printJson(json):
     pprint.pprint(dictify(json), sort_dicts=False)
                 
@@ -94,9 +101,12 @@ def getJson(steps):
 def getState():
         print("initiative name type hp/max_hp")
         state_result = []
-        for nick in battleOrder:
+        for i, nick in enumerate(battleOrder):
             x = battleTable[nick]
-            print(x["initiative"],nick,x["index"],str(x["current_hp"])+"/"+str(x["max_hp"]))
+            turn = ""
+            if x.get("my_turn"):
+                turn = "<-----------------| My Turn"
+            print(x["initiative"],nick,x["index"],str(x["current_hp"])+"/"+str(x["max_hp"])+turn)
             state_result.append(str(x["initiative"]) + ' ' + nick + ' ' + str(x["index"]) + ' ' + str(x["current_hp"]) + "/" + str(x["max_hp"]))
         return state_result
 
@@ -431,6 +441,8 @@ def callRequest(a):
 
 def remove(a):
     nick = a["target"]
+    if battleTable.get(nick)["my_turn"]:
+        callTurn({})
     battleTable.pop(nick)
     battleOrder.remove(nick)
     return "removed " + nick
@@ -598,6 +610,20 @@ def helpMessage(a):
         print(key, ":", value)
     print("For more detailed help on a given *commandName* run:\n commandName --help")
 
+def callTurn(a):
+    foundActive = -1
+    for i, nick in enumerate(battleOrder):
+        x = battleTable[nick]
+        if x["my_turn"]:
+            foundActive = i
+
+    if battleOrder[foundActive]:
+        nickCurrent = battleOrder[foundActive]
+        battleTable[nickCurrent]["my_turn"] = False
+
+    nickNext = battleOrder[(foundActive+1) % len(battleOrder)]
+    battleTable[nickNext]["my_turn"] = True
+
 class ArgumentParser(argparse.ArgumentParser):
     def error(self, message):
         print(self.format_help())
@@ -624,6 +650,7 @@ def parse_command(command_string_to_parse):
     "initiative" : 'Roll for initiative. Like:\n\t initiative --target sahuagin#2\n',
     "load" : 'Load a creature by file name. Like:\n\t load --file new_creature.json\n',
     "help" : 'Display this message. Like:\n\t help\n',
+    "turn" : 'Increments turn. Like:\n\t help\n',
     }
 
     funcDict = {
@@ -641,6 +668,7 @@ def parse_command(command_string_to_parse):
     "initiative" : applyInit,
     "load" : loadCreature,
     "help" : helpMessage,
+    "turn" : callTurn,
     }
 
     has = {
@@ -705,13 +733,11 @@ def parse_command(command_string_to_parse):
     argDictCopy = argDictMain.copy()
 
     if command == "save":
-        with open('battle.json', 'w') as f:
-            json.dump(dictify(battleTable),f)       
+        saveBattle()
         return True
         
     if command == "exit":
-        with open('battle.json', 'w') as f:
-            json.dump(dictify(battleTable),f)
+        saveBattle()
         return "EXIT"
 
     if command == "abort":
