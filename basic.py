@@ -596,6 +596,9 @@ def populateParserArguments(command,parser,has):
         else:
             parser.add_argument("--target", "-t", required=True, help='Target/s for command', nargs='+')
 
+    if has.get("command"):
+        parser.add_argument("--command", "-c", help='A command to be run')
+
     if has.get("identity"):
         parser.add_argument("--identity", "-i", help='Identities for added monsters', nargs='+')
 
@@ -610,6 +613,12 @@ def helpMessage(a):
         print(key, ":", value)
     print("For more detailed help on a given *commandName* run:\n commandName --help")
 
+def callAuto(a):
+    target = a["target"]
+    targetJson = battleTable[target]
+    command = a["command"]
+    targetJson["autoCommand"] = command
+
 def callTurn(a):
     foundActive = -1
     for i, nick in enumerate(battleOrder):
@@ -620,9 +629,13 @@ def callTurn(a):
     if battleOrder[foundActive]:
         nickCurrent = battleOrder[foundActive]
         battleTable[nickCurrent]["my_turn"] = False
+        if battleTable[nickCurrent].get("autoCommand"):
+            parse_command(battleTable[nickCurrent]["autoCommand"])
 
     nickNext = battleOrder[(foundActive+1) % len(battleOrder)]
     battleTable[nickNext]["my_turn"] = True
+    if battleTable[nickNext].get("autoCommand"):
+        callTurn({})
 
 class ArgumentParser(argparse.ArgumentParser):
     def error(self, message):
@@ -651,6 +664,7 @@ def parse_command(command_string_to_parse):
     "load" : 'Load a creature by file name. Like:\n\t load --file new_creature.json\n',
     "help" : 'Display this message. Like:\n\t help\n',
     "turn" : 'Increments turn. Like:\n\t help\n',
+    "auto" : 'Set an automated command. Like:\n\t auto --target sahuagin --command "action --target goblin --sender sahuagin --do multiattack"\n',
     }
 
     funcDict = {
@@ -669,12 +683,13 @@ def parse_command(command_string_to_parse):
     "load" : loadCreature,
     "help" : helpMessage,
     "turn" : callTurn,
+    "auto" : callAuto,
     }
 
     has = {
     "sender" : ["action","weapon","cast"],
     "path" : ["request","mod","set","list","listkeys"],
-    "target" : ["init","initiative","remove","mod","set","list","listkeys","add"],
+    "target" : ["init","initiative","remove","mod","set","list","listkeys","add","auto"],
     "change" : ["mod","set"],
     "level" : ["cast"],
     "identity" : ["add"],
@@ -682,6 +697,7 @@ def parse_command(command_string_to_parse):
     "sort" : ["add","init","initiative"],
     "file" : ["load"],
     "times" : ["mod", "add"],
+    "command" : ["auto"],
     }
 
     has["target"] = has["target"] + has["sender"]
