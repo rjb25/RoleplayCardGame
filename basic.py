@@ -137,7 +137,6 @@ def roll(dice_string):
     Return: Integer returned, representing the dice roll result
     Side Effects/State: None
     '''
-    print(dice_string)
     dsplit = dice_string.split("d")
     usesDice = len(dsplit)>1
     sum = 0
@@ -152,6 +151,7 @@ def roll(dice_string):
             sum += math.ceil(diceType*random.random())
     else:
         sum = int(dice_string)
+    print("roll",dice_string,"=",sum+diceMod)
     
     return int(sum + diceMod)
 
@@ -596,8 +596,8 @@ def populateParserArguments(command,parser,has):
         else:
             parser.add_argument("--target", "-t", required=True, help='Target/s for command', nargs='+')
 
-    if has.get("command"):
-        parser.add_argument("--command", "-c", help='A command to be run')
+    if has.get("commandString"):
+        parser.add_argument("--commandString", "-c", help='A command string to be run')
 
     if has.get("identity"):
         parser.add_argument("--identity", "-i", help='Identities for added monsters', nargs='+')
@@ -616,8 +616,8 @@ def helpMessage(a):
 def callAuto(a):
     target = a["target"]
     targetJson = battleTable[target]
-    command = a["command"]
-    targetJson["autoCommand"] = command
+    commandString = a["commandString"]
+    targetJson["autoCommand"] = commandString
 
 def callTurn(a):
     foundActive = -1
@@ -664,7 +664,7 @@ def parse_command(command_string_to_parse):
     "load" : 'Load a creature by file name. Like:\n\t load --file new_creature.json\n',
     "help" : 'Display this message. Like:\n\t help\n',
     "turn" : 'Increments turn. Like:\n\t help\n',
-    "auto" : 'Set an automated command. Like:\n\t auto --target sahuagin --command "action --target goblin --sender sahuagin --do multiattack"\n',
+    "auto" : 'Set an automated command. Like:\n\t auto --target sahuagin --commandString "action --target goblin --sender sahuagin --do multiattack"\n',
     }
 
     funcDict = {
@@ -697,7 +697,7 @@ def parse_command(command_string_to_parse):
     "sort" : ["add","init","initiative"],
     "file" : ["load"],
     "times" : ["mod", "add"],
-    "command" : ["auto"],
+    "commandString" : ["auto"],
     }
 
     has["target"] = has["target"] + has["sender"]
