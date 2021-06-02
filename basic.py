@@ -514,6 +514,8 @@ def followPath(a):
                 string += key + ","
             string[:-1]
             print(string)
+def say(string):
+    print(string)
 
 def addCreature(a):
     name = a["target"]
@@ -548,7 +550,10 @@ def addCreature(a):
             combatant["current_hp"] = hitPoints
     
         battleTable[nick] = combatant
-        applyInit({"target" : nick})
+        a["target"] = nick
+        if a.get("commandString"):
+            callAuto(a)
+        applyInit(a)
 
 def legacyCreateCharacter(a):
     name = input("Name?")
@@ -597,7 +602,10 @@ def populateParserArguments(command,parser,has):
             parser.add_argument("--target", "-t", required=True, help='Target/s for command', nargs='+')
 
     if has.get("commandString"):
-        parser.add_argument("--commandString", "-c", help='A command string to be run')
+        req = True
+        if command == "add":
+            req = False
+        parser.add_argument("--commandString", "-c", help='A command string to be run', nargs='+',required=req)
 
     if has.get("identity"):
         parser.add_argument("--identity", "-i", help='Identities for added monsters', nargs='+')
@@ -616,8 +624,13 @@ def helpMessage(a):
 def callAuto(a):
     target = a["target"]
     targetJson = battleTable[target]
-    commandString = a["commandString"]
-    targetJson["autoCommand"] = commandString
+    commandStrings = a["commandString"]
+    targetJson["autoCommand"] = []
+    for commandString in commandStrings:
+        has = hasParse(a["hasDict"],commandString.split(" ")[0])
+        if has.get("sender") and not ("--sender" in commandString or "-s" in commandString):
+            commandString += " --sender " + target
+        targetJson["autoCommand"].append(commandString)
 
 def callTurn(a):
     foundActive = -1
@@ -629,8 +642,10 @@ def callTurn(a):
     if battleOrder[foundActive]:
         nickCurrent = battleOrder[foundActive]
         battleTable[nickCurrent]["my_turn"] = False
-        if battleTable[nickCurrent].get("autoCommand"):
-            parse_command(battleTable[nickCurrent]["autoCommand"])
+        autoCommands = battleTable[nickCurrent].get("autoCommand")
+        if autoCommands:
+            for commandString in autoCommands:
+                parse_command(commandString)
 
     nickNext = battleOrder[(foundActive+1) % len(battleOrder)]
     battleTable[nickNext]["my_turn"] = True
@@ -643,6 +658,16 @@ class ArgumentParser(argparse.ArgumentParser):
         self.exit(2, '%s: error: %s\n' % (self.prog,message))
     def print_help(self, file=None):
         print(self.format_help())
+
+def hasParse(hasDict,command):
+    has = hasDict.copy()
+    for key, hasList in has.items():
+        if hasList.count(command) > 0:
+            has[key] = True
+        else:
+            has[key] = False
+    return has
+
 
 def parse_command(command_string_to_parse):
     args = command_string_to_parse.split(" ")
@@ -686,7 +711,7 @@ def parse_command(command_string_to_parse):
     "auto" : callAuto,
     }
 
-    has = {
+    hasDict = {
     "sender" : ["action","weapon","cast"],
     "path" : ["request","mod","set","list","listkeys"],
     "target" : ["init","initiative","remove","mod","set","list","listkeys","add","auto"],
@@ -697,12 +722,12 @@ def parse_command(command_string_to_parse):
     "sort" : ["add","init","initiative"],
     "file" : ["load"],
     "times" : ["mod", "add"],
-    "commandString" : ["auto"],
+    "commandString" : ["auto","add"],
     }
 
-    has["target"] = has["target"] + has["sender"]
-    has["advantage"] = has["advantage"] + has["sender"]
-    has["times"] = has["times"] + has["sender"]
+    hasDict["target"] = hasDict["target"] + hasDict["sender"]
+    hasDict["advantage"] = hasDict["advantage"] + hasDict["sender"]
+    hasDict["times"] = hasDict["times"] + hasDict["sender"]
     
     parser = ArgumentParser(
             prog=command,
@@ -710,12 +735,7 @@ def parse_command(command_string_to_parse):
             formatter_class=argparse.RawTextHelpFormatter
             )
 
-
-    for key, hasList in has.items():
-        if hasList.count(command) > 0:
-            has[key] = True
-        else:
-            has[key] = False
+    has = hasParse(hasDict,command)
 
     populateParserArguments(command,parser,has)
     entryString = " ".join(args[1:])
@@ -746,6 +766,7 @@ def parse_command(command_string_to_parse):
 
     argDictMain = vars(a)
     argDictMain["command"] = command
+    argDictMain["hasDict"] = hasDict
     argDictCopy = argDictMain.copy()
 
     if command == "save":
@@ -763,22 +784,27 @@ def parse_command(command_string_to_parse):
         for sender in argDictMain["sender"]:
             argDictCopy["sender"] = sender
             for number,target in enumerate(argDictMain["target"]):
-                argDictCopy["target"] = target
-
-                if has["identity"]:
-                    argDictCopy["identity"] = geti(argDictMain["identity"],number,argDictCopy["target"])
-                if has["advantage"]:
-                    argDictCopy["advantage"] = geti(argDictMain["advantage"],number,0)
-
-                if command in funcDict:
-                    if battleTable.get(target) or not has["target"] or command == "add" or command == "load":
-                        command_result += str(funcDict[command](argDictCopy))
-                    else:
-                        command_result += "ignored an invalid target"
-                        print('ignored an invalid target')
+                #Slightly redundant code, but it's fine for now
+                if target == "all":
+                    targetDict = battleTable
                 else:
-                    print('incorrect command')
-                    command_result += 'incorrect command was entered. Try again?'
+                    targetDict = {target : "bogus baloney"}
+                for name in targetDict.keys():
+                    argDictCopy["target"] = name
+                    if has["identity"]:
+                        argDictCopy["identity"] = geti(argDictMain["identity"],number,argDictCopy["target"])
+                    if has["advantage"]:
+                        argDictCopy["advantage"] = geti(argDictMain["advantage"],number,0)
+
+                    if command in funcDict:
+                        if battleTable.get(target) or not has["target"] or command == "add" or command == "load":
+                            command_result += str(funcDict[command](argDictCopy))
+                        else:
+                            command_result += "ignored an invalid target"
+                            print('ignored an invalid target')
+                    else:
+                        print('incorrect command')
+                        command_result += 'incorrect command was entered. Try again?'
     if has["sort"]:
         setBattleOrder()
 
