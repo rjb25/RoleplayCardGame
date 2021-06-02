@@ -110,18 +110,19 @@ def getState():
             state_result.append(str(x["initiative"]) + ' ' + nick + ' ' + str(x["index"]) + ' ' + str(x["current_hp"]) + "/" + str(x["max_hp"]))
         return state_result
 
-def rolld20(advantage = 0):
+def rolld20(advantage = 0, modifier=0):
     d20 = 0
+    mod = str(modifier)
     if advantage == 0:
-        d20 = roll("1d20")
+        d20 = roll("1d20+"+mod)
     elif advantage == 1:
-        d20 = max(roll("1d20"),roll("1d20"))
+        d20 = max(roll("1d20+"+mod),roll("1d20+"+mod))
     elif advantage == -1:
-        d20 = min(roll("1d20"),roll("1d20"))
+        d20 = min(roll("1d20+"+mod),roll("1d20+"+mod))
     else:
         print("invalid advantage type", advantage)
         action_result += '\n' + advantage + ' is an invalid advantage type.'
-        d20 = roll("1d20")
+        d20 = roll("1d20+"+mod)
     return d20
 
 def roll(dice_string):
@@ -259,6 +260,7 @@ def getMod(modType, attackJson, combatantJson, additional = 0):
                 if combatantJson.get("weapon_proficiencies"):
                     if attackJson["weapon_category"] in combatantJson["weapon_proficiencies"]:
                         modSum += getProf(combatantJson)
+
             if modType == "spellHit" or modType == "spellDc":
                 modSum += getProf(combatantJson)
 
@@ -323,7 +325,7 @@ def applyInit(participant):
     who = participant["target"]
     combatant = geti(battleTable,who,False)
     if combatant:
-        combatant["initiative"] = statMod(combatant["dexterity"]) + roll("1d20")
+        combatant["initiative"] = roll("1d20+" + str(statMod(combatant["dexterity"])))
     else:
         print("I'm sorry I couldn't find that combatant to apply init to.")
 
@@ -360,7 +362,6 @@ def callWeapon(a):
     targetJson = battleTable[target]
     senderJson = battleTable[sender]
     if attackJson:
-        hit = rolld20("1d20",advantage)
         mod = getMod("hit",attackJson,senderJson)
         threshold = targetJson["armor_class"]
 
@@ -369,9 +370,9 @@ def callWeapon(a):
             applyDamage(targetJson,hurt,attackJson["damage"]["damage_type"])
 
 def checkHit(mod,threshold,advantage=0,save=False):
-    d20 = rolld20(advantage)
-    success = not (mod + d20 > threshold and save)
-    print("Hit?", success)
+    d20 = rolld20(advantage,mod)
+    success = not ((d20 > threshold) == save)
+    print("Hit?", success, "is", d20, ">",threshold)
     return success
 
 def callCast(a):
@@ -548,11 +549,12 @@ def addCreature(a):
         elif hitPoints:
             combatant["max_hp"] = hitPoints
             combatant["current_hp"] = hitPoints
+        combatant["identity"] = nick
     
         battleTable[nick] = combatant
         a["target"] = nick
         if a.get("commandString"):
-            callAuto(a)
+            setAuto(a)
         applyInit(a)
 
 def legacyCreateCharacter(a):
@@ -618,7 +620,8 @@ def populateParserArguments(command,parser,has):
         
     if has.get("order"):
         parser.add_argument("--order", "-o", help='Order of targetting for automation', nargs='+',required=False, default=["defaultCombatant"])
-        parser.add_argument("--method", "-m", help='Method for selecting targets from order list sub entry. Options:\nrandom,simultaneus,ordered', default="random", required=False)
+        parser.add_argument("--method", "-m", help='Method for selecting targets from order list sub entry. Options:\nrandom,simultaneus,ordered', default="random", required=False, nargs='+')
+        parser.add_argument("--append", "-a", help='Whether this command should replace the existing set of be added on', required=False, default=False)
 
 
 def helpMessage(a):
@@ -626,37 +629,90 @@ def helpMessage(a):
         print(key, ":", value)
     print("For more detailed help on a given *commandName* run:\n commandName --help")
 
-def callAuto(a):
+def setAuto(a):
     combatant = a["target"]
-    orders = a["order"]
-    method = a["method"]
     combatantJson = battleTable[combatant]
+    append = a["append"]
+    if append:
+        if not combatantJson.get("order"):
+            combatantJson["order"] = []
+        if not combatantJson.get("method"):
+            combatantJson["method"] = []
+        if not combatantJson.get("autoCommand"):
+            combatantJson["autoCommand"] = []
+        combatantJson["order"] = combatantJson["order"]+a["order"]
+        combatantJson["method"] = combatantJson["method"]+a["method"]
+    else:
+        combatantJson["order"] = a["order"]
+        combatantJson["method"] = a["method"]
+        combatantJson["autoCommand"] = []
+
     commandStrings = a["commandString"]
-    combatantJson["autoCommand"] = []
-    #This is problematic as callAuto is only called once and not on every round so targets aren't redecided
     for commandString in commandStrings:
         has = hasParse(a["hasDict"],commandString.split(" ")[0])
         if has.get("sender") and not ("--sender" in commandString or "-s" in commandString):
             commandString += " --sender " + combatant
+        combatantJson["autoCommand"].append(commandString)
+
+def runAuto(combatantJson,hasDict):
+    autoCommands = combatantJson.get("autoCommand")
+    orders = combatantJson.get("order")
+    methods = combatantJson.get("method")
+    for commandString, order, method in zip(autoCommands,orders,methods):
+        targetGroups = order.split(",")
+        has = hasParse(hasDict,commandString.split(" ")[0])
+        targetString = ""
+        foundTarget = True
         if has.get("target") and not ("--target" in commandString or "-t" in commandString):
-            targetString = ""
+            foundTarget = False
+
             if method == "random":
-                foundTarget = False
-                for order in orders:
+                for targetGroup in targetGroups:
                     aliveTargets = []
-                    targets = order.split(",")
+                    targets = targetGroup.split("+")
                     for target in targets:
                         if(battleTable.get(target)):
-                            aliveTargets += target
+                            aliveTargets.append(target)
                     nTargets = len(aliveTargets) 
                     if nTargets != 0:
-                        target = aliveTargets[math.floor(nTargets*random.random())]
+                        targetString = " --target " + aliveTargets[math.floor(nTargets*random.random())]
+                        foundTarget = True
                         break
-                if not foundTarget:
-                    print("I'm idle")
 
-            commandString += " --target " + targetString
-        combatantJson["autoCommand"].append(commandString)
+            elif method == "simultaneous":
+                for targetGroup in targetGroups:
+                    aliveTargets = []
+                    targets = targetGroup.split("+")
+                    for target in targets:
+                        if(battleTable.get(target)):
+                            aliveTargets.append(target)
+                    nTargets = len(aliveTargets) 
+                    if nTargets != 0:
+                        targetString = " --target"
+                        for target in aliveTargets:
+                            targetString += " " + target
+                        foundTarget = True
+                        break
+
+            elif method == "order":
+                #This is a bit redundant because you could just do a,b,c instead of a+b,c
+                for targetGroup in targetGroups:
+                    aliveTargets = []
+                    targets = targetGroup.split("+")
+                    for target in targets:
+                        if(battleTable.get(target)):
+                            aliveTargets.append(target)
+                    nTargets = len(aliveTargets) 
+                    if nTargets != 0:
+                        targetString = " --target " + aliveTargets[0]
+                        foundTarget = True
+                        break
+
+        if not foundTarget:
+            print("I'm idle with no available target:", combatantJson["identity"])
+        else:
+            #print("auto command", commandString+targetString)
+            parse_command(commandString+targetString)
 
 def callTurn(a):
     foundActive = -1
@@ -670,13 +726,12 @@ def callTurn(a):
         battleTable[nickCurrent]["my_turn"] = False
         autoCommands = battleTable[nickCurrent].get("autoCommand")
         if autoCommands:
-            for commandString in autoCommands:
-                parse_command(commandString)
+            runAuto(battleTable[nickCurrent],a["hasDict"])
 
     nickNext = battleOrder[(foundActive+1) % len(battleOrder)]
     battleTable[nickNext]["my_turn"] = True
     if battleTable[nickNext].get("autoCommand"):
-        callTurn({})
+        callTurn(a)
 
 class ArgumentParser(argparse.ArgumentParser):
     def error(self, message):
@@ -734,7 +789,7 @@ def parse_command(command_string_to_parse):
     "load" : loadCreature,
     "help" : helpMessage,
     "turn" : callTurn,
-    "auto" : callAuto,
+    "auto" : setAuto,
     }
 
     hasDict = {
@@ -828,9 +883,9 @@ def parse_command(command_string_to_parse):
                             command_result += str(funcDict[command](argDictCopy))
                         else:
                             command_result += "ignored an invalid target"
-                            print('ignored an invalid target')
+                            print('ignored an invalid target', target)
                     else:
-                        print('incorrect command')
+                        print('Incorrect command. Try running the `help` command')
                         command_result += 'incorrect command was entered. Try again?'
     if has["sort"]:
         setBattleOrder()
