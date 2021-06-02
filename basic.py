@@ -615,6 +615,11 @@ def populateParserArguments(command,parser,has):
 
     if has.get("file"):
         parser.add_argument("--file", "-f", help='The file you would like to interact with')
+        
+    if has.get("order"):
+        parser.add_argument("--order", "-o", help='Order of targetting for automation', nargs='+',required=False, default=["defaultCombatant"])
+        parser.add_argument("--method", "-m", help='Method for selecting targets from order list sub entry. Options:\nrandom,simultaneus,ordered', default="random", required=False)
+
 
 def helpMessage(a):
     for key, value in a["commandDescriptions"].items():
@@ -622,15 +627,36 @@ def helpMessage(a):
     print("For more detailed help on a given *commandName* run:\n commandName --help")
 
 def callAuto(a):
-    target = a["target"]
-    targetJson = battleTable[target]
+    combatant = a["target"]
+    orders = a["order"]
+    method = a["method"]
+    combatantJson = battleTable[combatant]
     commandStrings = a["commandString"]
-    targetJson["autoCommand"] = []
+    combatantJson["autoCommand"] = []
+    #This is problematic as callAuto is only called once and not on every round so targets aren't redecided
     for commandString in commandStrings:
         has = hasParse(a["hasDict"],commandString.split(" ")[0])
         if has.get("sender") and not ("--sender" in commandString or "-s" in commandString):
-            commandString += " --sender " + target
-        targetJson["autoCommand"].append(commandString)
+            commandString += " --sender " + combatant
+        if has.get("target") and not ("--target" in commandString or "-t" in commandString):
+            targetString = ""
+            if method == "random":
+                foundTarget = False
+                for order in orders:
+                    aliveTargets = []
+                    targets = order.split(",")
+                    for target in targets:
+                        if(battleTable.get(target)):
+                            aliveTargets += target
+                    nTargets = len(aliveTargets) 
+                    if nTargets != 0:
+                        target = aliveTargets[math.floor(nTargets*random.random())]
+                        break
+                if not foundTarget:
+                    print("I'm idle")
+
+            commandString += " --target " + targetString
+        combatantJson["autoCommand"].append(commandString)
 
 def callTurn(a):
     foundActive = -1
@@ -723,6 +749,7 @@ def parse_command(command_string_to_parse):
     "file" : ["load"],
     "times" : ["mod", "add"],
     "commandString" : ["auto","add"],
+    "order" : ["auto","add"],
     }
 
     hasDict["target"] = hasDict["target"] + hasDict["sender"]
