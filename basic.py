@@ -123,9 +123,9 @@ def rolld20(advantage = 0, modifier=0):
     mod = str(modifier)
     if advantage == 0:
         d20 = roll("1d20+"+mod)
-    elif advantage == 1:
+    elif advantage > 0:
         d20 = max(roll("1d20+"+mod),roll("1d20+"+mod))
-    elif advantage == -1:
+    elif advantage < 0:
         d20 = min(roll("1d20+"+mod),roll("1d20+"+mod))
     else:
         print("invalid advantage type", advantage)
@@ -317,7 +317,8 @@ def applyAction(a):
         mod = getMod("actionHit",action,senderJson)
         threshold = targetJson["armor_class"]
 
-        hitCrit = checkHit(mod,threshold,advantage)
+        advMod = senderJson["advantage"]
+        hitCrit = checkHit(mod,threshold,advantage+advMod)
         if hitCrit[0]:
             for damage in action["damage"]:         
                 if damage.get("choose"):
@@ -380,7 +381,8 @@ def callWeapon(a):
         senderJson = battleTable[sender]
         mod = getMod("hit",attackJson,senderJson)
         threshold = targetJson["armor_class"]
-        hitCrit = checkHit(mod,threshold,advantage)
+        advMod = senderJson["advantage"]
+        hitCrit = checkHit(mod,threshold,advantage+advMod)
         if hitCrit[0]:
             hurt = roll(attackJson["damage"]["damage_dice"]+"+"+str(getMod("dmg",attackJson,senderJson)),hitCrit[1])
             applyDamage(targetJson,hurt,attackJson["damage"]["damage_type"])
@@ -436,6 +438,7 @@ def callCast(a):
         threshold = 0;
         
         dc = attackJson.get("dc")
+        advMod = 0
         if dc:
             mod = getMod("saveDc", attackJson, targetJson)
             if cantrip:
@@ -444,11 +447,14 @@ def callCast(a):
 
             if dc["dc_success"] == "half":
                 saveMult = 0.5
+            advMod = senderJson["advantage"]
         else:
             mod = getMod("spellHit",attackJson,senderJson)
             threshold = targetJson["armor_class"]
+            advMod = targetJson["advantage"]
+        
 
-        hitCrit = checkHit(mod,threshold,advantage,dc)
+        hitCrit = checkHit(mod,threshold,advantage+advMod,dc)
         if hitCrit[0]:
             applyDamage(targetJson,roll(dmgString,hitCrit[1]),attackJson["damage"]["damage_type"])
         elif saveMult != 0:
@@ -571,6 +577,7 @@ def addCreature(a):
             combatant["max_hp"] = hitPoints
             combatant["current_hp"] = hitPoints
         combatant["identity"] = nick
+        combatant["advantage"] = 0
     
         battleTable[nick] = combatant
         a["target"] = nick
