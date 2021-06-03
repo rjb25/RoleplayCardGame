@@ -621,6 +621,12 @@ def callGroup(a):
         battleInfo["groups"][group] = []
 
     battleInfo["groups"][group] = battleInfo["groups"][group] + members 
+def showInfo(a):
+    if a.get("info") == "all" or (not a.get("info")):
+        printJson(battleInfo)
+    else:
+        printJson(battleInfo[a["info"]])
+
 
 def callUseStrict(a):
     attackPath = a["do"].lower()
@@ -693,6 +699,9 @@ def populateParserArguments(command,parser,has):
 
     if has.get("identity"):
         parser.add_argument("--identity", "-i", help='Identities for added monsters', nargs='+')
+
+    if has.get("info"):
+        parser.add_argument("--info", "-i", help='Info category to interact with')
 
     if has.get("advantage"):
         parser.add_argument("--advantage", "-a", choices=[1,0,-1], type=int, help='Advantage for attacks', nargs='+')
@@ -790,8 +799,8 @@ def runAuto(combatantJson,hasDict):
         if not foundTarget:
             print("I'm idle with no available target:", combatantJson["identity"])
         else:
-            #print("auto command", commandString+targetString)
             parse_command(commandString+targetString)
+            removeDown()
 
 def callTurn(a):
     foundActive = -1
@@ -848,8 +857,9 @@ def parse_command(command_string_to_parse):
     "initiative" : 'Roll for initiative. Like:\n\tinitiative --target all\n',
     "load" : 'Load a content by file name. Like:\n\tload --category monsters --file new_creature.json\n\tload --category equipment --file new_weapon.json\n\tload --category spells --file new_spell.json\n',
     "turn" : 'Increments turn. Like:\n\tturn\n',
-    "auto" : 'Set an automated command. Like:\n\tauto --target sahuagin --commandString "action --target goblin --sender sahuagin --do multiattack"\n',
-    "group" : 'Set a group for use in targetting. Will be resolved to listed targets. Like:\n\tgroup --target sahuagin sahuagin#2 --group sahuagang\n',
+    "auto" : 'Set an automated command. Like:\n\tauto --target sahuagin --commandString "action --target goblin --sender sahuagin --do multiattack"\nauto --target good-guy-greg --order goblin+goblin#2,giant-rat --method random --commandString "use --do greatsword"\n',
+    "group" : 'Set a group for use in targetting. Will be resolved to listed targets. Like:\n\tgroup --member sahuagin sahuagin#2 --group sahuagang\n',
+    "info" : 'Shows all info for reference. Like:\n\info --info groups\n',
     "roll" : 'Roll dice. Like:\n\troll --target sahuagin sahuagin#2 --group sahuagang\n',
     "help" : 'Display this message. Like:\n\thelp\n',
     }
@@ -873,6 +883,7 @@ def parse_command(command_string_to_parse):
     "turn" : callTurn,
     "auto" : setAuto,
     "group" : callGroup,
+    "info" : showInfo,
     "roll" : rollString,
     }
 
@@ -892,6 +903,7 @@ def parse_command(command_string_to_parse):
     "order" : ["auto","add"],
     "group" : ["group","add"],
     "dice" : ["roll"],
+    "info" : ["info"],
     }
 
     hasDict["target"] = hasDict["target"] + hasDict["sender"]
