@@ -45,10 +45,14 @@ def load(a):
     with open(a["file"]) as f:
             return json.load(f)
 
-def loadCreature(a):
+def loadCategory(a):
     creatureJson = load(a)
     global cacheTable
-    cacheTable["monsters"][creatureJson["index"]] = creatureJson
+    hasCategory = cacheTable.get(a["category"])
+    if hasCategory:
+        cacheTable[a["category"]][creatureJson["index"]] = creatureJson
+    else:
+        print("Invalid category to load into")
  
 cacheTable = defaultify(load({"file":"data.json"}))
 battleTable = defaultify(load({"file":"battle.json"}))
@@ -85,6 +89,8 @@ def saveBattle():
             json.dump(dictify(battleTable),f)       
         with open('battle_info.json', 'w') as f:
             json.dump(dictify(battleInfo),f)
+        with open('data.json', 'w') as f:
+            json.dump(dictify(cacheTable),f)
 
 def printJson(json):
     pprint.pprint(dictify(json), sort_dicts=False)
@@ -670,6 +676,9 @@ def populateParserArguments(command,parser,has):
         parser.add_argument("--group", "-g", help='A group which will be reduced to a target list', required=req)
         parser.add_argument("--member", "-e", help='members to be placed into a group', required=req, nargs='+')
 
+    if has.get("category"):
+        parser.add_argument("--category", "-c", choices=['monsters','equipment','spells'], help='A category for content',required=True)
+
     if has.get("commandString"):
         req = True
         if command == "add":
@@ -680,7 +689,7 @@ def populateParserArguments(command,parser,has):
         parser.add_argument("--identity", "-i", help='Identities for added monsters', nargs='+')
 
     if has.get("advantage"):
-        parser.add_argument("--advantage", "-a", type=int, help='Advantage for attacks', nargs='+')
+        parser.add_argument("--advantage", "-a", choices=[1,0,-1], type=int, help='Advantage for attacks', nargs='+')
 
     if has.get("file"):
         parser.add_argument("--file", "-f", help='The file you would like to interact with')
@@ -813,23 +822,23 @@ def parse_command(command_string_to_parse):
 
     command_descriptions_dict = {
     "action" : 'Do a generic action. Like:\n\taction --do Multiattack --sender sahuagin#2 --target druid#3 --times 1 --advantage 1\n',
-    "weapon" : 'Use a weapon. Like:\n\t weapon --do greatsword --sender sahuagin#2 --target druid#3 --times 3 --advantage -1\n',
-    "cast" : 'Cast a spell. Like:\n\t cast --sender druid#3 --target sahuagin#2 --times 2 --do fire-bolt --level 4 --advantage 0\n',
-    "remove" : 'Remove an item. Like:\n\t remove --target sahuagin#2\n',
-    "request" : 'Make a request. Like:\n\t request --path monsters sahuagin\n',
-    "set" : 'Set some aspect of the character or other item. Like:\n\t set --target sahuagin# --path initiative --change 18\n',
-    "mod" : 'Modify a stat on a creature. Like:\n\t mod --target sahuagin#2 --path initiative --change -5\n',
-    "list" : 'List the features of a creature. Like:\n\t list --target sahuagin#2 --path actions\n',
-    "listkeys" : 'List the keys for an item. Like:\n\t listkeys --target sahuagin#2 --path actions\n',
-    "add" : 'Add a creature. Like:\n\t add --target sahuagin --times 2 --identity Aqua-Soldier\n',
-    "init" : 'Roll for initiative. Like:\n\t initiative --target sahuagin#2\n',
-    "initiative" : 'Roll for initiative. Like:\n\t initiative --target sahuagin#2\n',
-    "load" : 'Load a creature by file name. Like:\n\t load --file new_creature.json\n',
-    "turn" : 'Increments turn. Like:\n\t turn\n',
-    "auto" : 'Set an automated command. Like:\n\t auto --target sahuagin --commandString "action --target goblin --sender sahuagin --do multiattack"\n',
-    "group" : 'Set a group for use in targetting. Will be resolved to listed targets. Like:\n\t group --target sahuagin sahuagin#2 --group sahuagang\n',
-    "roll" : 'Roll dice. Like:\n\t roll --target sahuagin sahuagin#2 --group sahuagang\n',
-    "help" : 'Display this message. Like:\n\t help\n',
+    "weapon" : 'Use a weapon. Like:\n\tweapon --do greatsword --sender sahuagin#2 --target druid#3 --times 3 --advantage -1\n',
+    "cast" : 'Cast a spell. Like:\n\tcast --sender druid#3 --target sahuagin#2 --times 2 --do fire-bolt --level 4 --advantage 0\n',
+    "remove" : 'Remove an item. Like:\n\tremove --target sahuagin#2\n',
+    "request" : 'Make a request. Like:\n\trequest --path monsters sahuagin\n',
+    "set" : 'Set some aspect of the character or other item. Like:\n\tset --target sahuagin# --path initiative --change 18\n',
+    "mod" : 'Modify a stat on a creature. Like:\n\tmod --target sahuagin#2 --path initiative --change -5\n',
+    "list" : 'List the features of a creature. Like:\n\tlist --target sahuagin#2 --path actions\n',
+    "listkeys" : 'List the keys for an item. Like:\n\tlistkeys --target sahuagin#2 --path actions\n',
+    "add" : 'Add a creature. Like:\n\tadd --target sahuagin --times 2 --identity Aqua-Soldier\n',
+    "init" : 'Roll for initiative. Like:\n\tinitiative --target sahuagin#2\n',
+    "initiative" : 'Roll for initiative. Like:\n\tinitiative --target all\n',
+    "load" : 'Load a content by file name. Like:\n\tload --category monsters --file new_creature.json\n\tload --category equipment --file new_weapon.json\n\tload --category spells --file new_spell.json\n',
+    "turn" : 'Increments turn. Like:\n\tturn\n',
+    "auto" : 'Set an automated command. Like:\n\tauto --target sahuagin --commandString "action --target goblin --sender sahuagin --do multiattack"\n',
+    "group" : 'Set a group for use in targetting. Will be resolved to listed targets. Like:\n\tgroup --target sahuagin sahuagin#2 --group sahuagang\n',
+    "roll" : 'Roll dice. Like:\n\troll --target sahuagin sahuagin#2 --group sahuagang\n',
+    "help" : 'Display this message. Like:\n\thelp\n',
     }
 
     funcDict = {
@@ -846,7 +855,7 @@ def parse_command(command_string_to_parse):
     "add" : addCreature,
     "init" : applyInit,
     "initiative" : applyInit,
-    "load" : loadCreature,
+    "load" : loadCategory,
     "help" : helpMessage,
     "turn" : callTurn,
     "auto" : setAuto,
@@ -864,6 +873,7 @@ def parse_command(command_string_to_parse):
     "advantage" : [],
     "sort" : ["add","init","initiative"],
     "file" : ["load"],
+    "category" : ["load"],
     "times" : ["mod", "add","roll"],
     "commandString" : ["auto","add"],
     "order" : ["auto","add"],
@@ -877,7 +887,7 @@ def parse_command(command_string_to_parse):
     
     parser = ArgumentParser(
             prog=command,
-            description=geti(command_descriptions_dict,command,'Dnd DM Assistant Command Updates Game State'),
+            description=geti(command_descriptions_dict,command,'Dnd DM Assistant'),
             formatter_class=argparse.RawTextHelpFormatter
             )
 
