@@ -127,7 +127,7 @@ def rolld20(advantage = 0, modifier=0):
         d20 = roll("1d20+"+mod)
     return d20
 
-def roll(dice_string):
+def roll(dice_string,crit=False):
     '''
     # PRECONDITIONS #
     Input: String with dice number, type, and modifier, e.g. 3d20+1
@@ -148,7 +148,11 @@ def roll(dice_string):
         remaining = dsplit[1].split("+")
         if "+" in dice_string:
             diceMod = float(remaining[1])
+        
         diceCount = int(dsplit[0])
+        if crit:
+            diceCount = diceCount*2
+            dice_string = "2*"+dice_string
         diceType = float(remaining[0])
         for x in range(diceCount):
             sum += math.ceil(diceType*random.random())
@@ -303,15 +307,16 @@ def applyAction(a):
     if action:
         mod = getMod("actionHit",action,senderJson)
         threshold = targetJson["armor_class"]
-        
-        if checkHit(mod,threshold,advantage):
+
+        hitCrit = checkHit(mod,threshold,advantage)
+        if hitCrit[0]:
             for damage in action["damage"]:         
                 if damage.get("choose"):
                     for actions in range(int(damage["choose"])):
                         chosenAction = random.choice(damage["from"])
-                        applyDamage(targetJson,roll(chosenAction["damage_dice"]),chosenAction["damage_type"])
+                        applyDamage(targetJson,roll(chosenAction["damage_dice"],hitCrit[1]),chosenAction["damage_type"])
                 else:   
-                    applyDamage(targetJson,roll(damage["damage_dice"]),damage["damage_type"])
+                    applyDamage(targetJson,roll(damage["damage_dice"],hitCrit[1]),damage["damage_type"])
     else:
         print('Invalid action for this combatant')
         action_result = 'Invalid action for this combatant'
@@ -366,16 +371,23 @@ def callWeapon(a):
         senderJson = battleTable[sender]
         mod = getMod("hit",attackJson,senderJson)
         threshold = targetJson["armor_class"]
-
-        if checkHit(mod,threshold,advantage):
-            hurt = roll(attackJson["damage"]["damage_dice"]+"+"+str(getMod("dmg",attackJson,senderJson)))
+        hitCrit = checkHit(mod,threshold,advantage)
+        if hitCrit[0]:
+            hurt = roll(attackJson["damage"]["damage_dice"]+"+"+str(getMod("dmg",attackJson,senderJson)),hitCrit[1])
             applyDamage(targetJson,hurt,attackJson["damage"]["damage_type"])
 
 def checkHit(mod,threshold,advantage=0,save=False):
     d20 = rolld20(advantage,mod)
-    success = not ((d20 > threshold) == save)
-    print("Hit?", success, "is", d20, ">",threshold)
-    return success
+    got20 = ((int(d20) - int(mod)) == 20)
+    crit = (got20) and (not save)
+    success = False
+    if crit:
+        success = True
+    else:
+        success = not ((d20 > threshold) == save)
+
+    print("Hit?", success, "is", d20, ">",threshold, "Crit?",crit)
+    return [success, crit]
 
 def callCast(a):
     attackPath = a["do"].lower()
@@ -427,10 +439,11 @@ def callCast(a):
             mod = getMod("spellHit",attackJson,senderJson)
             threshold = targetJson["armor_class"]
 
-        if checkHit(mod,threshold,advantage,dc):
-            applyDamage(targetJson,roll(dmgString),attackJson["damage"]["damage_type"])
+        hitCrit = checkHit(mod,threshold,advantage,dc)
+        if hitCrit[0]:
+            applyDamage(targetJson,roll(dmgString,hitCrit[1]),attackJson["damage"]["damage_type"])
         elif saveMult != 0:
-            applyDamage(targetJson,saveMult*roll(dmgString),attackJson["damage"]["damage_type"])
+            applyDamage(targetJson,saveMult*roll(dmgString,hitCrit[1]),attackJson["damage"]["damage_type"])
 
 def removeDown(a=''):
     for nick, combatant in battleTable.copy().items():
