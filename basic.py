@@ -555,6 +555,10 @@ def addCreature(a):
         a["target"] = nick
         if a.get("commandString"):
             setAuto(a)
+        if a.get("group"):
+            a["append"] = True
+            a["member"] = [nick]
+            callGroup(a)
         applyInit(a)
 
 def legacyCreateCharacter(a):
@@ -581,6 +585,17 @@ def legacyCreateCharacter(a):
     with open('data.json', 'w') as f:
         json.dump(dictify(cacheTable),f)
 
+def callGroup(a):
+    members = a["member"] 
+    group = a["group"]
+    toAppend = a["append"]
+    groupRef = battleInfo["groups"].get(group)
+    if not groupRef or not toAppend:
+        battleInfo["groups"][group] = []
+
+    battleInfo["groups"][group] = battleInfo["groups"][group] + members 
+
+
 def populateParserArguments(command,parser,has):
     if has.get("times"):
         parser.add_argument("--times", "-n", help='How many times to run the command',type=int, default=1)
@@ -598,10 +613,20 @@ def populateParserArguments(command,parser,has):
         parser.add_argument("--level", "-l", type=int, help='Level to cast a spell at')
 
     if has.get("target"):
-        if has.get("identity") or has.get("file"):
+        if (has.get("identity") or has.get("file")):
             parser.add_argument("--target", "-t", required=True, help='Target/s creature types to fetch from the cache the api or a file', nargs='+')
         else:
             parser.add_argument("--target", "-t", required=True, help='Target/s for command', nargs='+')
+
+    if has.get("group"):
+        req = True
+        if command == "add":
+            req = False
+        else:
+            parser.add_argument("--append", "-a", help='Whether this command should replace the existing set or be added on', dest='append', action='store_true', required=False)
+            parser.set_defaults(append=False)
+        parser.add_argument("--group", "-g", help='A group which will be reduced to a target list', required=req)
+        parser.add_argument("--member", "-e", help='members to be placed into a group', required=req, nargs='+')
 
     if has.get("commandString"):
         req = True
@@ -621,7 +646,8 @@ def populateParserArguments(command,parser,has):
     if has.get("order"):
         parser.add_argument("--order", "-o", help='Order of targetting for automation', nargs='+',required=False, default=["defaultCombatant"])
         parser.add_argument("--method", "-m", help='Method for selecting targets from order list sub entry. Options:\nrandom,simultaneus,ordered', default="random", required=False, nargs='+')
-        parser.add_argument("--append", "-a", help='Whether this command should replace the existing set of be added on', required=False, default=False)
+        parser.add_argument("--append", "-a", help='Whether this command should replace the existing set or be added on', dest='append', action='store_true', required=False)
+        parser.set_defaults(append=False)
 
 
 def helpMessage(a):
@@ -666,47 +692,33 @@ def runAuto(combatantJson,hasDict):
         if has.get("target") and not ("--target" in commandString or "-t" in commandString):
             foundTarget = False
 
-            if method == "random":
-                for targetGroup in targetGroups:
-                    aliveTargets = []
-                    targets = targetGroup.split("+")
-                    for target in targets:
+            for targetGroup in targetGroups:
+                aliveTargets = []
+                targets = targetGroup.split("+")
+                for target in targets:
+                    if target in battleInfo["groups"].keys():
+                        targetList = battleInfo["groups"][target]
+                    else:
+                        targetList = [target]
+                    for target in targetList:
                         if(battleTable.get(target)):
                             aliveTargets.append(target)
-                    nTargets = len(aliveTargets) 
-                    if nTargets != 0:
-                        targetString = " --target " + aliveTargets[math.floor(nTargets*random.random())]
-                        foundTarget = True
-                        break
 
-            elif method == "simultaneous":
-                for targetGroup in targetGroups:
-                    aliveTargets = []
-                    targets = targetGroup.split("+")
-                    for target in targets:
-                        if(battleTable.get(target)):
-                            aliveTargets.append(target)
-                    nTargets = len(aliveTargets) 
-                    if nTargets != 0:
+                nTargets = len(aliveTargets) 
+                if nTargets != 0:
+                    if method == "random":
+                        targetString = " --target " + aliveTargets[math.floor(nTargets*random.random())]
+                    elif method == "simultaneous":
                         targetString = " --target"
                         for target in aliveTargets:
                             targetString += " " + target
-                        foundTarget = True
-                        break
-
-            elif method == "order":
-                #This is a bit redundant because you could just do a,b,c instead of a+b,c
-                for targetGroup in targetGroups:
-                    aliveTargets = []
-                    targets = targetGroup.split("+")
-                    for target in targets:
-                        if(battleTable.get(target)):
-                            aliveTargets.append(target)
-                    nTargets = len(aliveTargets) 
-                    if nTargets != 0:
+                    elif method == "order":
                         targetString = " --target " + aliveTargets[0]
-                        foundTarget = True
-                        break
+                    else:
+                        targetString = " --target " + aliveTargets[0] #redundant else for safety
+
+                    foundTarget = True
+                    break
 
         if not foundTarget:
             print("I'm idle with no available target:", combatantJson["identity"])
@@ -771,6 +783,7 @@ def parse_command(command_string_to_parse):
     "help" : 'Display this message. Like:\n\t help\n',
     "turn" : 'Increments turn. Like:\n\t help\n',
     "auto" : 'Set an automated command. Like:\n\t auto --target sahuagin --commandString "action --target goblin --sender sahuagin --do multiattack"\n',
+    "group" : 'Set a group for use in targetting. Will be resolved to listed targets. Like:\n\t group --target sahuagin sahuagin#2 --group sahuagang\n',
     }
 
     funcDict = {
@@ -790,6 +803,7 @@ def parse_command(command_string_to_parse):
     "help" : helpMessage,
     "turn" : callTurn,
     "auto" : setAuto,
+    "group" : callGroup,
     }
 
     hasDict = {
@@ -805,6 +819,7 @@ def parse_command(command_string_to_parse):
     "times" : ["mod", "add"],
     "commandString" : ["auto","add"],
     "order" : ["auto","add"],
+    "group" : ["group","add"]
     }
 
     hasDict["target"] = hasDict["target"] + hasDict["sender"]
@@ -867,11 +882,12 @@ def parse_command(command_string_to_parse):
             argDictCopy["sender"] = sender
             for number,target in enumerate(argDictMain["target"]):
                 #Slightly redundant code, but it's fine for now
+                targetList = [target]
                 if target == "all":
-                    targetDict = battleTable
-                else:
-                    targetDict = {target : "bogus baloney"}
-                for name in targetDict.keys():
+                    targetList = battleTable.keys()
+                elif target in battleInfo["groups"].keys():
+                    targetList = battleInfo["groups"][target]
+                for name in targetList:
                     argDictCopy["target"] = name
                     if has["identity"]:
                         argDictCopy["identity"] = geti(argDictMain["identity"],number,argDictCopy["target"])
@@ -879,11 +895,11 @@ def parse_command(command_string_to_parse):
                         argDictCopy["advantage"] = geti(argDictMain["advantage"],number,0)
 
                     if command in funcDict:
-                        if battleTable.get(target) or not has["target"] or command == "add" or command == "load":
+                        if battleTable.get(name) or not has["target"] or command == "add" or command == "load":
                             command_result += str(funcDict[command](argDictCopy))
                         else:
                             command_result += "ignored an invalid target"
-                            print('ignored an invalid target', target)
+                            print('ignored an invalid target', name)
                     else:
                         print('Incorrect command. Try running the `help` command')
                         command_result += 'incorrect command was entered. Try again?'
