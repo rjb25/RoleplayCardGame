@@ -1,0 +1,17 @@
+{"index": "Zonrad",
+ "armor_class": 13,
+ "hit_points": 24,
+ "strength": 12,
+ "dexterity": 15,
+ "constitution": 14,
+ "intelligence": 12,
+ "wisdom": 12,
+ "charisma": 9,
+ "damage_vulnerabilities": [],
+ "damage_resistances": [],
+ "damage_immunities": [],
+ "level": 3,
+ "weapon_proficiencies": "simple,martial",
+ "proficiency_bonus": 2,
+ "spellcasting": {"ability": {"index" : "cha"}}
+ }

@@ -1,0 +1,17 @@
+{"index": "horby",
+ "armor_class": 13,
+ "hit_points": 24,
+ "strength": 12,
+ "dexterity": 12,
+ "constitution": 12,
+ "intelligence": 10,
+ "wisdom": 10,
+ "charisma": 10,
+ "damage_vulnerabilities": [],
+ "damage_resistances": [],
+ "damage_immunities": [],
+ "level": 3,
+ "weapon_proficiencies": "simple,martial",
+ "proficiency_bonus": 2,
+ "spellcasting": {"ability": {"index" : "wis"}}
+ }

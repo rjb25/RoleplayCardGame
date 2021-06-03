@@ -595,8 +595,7 @@ def legacyCreateCharacter(a):
     monsterCache["special_abilities"] = []
     monsterCache["special_abilities"].append({"spellcasting": {"ability": {"index" : input("caster stat? (eg. int)")}}})
     monsterCache["weapon_proficiencies"] = input("Weapon proficiencies? (eg simple,martial)")
-    monsterCache["max_hp"] = int(input("Max Hp?"))
-    monsterCache["current_hp"] = int(monsterCache["max_hp"])
+    monsterCache["hit_points"] = int(input("Max Hp?"))
     monsterCache["armor_class"] = int(input("Armor Class?"))
     spellcasting = canCast(monsterCache)
     level = int(input("Level?"))
