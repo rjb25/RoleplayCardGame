@@ -162,6 +162,9 @@ def roll(dice_string,crit=False):
     
     return int(sum + diceMod)
 
+def rollString(a):
+    roll(a["dice"])
+
 def crToProf(cr):
     crVal = float(sum(Fraction(s) for s in str(cr).split()))
     if cr < 5:
@@ -688,6 +691,9 @@ def populateParserArguments(command,parser,has):
         parser.add_argument("--append", "-a", help='Whether this command should replace the existing set or be added on', dest='append', action='store_true', required=False)
         parser.set_defaults(append=False)
 
+    if has.get("dice"):
+        parser.add_argument("--dice", "-d", help='A dice string to be used',required=True)
+
 
 def helpMessage(a):
     for key, value in a["commandDescriptions"].items():
@@ -822,6 +828,7 @@ def parse_command(command_string_to_parse):
     "turn" : 'Increments turn. Like:\n\t turn\n',
     "auto" : 'Set an automated command. Like:\n\t auto --target sahuagin --commandString "action --target goblin --sender sahuagin --do multiattack"\n',
     "group" : 'Set a group for use in targetting. Will be resolved to listed targets. Like:\n\t group --target sahuagin sahuagin#2 --group sahuagang\n',
+    "roll" : 'Roll dice. Like:\n\t roll --target sahuagin sahuagin#2 --group sahuagang\n',
     "help" : 'Display this message. Like:\n\t help\n',
     }
 
@@ -844,6 +851,7 @@ def parse_command(command_string_to_parse):
     "turn" : callTurn,
     "auto" : setAuto,
     "group" : callGroup,
+    "roll" : rollString,
     }
 
     hasDict = {
@@ -856,10 +864,11 @@ def parse_command(command_string_to_parse):
     "advantage" : [],
     "sort" : ["add","init","initiative"],
     "file" : ["load"],
-    "times" : ["mod", "add"],
+    "times" : ["mod", "add","roll"],
     "commandString" : ["auto","add"],
     "order" : ["auto","add"],
-    "group" : ["group","add"]
+    "group" : ["group","add"],
+    "dice" : ["roll"],
     }
 
     hasDict["target"] = hasDict["target"] + hasDict["sender"]
