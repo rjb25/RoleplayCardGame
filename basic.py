@@ -744,6 +744,13 @@ def runAuto(combatantJson,hasDict):
     autoCommands = combatantJson.get("autoCommand")
     orders = combatantJson.get("order")
     methods = combatantJson.get("method")
+    commands = len(autoCommands)
+
+    if len(methods) < commands:
+        print("oops, missing a method for command targetting")
+    elif len(orders) < commands:
+        print("oops, missing an order for command targetting")
+
     for commandString, order, method in zip(autoCommands,orders,methods):
         targetGroups = order.split(",")
         has = hasParse(hasDict,commandString.split(" ")[0])
