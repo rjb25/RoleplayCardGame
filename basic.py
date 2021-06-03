@@ -602,7 +602,7 @@ def populateParserArguments(command,parser,has):
 
     if has.get("sender"):
         parser.add_argument("--sender", "-s", required=True, help='sender/s for command', nargs='+')
-        parser.add_argument("--do", "-d", required=True, help='What the sender is using on the target')
+        parser.add_argument("--do", "-d", required=True, help='What the sender is using on the target', nargs='+')
 
     if has.get("path"):
         parser.add_argument("--path", "-p", nargs='+',help='Path for json or api parsing with command. Space seperated')
@@ -780,10 +780,10 @@ def parse_command(command_string_to_parse):
     "init" : 'Roll for initiative. Like:\n\t initiative --target sahuagin#2\n',
     "initiative" : 'Roll for initiative. Like:\n\t initiative --target sahuagin#2\n',
     "load" : 'Load a creature by file name. Like:\n\t load --file new_creature.json\n',
-    "help" : 'Display this message. Like:\n\t help\n',
-    "turn" : 'Increments turn. Like:\n\t help\n',
+    "turn" : 'Increments turn. Like:\n\t turn\n',
     "auto" : 'Set an automated command. Like:\n\t auto --target sahuagin --commandString "action --target goblin --sender sahuagin --do multiattack"\n',
     "group" : 'Set a group for use in targetting. Will be resolved to listed targets. Like:\n\t group --target sahuagin sahuagin#2 --group sahuagang\n',
+    "help" : 'Display this message. Like:\n\t help\n',
     }
 
     funcDict = {
@@ -881,7 +881,6 @@ def parse_command(command_string_to_parse):
         for sender in argDictMain["sender"]:
             argDictCopy["sender"] = sender
             for number,target in enumerate(argDictMain["target"]):
-                #Slightly redundant code, but it's fine for now
                 targetList = [target]
                 if target == "all":
                     targetList = battleTable.keys()
@@ -896,7 +895,11 @@ def parse_command(command_string_to_parse):
 
                     if command in funcDict:
                         if battleTable.get(name) or not has["target"] or command == "add" or command == "load":
-                            command_result += str(funcDict[command](argDictCopy))
+                            if not argDictMain.get("do"):
+                                argDictMain["do"] = ["none"]
+                            for do in argDictMain["do"]:
+                                argDictCopy["do"] = do
+                                command_result += str(funcDict[command](argDictCopy))
                         else:
                             command_result += "ignored an invalid target"
                             print('ignored an invalid target', name)
