@@ -58,14 +58,16 @@ battleOrder = []
 
 def getJsonFromApi(steps,save=True):
         api_base = "https://www.dnd5eapi.co/api/"
-        print(steps)
         for x in steps:
             api_base += x + "/"
-        print(api_base)
-        package = requests.get(api_base)
+        try:
+            package = requests.get(api_base)
+        except:
+            print("Api not reachable",api_base)
+            return False
         response = package.json()
         if response.get("error"):
-            print("Content not in api nor cache", steps)
+            #print("Content not in api nor cache", steps)
             return False
 
         if save:
@@ -94,7 +96,7 @@ def getJson(steps):
         for i,x in enumerate(steps):
                 cache = cache[x]
                 if cache == {} and i > 0:
-                        print("Not cached, trying api")
+                        #print("Not cached, trying api")
                         return getJsonFromApi(steps)
         return cache.copy()
         
@@ -355,13 +357,13 @@ def isCantrip(attackJson):
 
 def callWeapon(a):
     attackPath = a["do"].lower()
-    sender = a["sender"]
-    target = a["target"]
-    advantage = a["advantage"]
     attackJson = getJson(["equipment",attackPath])
-    targetJson = battleTable[target]
-    senderJson = battleTable[sender]
     if attackJson:
+        sender = a["sender"]
+        target = a["target"]
+        advantage = a["advantage"]
+        targetJson = battleTable[target]
+        senderJson = battleTable[sender]
         mod = getMod("hit",attackJson,senderJson)
         threshold = targetJson["armor_class"]
 
@@ -377,37 +379,37 @@ def checkHit(mod,threshold,advantage=0,save=False):
 
 def callCast(a):
     attackPath = a["do"].lower()
-    sender = a["sender"]
-    target = a["target"]
-    level = a["level"]
-    advantage = a["advantage"]
     attackJson = getJson(["spells",attackPath])
-    targetJson = battleTable.get(target)
-    senderJson = battleTable.get(sender)
-    if not targetJson or not senderJson:
-        print("target or sender no longer exists")
-        return
-
-    dmgAtKey = spellType(attackJson)
-    cantrip = isCantrip(attackJson)
-    dmgString = ""
-
-    spellcasting = canCast(senderJson)
-
-    if cantrip:
-        level = geti(spellcasting, "level", -1)
-
-    lowestLevel = "1000000"
-    for levelKey, damage in attackJson["damage"][dmgAtKey].items():
-        if int(levelKey) < int(lowestLevel):
-            lowestLevel = levelKey
-        if int(level) >= int(levelKey):
-            dmgString = attackJson["damage"][dmgAtKey][levelKey]
-    if dmgString == "":
-        dmgString = attackJson["damage"][dmgAtKey][lowestLevel]
-        print("Defaulting cast to lowest level",lowestLevel)
-
     if attackJson:
+        sender = a["sender"]
+        target = a["target"]
+        level = a["level"]
+        advantage = a["advantage"]
+        targetJson = battleTable.get(target)
+        senderJson = battleTable.get(sender)
+        if not targetJson or not senderJson:
+            print("target or sender no longer exists")
+            return
+
+        dmgAtKey = spellType(attackJson)
+        cantrip = isCantrip(attackJson)
+        dmgString = ""
+
+        spellcasting = canCast(senderJson)
+
+        if cantrip:
+            level = geti(spellcasting, "level", -1)
+
+        lowestLevel = "1000000"
+        for levelKey, damage in attackJson["damage"][dmgAtKey].items():
+            if int(levelKey) < int(lowestLevel):
+                lowestLevel = levelKey
+            if int(level) >= int(levelKey):
+                dmgString = attackJson["damage"][dmgAtKey][levelKey]
+        if dmgString == "":
+            dmgString = attackJson["damage"][dmgAtKey][lowestLevel]
+            print("Defaulting cast to lowest level",lowestLevel)
+
         saveMult = 0
         mod = 0;
         threshold = 0;
@@ -455,19 +457,16 @@ def callAction(a):
     senderJson = battleTable[sender]
     actions = senderJson.get("actions")
     action_result = ''
-    if actions:
+    runAction = False
+    for action in actions:
+        if action["name"] == actionKey:
+            runAction = action
+    if runAction:
         if actionKey == "Multiattack":
-            canMultiAttack = False
-            multiAction = {}
-            for act in actions:
-                if act["name"] == actionKey:
-                    multiAction = act
-                    canMultiAttack = True
-            if canMultiAttack:
-                for i in range(int(multiAction["options"]["choose"])):
-                    for action in random.choice(multiAction["options"]["from"]):
-                        a["do"] = action["name"]
-                        applyAction(a)
+            for i in range(int(runAction["options"]["choose"])):
+                for action in random.choice(runAction["options"]["from"]):
+                    a["do"] = action["name"]
+                    applyAction(a)
             else:
                 print("This combatant cannot multiattack")
                 action_result = 'This combatant cannot use ' + actionKey
@@ -595,6 +594,33 @@ def callGroup(a):
 
     battleInfo["groups"][group] = battleInfo["groups"][group] + members 
 
+def callUseStrict(a):
+    attackPath = a["do"].lower()
+    attackWeapon = getJson(["equipment",attackPath])
+    if attackWeapon:
+        callWeapon(a)
+        return
+
+    attackSpell = getJson(["spells",attackPath])
+    if attackSpell:
+        callCast(a)
+        return
+
+    actionKey = a["do"].title()
+    sender = a["sender"]
+    senderJson = battleTable[sender]
+    actions = senderJson.get("actions")
+    attackAction = actionKey in actions
+    if attackAction:
+        callAction(a)
+        return
+
+    print("Trying to use/do something that is not a weapon nor a spell nor an action.")
+
+def callUse(a):
+    callWeapon(a)
+    callCast(a)
+    callAction(a)
 
 def populateParserArguments(command,parser,has):
     if has.get("times"):
@@ -787,6 +813,7 @@ def parse_command(command_string_to_parse):
     }
 
     funcDict = {
+    "use" : callUse,
     "action" : callAction,
     "weapon" : callWeapon,
     "cast" : callCast,
@@ -807,7 +834,7 @@ def parse_command(command_string_to_parse):
     }
 
     hasDict = {
-    "sender" : ["action","weapon","cast"],
+    "sender" : ["action","weapon","cast","use"],
     "path" : ["request","mod","set","list","listkeys"],
     "target" : ["init","initiative","remove","mod","set","list","listkeys","add","auto"],
     "change" : ["mod","set"],
