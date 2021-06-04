@@ -314,20 +314,37 @@ def applyAction(a):
         if act["name"] == actionKey:
             action = act
     if action:
-        mod = getMod("actionHit",action,senderJson)
         threshold = targetJson["armor_class"]
 
         advMod = senderJson["advantage"]
         dc = action.get("dc")
+
+        saveMult = 0
+        mod = 0
+        if dc:
+            threshold = dc.get("dc_value")
+            if not threshold:
+                print("Has a dc for this action but no dc_value. Defaulting to 10")
+                threshold = 10
+
+            if dc.get("dc_success") == "half" or dc.get("success_type") == "half":
+                saveMult = 0.5
+            advMod = senderJson["advantage"]
+            mod = getMod("saveDc", action, targetJson)
+        else:
+            mod = getMod("actionHit",action,senderJson)
+
         hitCrit = checkHit(mod,threshold,advantage+advMod,bool(dc))
         if hitCrit[0]:
+            saveMult = 1
+        if hitCrit[0] or saveMult !=0:
             for damage in action["damage"]:         
                 if damage.get("choose"):
                     for actions in range(int(damage["choose"])):
                         chosenAction = random.choice(damage["from"])
-                        applyDamage(targetJson,roll(chosenAction["damage_dice"],hitCrit[1]),chosenAction["damage_type"])
+                        applyDamage(targetJson,saveMult*roll(chosenAction["damage_dice"],hitCrit[1]),chosenAction["damage_type"])
                 else:   
-                    applyDamage(targetJson,roll(damage["damage_dice"],hitCrit[1]),damage["damage_type"])
+                    applyDamage(targetJson,saveMult*roll(damage["damage_dice"],hitCrit[1]),damage["damage_type"])
     else:
         print('Invalid action for this combatant')
         action_result = 'Invalid action for this combatant'
@@ -446,7 +463,7 @@ def callCast(a):
                 level = 0
             threshold = getMod("spellDc",attackJson,senderJson,int(level))
 
-            if dc["dc_success"] == "half":
+            if dc.get("dc_success") == "half" or dc.get("success_type") == "half":
                 saveMult = 0.5
             advMod = senderJson["advantage"]
         else:
