@@ -980,18 +980,29 @@ def parseOnly(command_string_to_parse):
     argDictMain = vars(a)
     argDictMain["command"] = command
     argDictMain["has"] = has
+
+    if not has["no-alias"] and has["sender"]:
+        argDictMain["sender"] = handleAliases(argDictMain["sender"])
+
+    if not has["no-alias"] and has["target"]:
+        argDictMain["target"] = handleAliases(argDictMain["target"])
+
     return argDictMain
 
 def dictToCommandString(dictionary):
     commandString = dictionary["command"]
     for key, value in dictionary.items():
+        valueString = ""
         if key != "command" and key != "has":
             if isinstance(value,list):
-                value = " ".join(value)
+                for val in value:
+                        valueString = valueString + " " + val
             else:
-                value = str(value)
-            commandString = commandString +"--"+ key + " " + value
-            entryString = " ".join(args[1:])
+                    valueString = str(value)
+            if valueString and valueString != None:
+                say(valueString)
+                say(key)
+                commandString = commandString +" --"+ key + valueString
     say(commandString)
     return commandString
 
@@ -1012,22 +1023,14 @@ def parse_command(command_string_to_parse):
         commandStrings = []
         for commandString in argDictMain["commandString"]:
             argDictTemp = parseOnly(commandString)
-            argDictTemp["sender"] = handleAliases(argDictTemp["sender"],argDictMain["resolve"])
-            argDictTemp["target"] = handleAliases(argDictTemp["target"],argDictMain["resolve"])
             commandStrings.append(dictToCommandString(argDictTemp))
         argDictMain["commandString"] = commandStrings
 
     if not has["sender"]:
         argDictMain["sender"] = ["none"]
-    else:
-        if not has["no-alias"]:
-            argDictMain["sender"] = handleAliases(argDictMain["sender"])
 
     if not has["target"]:
         argDictMain["target"] = ["none"]
-    else:
-        if not has["no-alias"]:
-            argDictMain["target"] = handleAliases(argDictMain["target"])
 
     argDictCopy = argDictMain.copy()
 
