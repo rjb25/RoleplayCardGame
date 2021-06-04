@@ -107,14 +107,14 @@ def getJson(steps):
         return cache.copy()
         
 def getState():
-        print("initiative name type hp/max_hp")
+        print("index initiative name type hp/max_hp")
         state_result = []
         for i, nick in enumerate(battleOrder):
             x = battleTable[nick]
             turn = ""
             if x.get("my_turn"):
                 turn = "<-----------------| My Turn"
-            print(x["initiative"],nick,x["index"],str(x["current_hp"])+"/"+str(x["max_hp"])+turn)
+            print(i,x["initiative"],nick,x["index"],str(x["current_hp"])+"/"+str(x["max_hp"])+turn)
             state_result.append(str(x["initiative"]) + ' ' + nick + ' ' + str(x["index"]) + ' ' + str(x["current_hp"]) + "/" + str(x["max_hp"]))
         return state_result
 
@@ -318,7 +318,8 @@ def applyAction(a):
         threshold = targetJson["armor_class"]
 
         advMod = senderJson["advantage"]
-        hitCrit = checkHit(mod,threshold,advantage+advMod)
+        dc = action.get("dc")
+        hitCrit = checkHit(mod,threshold,advantage+advMod,bool(dc))
         if hitCrit[0]:
             for damage in action["damage"]:         
                 if damage.get("choose"):
@@ -395,7 +396,7 @@ def checkHit(mod,threshold,advantage=0,save=False):
     if crit:
         success = True
     else:
-        success = not ((d20 > threshold) == save)
+        success = not ((d20 >= threshold) == save)
 
     print("Hit?", success, "is", d20, ">",threshold, "Crit?",crit)
     return [success, crit]
@@ -454,7 +455,7 @@ def callCast(a):
             advMod = targetJson["advantage"]
         
 
-        hitCrit = checkHit(mod,threshold,advantage+advMod,dc)
+        hitCrit = checkHit(mod,threshold,advantage+advMod,bool(dc))
         if hitCrit[0]:
             applyDamage(targetJson,roll(dmgString,hitCrit[1]),attackJson["damage"]["damage_type"])
         elif saveMult != 0:
@@ -467,8 +468,7 @@ def removeDown(a=''):
 
 def callRequest(a):
     steps = a["path"]
-    print(steps)
-    pprint.pprint(dictify(getJsonFromApi(steps,False)), sort_dicts=False)
+    pprint.pprint(dictify(getJson(steps)), sort_dicts=False)
 
 def remove(a):
     nick = a["target"]
@@ -486,9 +486,13 @@ def callAction(a):
     actions = senderJson.get("actions")
     action_result = ''
     runAction = False
-    for action in actions:
-        if action["name"] == actionKey:
-            runAction = action
+    if actionKey.isnumeric():
+        runAction = geti(actions,int(actionKey),False)
+        a["do"] = runAction["name"]
+    else:
+        for action in actions:
+            if action["name"] == actionKey:
+                runAction = action
     if runAction:
         if actionKey == "Multiattack":
             for i in range(int(runAction["options"]["choose"])):
@@ -806,7 +810,7 @@ def callTurn(a):
     foundActive = -1
     for i, nick in enumerate(battleOrder):
         x = battleTable[nick]
-        if x["my_turn"]:
+        if x.get("my_turn"):
             foundActive = i
 
     if battleOrder[foundActive]:

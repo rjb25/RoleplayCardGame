@@ -12,6 +12,6 @@
  "damage_immunities": [],
  "level": 3,
  "weapon_proficiencies": "simple,martial",
- "proficiency_bonus": 2
+ "proficiency_bonus": 2,
  "spellcasting": {"ability": {"index" : "int"}}
  }
