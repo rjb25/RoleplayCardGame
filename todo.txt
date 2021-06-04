@@ -1,0 +1,3 @@
+Implement saves for actions and possibly weapons.
+Implement optional positional targeting/sender -s 0 -t 1 type of thing
+Implement method for use. For instance use --do bite -s ratters -t party --method random/simultaneus/order. Maybe move order to the actual action instead of auto.
