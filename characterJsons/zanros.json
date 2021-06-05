@@ -1,12 +1,12 @@
-{"index": "thadeus",
- "armor_class": 12,
- "hit_points": 23,
- "strength": 18,
- "dexterity": 9,
- "constitution": 14,
- "intelligence": 15,
- "wisdom": 11,
- "charisma": 13,
+{"index": "zanros",
+ "armor_class": 19,
+ "hit_points": 31,
+ "strength": 13,
+ "dexterity": 16,
+ "constitution": 15,
+ "intelligence": 16,
+ "wisdom": 10,
+ "charisma": 15,
  "damage_vulnerabilities": [],
  "damage_resistances": [],
  "damage_immunities": [],
@@ -14,5 +14,5 @@
  "weapon_proficiencies": "simple,martial",
  "proficiency_bonus": 2,
  "spellcasting": {"ability": {"index" : "cha"}},
- "class": "sorcerer"
+ "class": "paladin"
  }

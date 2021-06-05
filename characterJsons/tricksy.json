@@ -13,5 +13,6 @@
  "level": 3,
  "weapon_proficiencies": "simple,martial",
  "proficiency_bonus": 2,
- "spellcasting": {"ability": {"index" : "int"}}
+ "spellcasting": {"ability": {"index" : "int"}},
+ "class": "rogue"
  }

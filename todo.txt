@@ -1,9 +1,2 @@
-Implement optional positional targeting/sender -s 0 -t 1 type of thing
-Implement targetting method for use. For instance use --do bite -s ratters -t party --method random/simultaneus/order. Maybe move order to the actual action instead of auto.
-Implement short rest functionality.
-Implement encounter addition through save commands?
-Implement max health check through check down.
 Pause and play functionality for automation
-Undo a command? Save damage dict with index based on command along side command.
-modify targetting so it is what accepts the order etc for group targetting.
 Allow for use of special abilities to be used like actions

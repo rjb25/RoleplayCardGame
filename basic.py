@@ -489,6 +489,8 @@ def removeDown(a=''):
     for nick, combatant in battleTable.copy().items():
         if combatant["current_hp"] <= 0:
             remove({"target": nick})
+        elif combatant["current_hp"] > combatant["max_hp"]:
+            combatant["current_hp"] = combatant["max_hp"]
 
 def callRequest(a):
     steps = a["path"]
@@ -611,8 +613,11 @@ def addCreature(a):
             hp = roll(hitDice)
             combatant["max_hp"] = hp
             combatant["current_hp"] = hp
+        myClass = combatant.get("class")
+        if myClass:
+            combatant["rest_dice"] = int(combatant["level"])
             
-        elif hitPoints:
+        if hitPoints:
             combatant["max_hp"] = hitPoints
             combatant["current_hp"] = hitPoints
         combatant["identity"] = nick
@@ -696,8 +701,6 @@ def callUse(a):
         callCast(a)
     callAction(a)
 
-
-
 def helpMessage(a):
     for key, value in a["commandDescriptions"].items():
         print(key, ":", value)
@@ -746,7 +749,7 @@ def onlyAlive(combatants):
             aliveCombatants.append(combatant)
     return aliveCombatants
 
-def handleAliases(combatantLists,alias=True):
+def handleAliases(combatantLists,alias=True,doAll=False):
     result = []
     for combatantListAliased in combatantLists:
         listMethod = combatantListAliased.split("!")
@@ -763,11 +766,11 @@ def handleAliases(combatantLists,alias=True):
                 if combatant in battleInfo["groups"].keys():
                     combatantList = combatantList + battleInfo["groups"][combatant]
                 elif combatant == "all":
-                    combatantList = combatantList + battleTable.keys()
+                    combatantList = combatantList + list(battleTable.keys())
                 else:
                     combatantList.append(combatant)
 
-        if alias:
+        if alias and not doAll:
             aliveCombatants = onlyAlive(combatantList)
         else:
             #Aliases aren't resolved so we shouldn't remove them if they aren't in battle
@@ -788,7 +791,7 @@ def handleAliases(combatantLists,alias=True):
                doBreak = False
         else:
             doBreak = False
-        if doBreak:
+        if doBreak and not doAll:
             break
 
     return result
@@ -797,7 +800,6 @@ def runAuto(combatantJson):
     autoCommands = combatantJson.get("autoCommand")
     for commandString in autoCommands:
             parse_command(commandString)
-            removeDown()
 
 def setAuto(a):
     combatant = a["target"]
@@ -822,13 +824,44 @@ def callStore(a):
         set_nested_item(battleInfo, path, get_nested_item(battleInfo,path)+commandStrings)
     else:
         battleInfo = set_nested_item(battleInfo, path, commandStrings)
-    say(battleInfo)
 
 def callRun(a):
     path = ["commands"]+a["path"]
     global battleInfo
     for command in get_nested_item(battleInfo,path):
         parse_command(command)
+
+def callShortRest(a):
+    combatant = a["target"]
+    combatantJson = battleTable[combatant]
+    if combatantJson.get("rest_dice"):
+        if combatantJson["rest_dice"] > 0 and combatantJson["current_hp"] < combatantJson["max_hp"]:
+            combatantJson["current_hp"] = combatantJson["current_hp"] + roll(hitDieFromClass(combatantJson["class"])+"+"+str(statMod(int(combatantJson["constitution"]))))
+            combatantJson["rest_dice"] = combatantJson["rest_dice"] - 1
+
+def callLongRest(a):
+    combatant = a["target"]
+    combatantJson = battleTable[combatant]
+    if combatantJson.get("rest_dice"):
+        combatantJson["rest_dice"] = int(combatantJson["level"])
+        combatantJson["current_hp"] = combatantJson["max_hp"]
+
+def hitDieFromClass(myClass):
+    d6 = ["sorcerer","wizard"]
+    d8 = ["artificer","bard","cleric","druid","monk","rogue","warlock"]
+    d10 = ["fighter","paladin","ranger"]
+    d12 = ["barbarian"]
+    dice = "1d8"
+    if myClass.lower() in d6:
+        dice = "1d6"
+    if myClass.lower() in d8:
+        dice = "1d8"
+    if myClass.lower() in d10:
+        dice = "1d10"
+    if myClass.lower() in d12:
+        dice = "1d12"
+    return dice
+
 
 def populateParserArguments(command,parser,has):
     if has.get("times"):
@@ -856,8 +889,9 @@ def populateParserArguments(command,parser,has):
         req = True
         if command == "add":
             req = False
+        else:
+            parser.add_argument("--member", "-e", help='members to be placed into a group', required=req, nargs='+')
         parser.add_argument("--group", "-g", help='A group which will be reduced to a target list', required=req)
-        parser.add_argument("--member", "-e", help='members to be placed into a group', required=req, nargs='+')
 
     if has.get("category"):
         parser.add_argument("--category", "-c", choices=['monsters','equipment','spells'], help='A category for content',required=True)
@@ -910,6 +944,8 @@ command_descriptions_dict = {
 "roll" : 'Roll dice. Like:\n\troll --target sahuagin sahuagin#2 --group sahuagang\n',
 "store" : 'Store a command for use later. Like:\n\store --commandString "add -t sahuagin -n 2" --path encounter#2 --append\n',
 "run" : 'Run a stored command Like:\n\run --path encounter#2 \n',
+"shortrest" : 'Auto heal from short rest Like:\n\run --path encounter#2 \n',
+"longrest" : 'AutoHeal from long restLike:\n\run --path encounter#2 \n',
 "help" : 'Display this message. Like:\n\thelp\n',
 }
 
@@ -936,12 +972,14 @@ funcDict = {
 "store" : callStore,
 "run" : callRun,
 "roll" : rollString,
+"shortrest" : callShortRest,
+"longrest" : callLongRest,
 }
 
 hasDict = {
 "sender" : ["action","weapon","cast","use"],
 "path" : ["request","mod","set","list","listkeys","store","run"],
-"target" : ["init","initiative","remove","mod","set","list","listkeys","auto","add"],
+"target" : ["init","initiative","remove","mod","set","list","listkeys","auto","add","longrest","shortrest"],
 "change" : ["mod","set"],
 "level" : ["cast"],
 "identity" : ["add"],
@@ -949,15 +987,16 @@ hasDict = {
 "sort" : ["add","init","initiative"],
 "file" : ["load"],
 "category" : ["load"],
-"times" : ["mod", "add","roll"],
+"times" : ["mod", "add","roll","longrest","shortrest"],
 "commandString" : ["auto","store"],
 "group" : ["group","add"],
 "dice" : ["roll"],
 "info" : ["info"],
 "append" : ["group","add","auto","store"],
 "no-alias" : ["add"],
+"target-all" : [],
 }
-
+hasDict["target-all"] = hasDict["target-all"] + hasDict["target"]
 hasDict["target"] = hasDict["target"] + hasDict["sender"]
 hasDict["advantage"] = hasDict["advantage"] + hasDict["sender"]
 hasDict["times"] = hasDict["times"] + hasDict["sender"]
@@ -982,10 +1021,13 @@ def parseOnly(command_string_to_parse):
     argDictMain["has"] = has
 
     if not has["no-alias"] and has["sender"]:
-        argDictMain["sender"] = handleAliases(argDictMain["sender"])
+        argDictMain["sender"] = handleAliases(argDictMain["sender"],True,True)
 
     if not has["no-alias"] and has["target"]:
-        argDictMain["target"] = handleAliases(argDictMain["target"])
+        argDictMain["target"] = handleAliases(argDictMain["target"],True,has["target-all"])
+
+    if has["group"] and command != "add":
+        argDictMain["member"] = handleAliases(argDictMain["member"],True,True)
 
     return argDictMain
 
@@ -996,12 +1038,10 @@ def dictToCommandString(dictionary):
         if key != "command" and key != "has":
             if isinstance(value,list):
                 for val in value:
-                        valueString = valueString + " " + val
+                        valueString = valueString + " " + str(val)
             else:
-                    valueString = str(value)
-            if valueString and valueString != None:
-                say(valueString)
-                say(key)
+                    valueString = " " + str(value)
+            if bool(value):
                 commandString = commandString +" --"+ key + valueString
     say(commandString)
     return commandString
@@ -1062,6 +1102,7 @@ def parse_command(command_string_to_parse):
                         for do in argDictMain["do"]:
                             argDictCopy["do"] = do
                             command_result += str(funcDict[command](argDictCopy))
+                            removeDown()
                     else:
                         command_result += "ignored an invalid target"
                         print('ignored an invalid target',target)
@@ -1079,7 +1120,6 @@ def run_assistant():
     setBattleOrder()
     while result != "EXIT":
         try:
-            removeDown()
             getState()
             command_input_string = input("Command?")
             result = parse_command(command_input_string)
