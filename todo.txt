@@ -1,2 +1,1 @@
-Pause and play functionality for automation
-Allow for use of special abilities to be used like actions
+store -p encounter1 -c "add -t goblin -n 3 -i gobleeker -g leekers" "auto -t leekers -c 'use -t party -d 0'"

@@ -314,12 +314,16 @@ def applyAction(a):
     senderJson = battleTable[sender]
     targetJson = battleTable[target]
     actions = senderJson.get("actions")
+    specialAbilities = senderJson.get("special_abilities")
 
     action = False
     action_result = ''
     for act in actions:
         if act["name"] == actionKey:
             action = act
+    for special in specialAbilities:
+        if special["name"] == actionKey:
+            action = special
     if action:
         threshold = targetJson["armor_class"]
 
@@ -487,10 +491,13 @@ def callCast(a):
 
 def removeDown(a=''):
     for nick, combatant in battleTable.copy().items():
-        if combatant["current_hp"] <= 0:
-            remove({"target": nick})
-        elif combatant["current_hp"] > combatant["max_hp"]:
-            combatant["current_hp"] = combatant["max_hp"]
+        if combatant.get("current_hp"):
+            if combatant["current_hp"] <= 0:
+                remove({"target": nick})
+            elif combatant["current_hp"] > combatant["max_hp"]:
+                combatant["current_hp"] = combatant["max_hp"]
+        else:
+            print(nick, "does not have key current_hp")
 
 def callRequest(a):
     steps = a["path"]
@@ -510,14 +517,20 @@ def callAction(a):
     sender = a["sender"]
     senderJson = battleTable[sender]
     actions = senderJson.get("actions")
+    specialAbilities = senderJson.get("special_abilities")
     action_result = ''
     runAction = False
     if actionKey.isnumeric():
         runAction = geti(actions,int(actionKey),False)
     else:
-        for action in actions:
-            if action["name"] == actionKey:
-                runAction = action
+        if actions:
+            for action in actions:
+                if action["name"] == actionKey:
+                    runAction = action
+        if specialAbilities:
+            for special in specialAbilities:
+                if special["name"] == actionKey:
+                    runAction = special
     if runAction:
         a["do"] = runAction["name"]
         if a["do"] == "Multiattack":
@@ -706,25 +719,49 @@ def helpMessage(a):
         print(key, ":", value)
     print("For more detailed help on a given *commandName* run:\n commandName --help")
 
-
-def callTurn(a):
-    foundActive = -1
+def whoTurn():
     for i, nick in enumerate(battleOrder):
         x = battleTable[nick]
         if x.get("my_turn"):
-            foundActive = i
+            return i
+    return -1
 
+def callTurn(a,force=True):
+    paused = False
+    foundActive = whoTurn()
     if battleOrder[foundActive]:
         nickCurrent = battleOrder[foundActive]
-        battleTable[nickCurrent]["my_turn"] = False
         autoCommands = battleTable[nickCurrent].get("autoCommand")
         if autoCommands:
             runAuto(battleTable[nickCurrent])
+            paused = battleTable[nickCurrent].get("pause")
+            if (not paused) or force:
+                battleTable[nickCurrent]["my_turn"] = False
+            else:
+                battleTable[nickCurrent]["pause"] = False
+                print("Paused because an automated creature has no target for at least one of its commands")
+        else:
+            battleTable[nickCurrent]["my_turn"] = False
 
-    nickNext = battleOrder[(foundActive+1) % len(battleOrder)]
-    battleTable[nickNext]["my_turn"] = True
-    if battleTable[nickNext].get("autoCommand"):
-        callTurn(a)
+    if (not paused) or force:
+        nickNext = battleOrder[(foundActive+1) % len(battleOrder)]
+        battleTable[nickNext]["my_turn"] = True
+        if battleTable[nickNext].get("autoCommand"):
+            callTurn(a,False)
+
+def callJump(a):
+    turn = whoTurn()
+    if turn:
+        nickCurrent = battleOrder[turn]
+        battleTable[nickCurrent]["my_turn"] = False
+    battleTable[a["target"]]["my_turn"] = True
+
+def callJump(a):
+    turn = whoTurn()
+    if turn:
+        nickCurrent = battleOrder[turn]
+        battleTable[nickCurrent]["my_turn"] = False
+    battleTable[a["target"]]["my_turn"] = True
 
 class ArgumentParser(argparse.ArgumentParser):
     def error(self, message):
@@ -733,7 +770,7 @@ class ArgumentParser(argparse.ArgumentParser):
     def print_help(self, file=None):
         print(self.format_help())
 
-def hasParse(hasDict,command):
+def hasParse(command):
     has = hasDict.copy()
     for key, hasList in has.items():
         if hasList.count(command) > 0:
@@ -749,7 +786,7 @@ def onlyAlive(combatants):
             aliveCombatants.append(combatant)
     return aliveCombatants
 
-def handleAliases(combatantLists,alias=True,doAll=False):
+def handleAliases(combatantLists,resolve=True,doAll=False):
     result = []
     for combatantListAliased in combatantLists:
         listMethod = combatantListAliased.split("!")
@@ -757,49 +794,78 @@ def handleAliases(combatantLists,alias=True,doAll=False):
         combatantList = []
 
         for index,combatant in enumerate(combatantListAliased):
+            anAlias = False
             if combatant.isnumeric():
                 comb = geti(battleOrder,int(combatant),False)
                 if comb:
                     combatantList.append(comb)
-                    continue
-            if alias:
+            
+            if resolve:
                 if combatant in battleInfo["groups"].keys():
-                    combatantList = combatantList + battleInfo["groups"][combatant]
+                    combatantList = onlyAlive(combatantList + battleInfo["groups"][combatant])
                 elif combatant == "all":
                     combatantList = combatantList + list(battleTable.keys())
-                else:
-                    combatantList.append(combatant)
 
-        if alias and not doAll:
-            aliveCombatants = onlyAlive(combatantList)
-        else:
-            #Aliases aren't resolved so we shouldn't remove them if they aren't in battle
-            aliveCombatants = combatantList
+            if not combatantList:
+                combatantList.append(combatant)
+
+            if resolve:
+                #should be no group names in here at this point so let's thin out the non existent names
+                combatantList = onlyAlive(combatantList)
+
         method = geti(listMethod,1,"simultaneous")
-        livingCount = len(aliveCombatants)
-        doBreak = True
-        if livingCount == 1 or method == "order" or method == "o":
-            result.append(aliveCombatants[0])
-        elif livingCount != 0:
-            if method == "random" or method == "r":
-                randomCombatant = aliveCombatants[math.floor(livingCount*random.random())]
-                result.append(randomCombatant)
-            elif method == "simultaneous" or method == "s":
-                result = result + aliveCombatants
-            else:
-               print("Invalid method for targetting") 
-               doBreak = False
+        livingCount = len(combatantList)
+        if resolve:
+            if combatantList:
+                if method == "order" or method == "o":
+                    result.append(combatantList[0])
+                elif method == "random" or method == "r":
+                    randomCombatant = combatantList[math.floor(livingCount*random.random())]
+                    result.append(randomCombatant)
+                elif method == "simultaneous" or method == "s":
+                    result = result + combatantList
+                else:
+                   print("Invalid method for targetting") 
         else:
-            doBreak = False
-        if doBreak and not doAll:
+            resultString = ""
+            for i ,combatant in enumerate(combatantList):
+                comma = ","
+                if i == 0:
+                    comma = ""
+                resultString = resultString + comma + combatant 
+            resultString = resultString + "!" + method
+            result.append(resultString)
+
+        if result and not doAll:
             break
 
     return result
 
+def handleAllAliases(toDict,resolve=True):
+    command = toDict["command"]
+    has = toDict["has"]
+
+    #sender is optional some times
+    if (not has["no-alias"] and has["sender"]) and toDict.get("sender"):
+        toDict["sender"] = handleAliases(toDict["sender"],resolve,True)
+
+    if not has["no-alias"] and has["target"]:
+        toDict["target"] = handleAliases(toDict["target"],resolve,has["target-all"])
+
+    if has["group"] and command != "add":
+        toDict["member"] = handleAliases(toDict["member"],resolve,True)
+    return toDict
+
+
 def runAuto(combatantJson):
     autoCommands = combatantJson.get("autoCommand")
     for commandString in autoCommands:
-            parse_command(commandString)
+        parse_command(commandString)
+
+def callAuto(a):
+    combatant = a["target"]
+    combatantJson = battleTable[combatant]
+    runAuto(combatantJson)
 
 def setAuto(a):
     combatant = a["target"]
@@ -813,6 +879,9 @@ def setAuto(a):
 
     commandStrings = a["commandString"]
     for commandString in commandStrings:
+        argDict = parseOnly(commandString,"auto")
+        if argDict["has"]["sender"] and not argDict["sender"]:
+            commandString = commandString + " --sender " + combatant
         combatantJson["autoCommand"].append(commandString)
 
 def callStore(a):
@@ -862,19 +931,40 @@ def hitDieFromClass(myClass):
         dice = "1d12"
     return dice
 
+def dictToCommandString(dictionary):
+    commandString = dictionary["command"]
+    for key, value in dictionary.items():
+        valueString = ""
+        if key == "commandString":
+            for string in value:
+                    valueString = valueString + " '" + string + "'" 
+            commandString = commandString +" --"+ key + valueString
 
-def populateParserArguments(command,parser,has):
+        elif key != "command" and key != "has":
+            if isinstance(value,list):
+                for val in value:
+                        valueString = valueString + " " + str(val)
+            else:
+                    valueString = " " + str(value)
+            if bool(value) and (not (key == "times" and value == 1)):
+                commandString = commandString +" --"+ key + valueString
+    say(commandString)
+    return commandString
+
+def populateParserArguments(parser,has,metaHas):
     if has.get("times"):
         parser.add_argument("--times", "-n", help='How many times to run the command',type=int, default=1)
 
     if has.get("sender"):
-        parser.add_argument("--sender", "-s", required=True, help='sender/s for command', nargs='+')
+        parser.add_argument("--sender", "-s", required=(not metaHas.get("optionalSender")), help='sender/s for command', nargs='+')
         parser.add_argument("--do", "-d", required=True, help='What the sender is using on the target', nargs='+')
 
     if has.get("path"):
         parser.add_argument("--path", "-p", nargs='+',help='Path for json or api parsing with command. Space seperated')
         if has.get("change"):
             parser.add_argument("--change", "-c", required=True, help='What you would like to set or modify a number by')
+            parser.add_argument("--roll", "-a", help='Whether this command should replace the existing set or be added on', dest='roll', action='store_true', required=False)
+            parser.set_defaults(roll=False)
 
     if has.get("level"):
         parser.add_argument("--level", "-l", type=int, help='Level to cast a spell at')
@@ -887,7 +977,7 @@ def populateParserArguments(command,parser,has):
 
     if has.get("group"):
         req = True
-        if command == "add":
+        if has.get("no-alias"):
             req = False
         else:
             parser.add_argument("--member", "-e", help='members to be placed into a group', required=req, nargs='+')
@@ -897,10 +987,7 @@ def populateParserArguments(command,parser,has):
         parser.add_argument("--category", "-c", choices=['monsters','equipment','spells'], help='A category for content',required=True)
 
     if has.get("commandString"):
-        req = True
-        if command == "add":
-            req = False
-        parser.add_argument("--commandString", "-c", help='A command string to be run', nargs='+',required=req)
+        parser.add_argument("--commandString", "-c", help='A command string to be run', nargs='+',required=True)
         parser.add_argument("--resolve", "-r", help='Whether or not to resolve aliases inside command string. party -> guy1 guy2 girl', dest='resolve', action='store_true', required=False)
         parser.set_defaults(resolve=False)
 
@@ -946,6 +1033,7 @@ command_descriptions_dict = {
 "run" : 'Run a stored command Like:\n\run --path encounter#2 \n',
 "shortrest" : 'Auto heal from short rest Like:\n\run --path encounter#2 \n',
 "longrest" : 'AutoHeal from long restLike:\n\run --path encounter#2 \n',
+"jump" : 'This persons turn:\n\jump -t goblin#2 \n',
 "help" : 'Display this message. Like:\n\thelp\n',
 }
 
@@ -974,12 +1062,14 @@ funcDict = {
 "roll" : rollString,
 "shortrest" : callShortRest,
 "longrest" : callLongRest,
+"jump" : callJump,
+"callAuto" : callAuto,
 }
 
 hasDict = {
 "sender" : ["action","weapon","cast","use"],
 "path" : ["request","mod","set","list","listkeys","store","run"],
-"target" : ["init","initiative","remove","mod","set","list","listkeys","auto","add","longrest","shortrest"],
+"target" : ["init","initiative","remove","mod","set","list","listkeys","auto","add","longrest","shortrest","jump","callAuto"],
 "change" : ["mod","set"],
 "level" : ["cast"],
 "identity" : ["add"],
@@ -987,7 +1077,7 @@ hasDict = {
 "sort" : ["add","init","initiative"],
 "file" : ["load"],
 "category" : ["load"],
-"times" : ["mod", "add","roll","longrest","shortrest"],
+"times" : ["mod", "add","roll","longrest","shortrest","callAuto"],
 "commandString" : ["auto","store"],
 "group" : ["group","add"],
 "dice" : ["roll"],
@@ -995,23 +1085,24 @@ hasDict = {
 "append" : ["group","add","auto","store"],
 "no-alias" : ["add"],
 "target-all" : [],
+"optionalSender" : ["auto"],
 }
 hasDict["target-all"] = hasDict["target-all"] + hasDict["target"]
 hasDict["target"] = hasDict["target"] + hasDict["sender"]
 hasDict["advantage"] = hasDict["advantage"] + hasDict["sender"]
 hasDict["times"] = hasDict["times"] + hasDict["sender"]
 
-def parseOnly(command_string_to_parse):
-    print(command_string_to_parse)
+def parseOnly(command_string_to_parse,metaCommand=""):
     args = command_string_to_parse.split(" ")
     command = args[0]
-    has = hasParse(hasDict,command)
+    has = hasParse(command)
+    metaHas = hasParse(metaCommand)
     parser = ArgumentParser(
             prog=command,
             description=geti(command_descriptions_dict,command,'Dnd DM Assistant'),
             formatter_class=argparse.RawTextHelpFormatter
             )
-    populateParserArguments(command,parser,has)
+    populateParserArguments(parser,has,metaHas)
     entryString = " ".join(args[1:])
     entries = shlex.split(entryString)
     #parameters
@@ -1020,34 +1111,11 @@ def parseOnly(command_string_to_parse):
     argDictMain["command"] = command
     argDictMain["has"] = has
 
-    if not has["no-alias"] and has["sender"]:
-        argDictMain["sender"] = handleAliases(argDictMain["sender"],True,True)
-
-    if not has["no-alias"] and has["target"]:
-        argDictMain["target"] = handleAliases(argDictMain["target"],True,has["target-all"])
-
-    if has["group"] and command != "add":
-        argDictMain["member"] = handleAliases(argDictMain["member"],True,True)
-
     return argDictMain
-
-def dictToCommandString(dictionary):
-    commandString = dictionary["command"]
-    for key, value in dictionary.items():
-        valueString = ""
-        if key != "command" and key != "has":
-            if isinstance(value,list):
-                for val in value:
-                        valueString = valueString + " " + str(val)
-            else:
-                    valueString = " " + str(value)
-            if bool(value):
-                commandString = commandString +" --"+ key + valueString
-    say(commandString)
-    return commandString
 
 def parse_command(command_string_to_parse):
     argDictMain = parseOnly(command_string_to_parse)
+    argDictMain = handleAllAliases(argDictMain)
     command = argDictMain["command"]
     has = argDictMain["has"]
 
@@ -1062,9 +1130,30 @@ def parse_command(command_string_to_parse):
     if has["commandString"]:
         commandStrings = []
         for commandString in argDictMain["commandString"]:
-            argDictTemp = parseOnly(commandString)
+            argDictTemp = parseOnly(commandString,command)
+            argDictTemp = handleAllAliases(argDictTemp,argDictMain["resolve"])
+            
             commandStrings.append(dictToCommandString(argDictTemp))
         argDictMain["commandString"] = commandStrings
+
+    if argDictMain.get("roll"):
+        parts = str(argDictMain["change"]).split(",")
+        mathString = ""
+        for part in parts:
+            sign = ""
+            dice = part
+            if "-" in part:
+                dice = part.split("-")[1]
+                sign = "-"
+            else:
+                sign = "+"
+
+            if "d" in dice:
+                dice = str(roll(dice))
+
+            mathString = mathString + sign + dice
+        argDictMain["change"] = eval(mathString)
+
 
     if not has["sender"]:
         argDictMain["sender"] = ["none"]
@@ -1084,6 +1173,12 @@ def parse_command(command_string_to_parse):
 
     if command == "abort":
         return "EXIT"
+
+    if len(argDictMain["target"]) == 0:
+        for sender in argDictMain["sender"]:
+            send = battleTable.get(sender)
+            if send:
+                battleTable[sender]["pause"] = True
 
     for time in range(times):
         for sender in argDictMain["sender"]:
