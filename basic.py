@@ -505,7 +505,7 @@ def callRequest(a):
 
 def remove(a):
     nick = a["target"]
-    if battleTable.get(nick)["my_turn"]:
+    if battleTable.get(nick).get("my_turn"):
         callTurn({})
     battleTable.pop(nick)
     battleOrder.remove(nick)

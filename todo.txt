@@ -1,1 +1,2 @@
 store -p encounter1 -c "add -t goblin -n 3 -i gobleeker -g leekers" "auto -t leekers -c 'use -t party -d 0'"
+Fix turn command
