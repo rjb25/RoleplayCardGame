@@ -345,6 +345,10 @@ def applyAction(a):
         else:
             mod = getMod("actionHit",action,senderJson)
 
+        say("sender")
+        say(sender)
+        say("target")
+        say(target)
         hitCrit = checkHit(mod,threshold,advantage+advMod,bool(dc))
         if hitCrit[0]:
             saveMult = 1
@@ -376,6 +380,7 @@ def applyInit(participant):
         print("I'm sorry I couldn't find that combatant to apply init to.")
 
 def setBattleOrder():
+    say("order")
     initiativeOrder = sorted(battleTable.items(), key=lambda x: x[1]["initiative"], reverse=True)
     tempOrder = []
     for keyPair in initiativeOrder:
@@ -411,6 +416,8 @@ def callWeapon(a):
         mod = getMod("hit",attackJson,senderJson)
         threshold = targetJson["armor_class"]
         advMod = senderJson["advantage"]
+        say("sender")
+        say(sender)
         hitCrit = checkHit(mod,threshold,advantage+advMod)
         if hitCrit[0]:
             hurt = roll(attackJson["damage"]["damage_dice"]+"+"+str(getMod("dmg",attackJson,senderJson)),hitCrit[1])
@@ -421,6 +428,9 @@ def checkHit(mod,threshold,advantage=0,save=False):
     got20 = ((int(d20) - int(mod)) == 20)
     crit = (got20) and (not save)
     success = False
+    say(d20)
+    say(threshold)
+    say(save)
     if crit:
         success = True
     else:
@@ -482,7 +492,8 @@ def callCast(a):
             threshold = targetJson["armor_class"]
             advMod = targetJson["advantage"]
         
-
+        say("sender")
+        say(sender)
         hitCrit = checkHit(mod,threshold,advantage+advMod,bool(dc))
         if hitCrit[0]:
             applyDamage(targetJson,roll(dmgString,hitCrit[1]),attackJson["damage"]["damage_type"])
@@ -505,10 +516,14 @@ def callRequest(a):
 
 def remove(a):
     nick = a["target"]
-    if battleTable.get(nick).get("my_turn"):
-        callTurn({})
-    battleTable.pop(nick)
-    battleOrder.remove(nick)
+    if battleTable.get(nick):
+        myTurn = battleTable.get(nick).get("my_turn")
+        if myTurn:
+            incrementTurn()
+        battleTable.pop(nick)
+        battleOrder.remove(nick)
+        if myTurn:
+            callTurn(a,False)
     return "removed " + nick
 
 def callAction(a):
@@ -583,7 +598,7 @@ def followPath(a):
     if command == "mod":
         battle[finalStep] += int(diff)
     elif command == "set":
-        battle[finalStep] = int(diff)
+        battle[finalStep] = diff
     elif command == "list":
         pprint.pprint(dictify(battle[finalStep]), sort_dicts=False)
     elif command == "listkeys":
@@ -635,6 +650,7 @@ def addCreature(a):
             combatant["current_hp"] = hitPoints
         combatant["identity"] = nick
         combatant["advantage"] = 0
+        combatant["useAuto"] = False
     
         battleTable[nick] = combatant
         a["target"] = nick
@@ -724,43 +740,88 @@ def whoTurn():
         x = battleTable[nick]
         if x.get("my_turn"):
             return i
-    return -1
+    return 0
+
+def incrementTurn():
+    turn = whoTurn()
+
+    nickCurrent = battleOrder[turn]
+    battleTable[nickCurrent]["my_turn"] = False
+
+    nickNext = battleOrder[(turn+1) % len(battleOrder)]
+    battleTable[nickNext]["my_turn"] = True
+
+def validateCommand(commandString):
+    a = parseOnly(commandString)
+    has = a["has"]
+    oneTarget = geti(argDictMain,0,False)
+
+    if has["target"] and (not oneTarget):
+        return False
+    return True
+
+def validateCommands(combatantJson):
+    commands = combatantJson.get("autoCommand")
+    for commandString in commands:
+        if validateCommand(commandString):
+            return True
+
+def nextTurn(a):
+    incrementTurn()
+    callTurn({},False)
 
 def callTurn(a,force=True):
-    paused = False
-    foundActive = whoTurn()
-    if battleOrder[foundActive]:
-        nickCurrent = battleOrder[foundActive]
-        autoCommands = battleTable[nickCurrent].get("autoCommand")
-        if autoCommands:
-            runAuto(battleTable[nickCurrent])
-            paused = battleTable[nickCurrent].get("pause")
-            if (not paused) or force:
-                battleTable[nickCurrent]["my_turn"] = False
+    turn = whoTurn()
+    if len(battleOrder) != 0:
+        nickCurrent = battleOrder[turn]
+        combatantJson = battleTable[nickCurrent]
+
+        nickNext = battleOrder[(turn+1) % len(battleOrder)]
+        nextCombatantJson = battleTable[nickCurrent]
+
+        useAuto = combatantJson.get("useAuto")
+
+        if useAuto:
+            if validateCommands(combatantJson):
+                runAuto(combatantJson,nickCurrent)
+                nextTurn({})
             else:
-                battleTable[nickCurrent]["pause"] = False
-                print("Paused because an automated creature has no target for at least one of its commands")
+                print("Paused because an automated creature has no target for any of its commands")
+        elif force:
+            nextTurn({})
         else:
-            battleTable[nickCurrent]["my_turn"] = False
+            print("Paused due to non automated creature")
 
-    if (not paused) or force:
-        nickNext = battleOrder[(foundActive+1) % len(battleOrder)]
-        battleTable[nickNext]["my_turn"] = True
-        if battleTable[nickNext].get("autoCommand"):
-            callTurn(a,False)
+
+def callTurnLegacy(a,force=True):
+    turn = whoTurn()
+    if len(battleOrder) != 0:
+        nickCurrent = battleOrder[turn]
+        combatantJson = battleTable[nickCurrent]
+
+        nickNext = battleOrder[(turn+1) % len(battleOrder)]
+        nextCombatantJson = battleTable[nickCurrent]
+
+        useAuto = combatantJson.get("useAuto")
+
+        if "useAuto" in combatantJson:
+            combatantJson["useAuto"] = False #set to True if runAuto has one successful command
+
+        if useAuto:
+            runAuto(combatantJson,nickCurrent)
+            if (combatantJson.get("useAuto") or force) and nickCurrent == battleOrder[turn]: #Checking to make sure remove didn't already increment turn
+                combatantJson["useAuto"] = True
+                nextTurn({})
+            elif not combatantJson.get("useAuto"):
+                combatantJson["useAuto"] = True
+                print("Paused because an automated creature has no target for any of its commands")
+        elif force:
+            nextTurn({})
 
 def callJump(a):
     turn = whoTurn()
-    if turn:
-        nickCurrent = battleOrder[turn]
-        battleTable[nickCurrent]["my_turn"] = False
-    battleTable[a["target"]]["my_turn"] = True
-
-def callJump(a):
-    turn = whoTurn()
-    if turn:
-        nickCurrent = battleOrder[turn]
-        battleTable[nickCurrent]["my_turn"] = False
+    nickCurrent = battleOrder[turn]
+    battleTable[nickCurrent]["my_turn"] = False
     battleTable[a["target"]]["my_turn"] = True
 
 class ArgumentParser(argparse.ArgumentParser):
@@ -857,19 +918,20 @@ def handleAllAliases(toDict,resolve=True):
     return toDict
 
 
-def runAuto(combatantJson):
+def runAuto(combatantJson,caller):
     autoCommands = combatantJson.get("autoCommand")
     for commandString in autoCommands:
-        parse_command(commandString)
+        parse_command(commandString,caller)
 
 def callAuto(a):
     combatant = a["target"]
     combatantJson = battleTable[combatant]
-    runAuto(combatantJson)
+    runAuto(combatantJson,combatant)
 
 def setAuto(a):
     combatant = a["target"]
     combatantJson = battleTable[combatant]
+    combatantJson["useAuto"] = True
     append = a["append"]
     if append:
         if not combatantJson.get("autoCommand"):
@@ -1063,6 +1125,7 @@ funcDict = {
 "shortrest" : callShortRest,
 "longrest" : callLongRest,
 "jump" : callJump,
+"skip" : nextTurn,
 "callAuto" : callAuto,
 }
 
@@ -1113,7 +1176,7 @@ def parseOnly(command_string_to_parse,metaCommand=""):
 
     return argDictMain
 
-def parse_command(command_string_to_parse):
+def parse_command(command_string_to_parse, caller=False):
     argDictMain = parseOnly(command_string_to_parse)
     argDictMain = handleAllAliases(argDictMain)
     command = argDictMain["command"]
@@ -1154,7 +1217,6 @@ def parse_command(command_string_to_parse):
             mathString = mathString + sign + dice
         argDictMain["change"] = eval(mathString)
 
-
     if not has["sender"]:
         argDictMain["sender"] = ["none"]
 
@@ -1174,11 +1236,6 @@ def parse_command(command_string_to_parse):
     if command == "abort":
         return "EXIT"
 
-    if len(argDictMain["target"]) == 0:
-        for sender in argDictMain["sender"]:
-            send = battleTable.get(sender)
-            if send:
-                battleTable[sender]["pause"] = True
 
     for time in range(times):
         for sender in argDictMain["sender"]:
@@ -1196,8 +1253,8 @@ def parse_command(command_string_to_parse):
                             argDictMain["do"] = ["none"]
                         for do in argDictMain["do"]:
                             argDictCopy["do"] = do
-                            command_result += str(funcDict[command](argDictCopy))
                             removeDown()
+                            command_result += str(funcDict[command](argDictCopy))
                     else:
                         command_result += "ignored an invalid target"
                         print('ignored an invalid target',target)
