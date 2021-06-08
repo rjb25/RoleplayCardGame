@@ -806,6 +806,8 @@ def callJump(a):
     if whoTurn:
         battleTable[nickCurrent]["my_turn"] = False
     battleTable[a["target"]]["my_turn"] = True
+def callSkip(a):
+    do=0
 
 class ArgumentParser(argparse.ArgumentParser):
     def error(self, message):
@@ -1103,6 +1105,7 @@ command_descriptions_dict = {
 "shortrest" : 'Auto heal from short rest Like:\n\run --path encounter#2 \n',
 "longrest" : 'AutoHeal from long restLike:\n\run --path encounter#2 \n',
 "jump" : 'This persons turn:\n\jump -t goblin#2 \n',
+"skip" : 'Do nothing:\n\skip\n',
 "help" : 'Display this message. Like:\n\thelp\n',
 }
 
@@ -1132,6 +1135,7 @@ funcDict = {
 "shortrest" : callShortRest,
 "longrest" : callLongRest,
 "jump" : callJump,
+"skip" : callSkip,
 "callAuto" : callAuto,
 }
 
@@ -1261,8 +1265,8 @@ def parse_command(command_string_to_parse, caller=False):
                             argDictMain["do"] = ["none"]
                         for do in argDictMain["do"]:
                             argDictCopy["do"] = do
-                            removeDown()
                             command_result += str(funcDict[command](argDictCopy))
+                            removeDown()
                     else:
                         command_result += "ignored an invalid target"
                         print('ignored an invalid target',target)
