@@ -490,13 +490,10 @@ def callCast(a):
 
 def removeDown(a=''):
     for nick, combatant in battleTable.copy().items():
-        if combatant.get("current_hp"):
-            if combatant["current_hp"] <= 0:
-                remove({"target": nick})
-            elif combatant["current_hp"] > combatant["max_hp"]:
-                combatant["current_hp"] = combatant["max_hp"]
-        else:
-            print(nick, "does not have key current_hp")
+        if combatant["current_hp"] <= 0:
+            remove({"target": nick})
+        elif combatant["current_hp"] > combatant["max_hp"]:
+            combatant["current_hp"] = combatant["max_hp"]
 
 def callRequest(a):
     steps = a["path"]
@@ -509,7 +506,7 @@ def remove(a):
         nickNext = whoTurnNext()
         battleTable.pop(nick)
         battleOrder.remove(nick)
-        if myTurn and nickNext:
+        if myTurn and nickNext and len(battleOrder)>0:
             callJump({"target":nickNext})
     return "removed " + nick
 
@@ -628,16 +625,18 @@ def addCreature(a):
             hp = roll(hitDice)
             combatant["max_hp"] = hp
             combatant["current_hp"] = hp
+        elif hitPoints:
+            combatant["max_hp"] = hitPoints
+            combatant["current_hp"] = hitPoints
+
         myClass = combatant.get("class")
         if myClass:
             combatant["rest_dice"] = int(combatant["level"])
             
-        if hitPoints:
-            combatant["max_hp"] = hitPoints
-            combatant["current_hp"] = hitPoints
+        combatant["disabled"] = False
+        combatant["paused"] = False
         combatant["identity"] = nick
         combatant["advantage"] = 0
-        combatant["useAuto"] = False
     
         battleTable[nick] = combatant
         a["target"] = nick
@@ -739,7 +738,6 @@ def whoTurnNext():
     return geti(battleOrder,(turn+1) % len(battleOrder),False)
 
 def validateCommand(commandString):
-    say(commandString)
     a = parseOnly(commandString)
     a = handleAllAliases(a)
     has = a["has"]
@@ -760,9 +758,12 @@ def validateCommand(commandString):
 
 def validateCommands(combatantJson):
     commands = combatantJson.get("autoCommand")
-    for commandString in commands:
-        if validateCommand(commandString):
-            return True
+    if commands:
+        for commandString in commands:
+            if validateCommand(commandString):
+                return True
+    return False
+
 def turnTo(nickNext):
     callJump({"target": nickNext})
     callTurn({"target": nickNext},False)
@@ -776,26 +777,20 @@ def callTurn(a,directCommand=True):
             nickNext = whoTurnNext()
 
             combatantJson = battleTable[nickCurrent]
-
-            useAuto = combatantJson.get("useAuto")
-
-            if useAuto:
-                if validateCommands(combatantJson):
+            isValidCommand = validateCommands(combatantJson)
+            if isValidCommand and (not combatantJson["paused"]):
+                if not combatantJson["disabled"]:
                     runAuto(combatantJson,nickCurrent)
-                    if whoTurn() == nickCurrent:
-                        nickNext = whoTurnNext() #In case the next person died
-                    else:
-                        nickNext = whoTurn() #If we died during the action remove set the next turn to current
-                    turnTo(nickNext)
-                elif directCommand:
-                    turnTo(nickNext)
+                if whoTurn() == nickCurrent:
+                    nickNext = whoTurnNext() #In case the next person died
                 else:
-                    print("Paused because an automated creature has no target for any of its commands")
-                    combatantJson["useAuto"] = False
+                    nickNext = whoTurn() #If we died during the action, remove set the next turn to current
+                turnTo(nickNext)
             elif directCommand:
-                    turnTo(nickNext)
+                turnTo(nickNext)
             else:
-                print("Paused due to non automated creature")
+                #"Paused due to no target for auto commands or no commands or you simply marked this creature for pausing"
+                print("Paused --> Needs commands?", not combatantJson.get("autoCommand"), ". Paused set?",combatantJson["paused"], ". Invalid command?", (not isValidCommand) and bool(combatantJson.get("autoCommand")))
         else:
             print("Bounced an invalid turn attempt trying to callturn on someone who's turn it is not")
     else:
@@ -808,6 +803,23 @@ def callJump(a):
     battleTable[a["target"]]["my_turn"] = True
 def callSkip(a):
     do=0
+
+def callPause(a):
+    target = a["target"]
+    combatantJson = battleTable[target]
+    combatantJson["paused"] = True 
+def callUnpause(a):
+    target = a["target"]
+    combatantJson = battleTable[target]
+    combatantJson["paused"] = False 
+def callEnable(a):
+    target = a["target"]
+    combatantJson = battleTable[target]
+    combatantJson["disabled"] = False 
+def callDisable(a):
+    target = a["target"]
+    combatantJson = battleTable[target]
+    combatantJson["disabled"] = True
 
 class ArgumentParser(argparse.ArgumentParser):
     def error(self, message):
@@ -849,7 +861,9 @@ def handleAliases(combatantLists,resolve=True,doAll=False):
                 if combatant in battleInfo["groups"].keys():
                     combatantList = onlyAlive(combatantList + battleInfo["groups"][combatant])
                 elif combatant == "all":
-                    combatantList = combatantList + list(battleTable.keys())
+                    combatantList = combatantList + battleOrder
+                elif combatant == "me":
+                    combatantList.append(whoTurn())
 
             if not combatantList:
                 combatantList.append(combatant)
@@ -905,7 +919,7 @@ def handleAllAliases(toDict,resolve=True):
     if (not has["no-alias"] and has["sender"]) and toDict.get("sender"):
         toDict["sender"] = handleAliases(toDict["sender"],resolve,True)
 
-    if not has["no-alias"] and has["target"]:
+    if not has["no-alias"] and has["target"] and toDict.get("target"):
         toDict["target"] = handleAliases(toDict["target"],resolve,has["target-all"])
 
     if has["group"] and command != "add":
@@ -950,6 +964,8 @@ def setAuto(a):
         argDict = parseOnly(commandString,"auto")
         if argDict["has"]["sender"] and not argDict["sender"]:
             commandString = commandString + " --sender " + combatant
+        if argDict["has"]["target"] and not argDict["target"]:
+            commandString = commandString + " --target " + combatant
         combatantJson["autoCommand"].append(commandString)
 
 def callStore(a):
@@ -1024,14 +1040,14 @@ def populateParserArguments(parser,has,metaHas):
         parser.add_argument("--times", "-n", help='How many times to run the command',type=int, default=1)
 
     if has.get("sender"):
-        parser.add_argument("--sender", "-s", required=(not metaHas.get("optionalSender")), help='sender/s for command', nargs='+')
+        parser.add_argument("--sender", "-s", required=(not metaHas.get("optionalSenderAndTarget")), help='sender/s for command', nargs='+')
         parser.add_argument("--do", "-d", required=True, help='What the sender is using on the target', nargs='+')
 
     if has.get("path"):
-        parser.add_argument("--path", "-p", nargs='+',help='Path for json or api parsing with command. Space seperated')
+        parser.add_argument("--path", "-p", required=(not has.get("optionalPath")), nargs='+',help='Path for json or api parsing with command. Space seperated')
         if has.get("change"):
             parser.add_argument("--change", "-c", required=True, help='What you would like to set or modify a number by')
-            parser.add_argument("--roll", "-a", help='Whether this command should replace the existing set or be added on', dest='roll', action='store_true', required=False)
+            parser.add_argument("--roll", "-r", help='Whether or not the change indicated is a dice change', dest='roll', action='store_true', required=False)
             parser.set_defaults(roll=False)
 
     if has.get("level"):
@@ -1041,7 +1057,7 @@ def populateParserArguments(parser,has,metaHas):
         if (has.get("identity") or has.get("file")):
             parser.add_argument("--target", "-t", required=True, help='Target/s creature types to fetch from the cache the api or a file', nargs='+')
         else:
-            parser.add_argument("--target", "-t", required=True, help='Target/s for command', nargs='+')
+            parser.add_argument("--target", "-t", required=(not metaHas.get("optionalSenderAndTarget")), help='Target/s for command', nargs='+')
 
     if has.get("target-single-optional"):
         parser.add_argument("--target", "-t", required=False, help='Target for command')
@@ -1099,13 +1115,17 @@ command_descriptions_dict = {
 "auto" : 'Set an automated command. Like:\n\tauto --target sahuagin --commandString "action --target goblin --sender sahuagin --do multiattack"\nauto --target good-guy-greg --order goblin+goblin#2,giant-rat --method random --commandString "use --do greatsword"\n',
 "group" : 'Set a group for use in targetting. Will be resolved to listed targets. Like:\n\tgroup --member sahuagin sahuagin#2 --group sahuagang\n',
 "info" : 'Shows all info for reference. Like:\n\info --info groups\n',
-"roll" : 'Roll dice. Like:\n\troll --target sahuagin sahuagin#2 --group sahuagang\n',
-"store" : 'Store a command for use later. Like:\n\store --commandString "add -t sahuagin -n 2" --path encounter#2 --append\n',
-"run" : 'Run a stored command Like:\n\run --path encounter#2 \n',
-"shortrest" : 'Auto heal from short rest Like:\n\run --path encounter#2 \n',
-"longrest" : 'AutoHeal from long restLike:\n\run --path encounter#2 \n',
-"jump" : 'This persons turn:\n\jump -t goblin#2 \n',
-"skip" : 'Do nothing:\n\skip\n',
+"roll" : 'Roll dice. Like:\n\troll --dice 1d20+2\n',
+"store" : 'Store a command for use later. Like:\n\tstore --commandString "add -t sahuagin -n 2" --path encounter#2 --append\n',
+"run" : 'Run a stored command Like:\n\trun --path encounter#2 \n',
+"shortrest" : 'Auto heal from short rest Like:\n\tshortrest -t party \n',
+"longrest" : 'AutoHeal from long restLike:\n\tlongrest -t party \n',
+"jump" : 'This persons turn:\n\tjump -t goblin#2 \n',
+"skip" : 'Do nothing:\n\tskip\n',
+"pause" : 'Forces a pause when the targets turn is there without removing his auto commands:\n\tpause -t thinker\n',
+"unpause" : 'Set creature to run auto command when it is their turn:\n\tunpause -t menial-minded\n',
+"enable" : 'Dont skip this persons turn:\n\tenable -t no-longer-stunned-person\n',
+"disable" : 'Skip this persons turn and try running the auto command for the next person:\n\tdisable -t not-yet-in-combat\n',
 "help" : 'Display this message. Like:\n\thelp\n',
 }
 
@@ -1137,12 +1157,16 @@ funcDict = {
 "jump" : callJump,
 "skip" : callSkip,
 "callAuto" : callAuto,
+"pause" : callPause,
+"unpause" : callUnpause,
+"enable" : callEnable,
+"disable" : callDisable,
 }
 
 hasDict = {
 "sender" : ["action","weapon","cast","use"],
 "path" : ["request","mod","set","list","listkeys","store","run"],
-"target" : ["init","initiative","remove","mod","set","list","listkeys","auto","add","longrest","shortrest","callAuto"],
+"target" : ["init","initiative","remove","mod","set","list","listkeys","auto","add","longrest","shortrest","callAuto","enable","disable","pause","unpause"],
 "change" : ["mod","set"],
 "level" : ["cast"],
 "identity" : ["add"],
@@ -1150,7 +1174,7 @@ hasDict = {
 "sort" : ["add","init","initiative"],
 "file" : ["load"],
 "category" : ["load"],
-"times" : ["mod", "add","roll","longrest","shortrest","callAuto"],
+"times" : ["mod", "add","roll","longrest","shortrest","callAuto","turn"],
 "commandString" : ["auto","store"],
 "group" : ["group","add"],
 "dice" : ["roll"],
@@ -1159,7 +1183,8 @@ hasDict = {
 "no-alias" : ["add"],
 "target-all" : [],
 "target-single-optional" : ["turn","jump"],
-"optionalSender" : ["auto"],
+"optionalSenderAndTarget" : ["auto"],
+"optionalPath" : [],
 }
 hasDict["target-all"] = hasDict["target-all"] + hasDict["target"]
 hasDict["target"] = hasDict["target"] + hasDict["sender"]
@@ -1233,8 +1258,6 @@ def parse_command(command_string_to_parse, caller=False):
             mathString = mathString + sign + dice
         argDictMain["change"] = eval(mathString)
 
-
-
     if command == "save":
         saveBattle()
         return True
@@ -1248,9 +1271,6 @@ def parse_command(command_string_to_parse, caller=False):
 
     argDictCopy = handleAllAliases(argDictMain.copy())
     argDictSingle = argDictCopy.copy()
-    say("times")
-    say(times)
-    say(argDictCopy)
 
     for time in range(times):
         for sender in argDictCopy["sender"]:
@@ -1258,7 +1278,7 @@ def parse_command(command_string_to_parse, caller=False):
             for number,target in enumerate(argDictCopy["target"]):
                 argDictSingle["target"] = target
                 if has["identity"]:
-                    argDictSingle["identity"] = geti(argDictCopy["identity"],number,argDictCopy["target"])
+                    argDictSingle["identity"] = geti(argDictCopy["identity"],number,target)
                 if has["advantage"]:
                     argDictSingle["advantage"] = geti(argDictCopy["advantage"],number,0)
 
