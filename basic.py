@@ -1189,7 +1189,6 @@ def parseOnly(command_string_to_parse,metaCommand=""):
 
 def parse_command(command_string_to_parse, caller=False):
     argDictMain = parseOnly(command_string_to_parse)
-    argDictMain = handleAllAliases(argDictMain)
     command = argDictMain["command"]
     has = argDictMain["has"]
 
@@ -1235,7 +1234,6 @@ def parse_command(command_string_to_parse, caller=False):
         argDictMain["change"] = eval(mathString)
 
 
-    argDictCopy = argDictMain.copy()
 
     if command == "save":
         saveBattle()
@@ -1248,25 +1246,31 @@ def parse_command(command_string_to_parse, caller=False):
     if command == "abort":
         return "EXIT"
 
+    argDictCopy = handleAllAliases(argDictMain.copy())
+    argDictSingle = argDictCopy.copy()
+    say("times")
+    say(times)
+    say(argDictCopy)
 
     for time in range(times):
-        for sender in argDictMain["sender"]:
-            argDictCopy["sender"] = sender
-            for number,target in enumerate(argDictMain["target"]):
-                argDictCopy["target"] = target
+        for sender in argDictCopy["sender"]:
+            argDictSingle["sender"] = sender
+            for number,target in enumerate(argDictCopy["target"]):
+                argDictSingle["target"] = target
                 if has["identity"]:
-                    argDictCopy["identity"] = geti(argDictMain["identity"],number,argDictCopy["target"])
+                    argDictSingle["identity"] = geti(argDictCopy["identity"],number,argDictCopy["target"])
                 if has["advantage"]:
-                    argDictCopy["advantage"] = geti(argDictMain["advantage"],number,0)
+                    argDictSingle["advantage"] = geti(argDictCopy["advantage"],number,0)
 
                 if command in funcDict:
                     if battleTable.get(target) or not has["target"] or command == "add" or command == "load":
-                        if not argDictMain.get("do"):
-                            argDictMain["do"] = ["none"]
-                        for do in argDictMain["do"]:
-                            argDictCopy["do"] = do
-                            command_result += str(funcDict[command](argDictCopy))
+                        if not argDictCopy.get("do"):
+                            argDictCopy["do"] = ["none"]
+                        for do in argDictCopy["do"]:
+                            argDictSingle["do"] = do
+                            command_result += str(funcDict[command](argDictSingle))
                             removeDown()
+                            argDictCopy = handleAllAliases(argDictMain.copy())
                     else:
                         command_result += "ignored an invalid target"
                         print('ignored an invalid target',target)
