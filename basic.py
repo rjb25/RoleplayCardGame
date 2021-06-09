@@ -671,13 +671,14 @@ def legacyCreateCharacter(a):
 
 def callGroup(a):
     members = a["member"] 
-    group = a["group"]
+    groups = a["group"]
     toAppend = a["append"]
-    groupRef = battleInfo["groups"].get(group)
-    if not groupRef or not toAppend:
-        battleInfo["groups"][group] = []
+    for group in groups:
+        groupRef = battleInfo["groups"].get(group)
+        if not groupRef or not toAppend:
+            battleInfo["groups"][group] = []
 
-    battleInfo["groups"][group] = battleInfo["groups"][group] + members 
+        battleInfo["groups"][group] = list(set(battleInfo["groups"][group] + members))
 
 def showInfo(a):
     if a.get("info") == "all" or (not a.get("info")):
@@ -974,7 +975,11 @@ def callStore(a):
     append = a["append"]
     global battleInfo
     if append:
-        set_nested_item(battleInfo, path, get_nested_item(battleInfo,path)+commandStrings)
+        appendTo = get_nested_item(battleInfo,path)
+        if appendTo:
+            set_nested_item(battleInfo, path, appendTo + commandStrings)
+        else:
+            set_nested_item(battleInfo, path, commandStrings)
     else:
         battleInfo = set_nested_item(battleInfo, path, commandStrings)
 
@@ -1027,9 +1032,13 @@ def dictToCommandString(dictionary):
         elif key != "command" and key != "has":
             if isinstance(value,list):
                 for val in value:
-                        valueString = valueString + " " + str(val)
+                    valueString = valueString + " " + str(val)
             else:
+                if isinstance(value, bool):
+                    valueString = ""
+                else:
                     valueString = " " + str(value)
+
             if bool(value) and (not (key == "times" and value == 1)):
                 commandString = commandString +" --"+ key + valueString
     say(commandString)
@@ -1067,8 +1076,8 @@ def populateParserArguments(parser,has,metaHas):
         if has.get("no-alias"):
             req = False
         else:
-            parser.add_argument("--member", "-e", help='members to be placed into a group', required=req, nargs='+')
-        parser.add_argument("--group", "-g", help='A group which will be reduced to a target list', required=req)
+            parser.add_argument("--member", "-m", help='members to be placed into a group', required=req, nargs='+')
+        parser.add_argument("--group", "-g", help='A group which will be reduced to a target list', required=req, nargs='+')
 
     if has.get("category"):
         parser.add_argument("--category", "-c", choices=['monsters','equipment','spells'], help='A category for content',required=True)
@@ -1174,7 +1183,7 @@ hasDict = {
 "sort" : ["add","init","initiative"],
 "file" : ["load"],
 "category" : ["load"],
-"times" : ["mod", "add","roll","longrest","shortrest","callAuto","turn"],
+"times" : ["mod", "add","roll","longrest","shortrest","callAuto","turn","run"],
 "commandString" : ["auto","store"],
 "group" : ["group","add"],
 "dice" : ["roll"],
@@ -1184,7 +1193,7 @@ hasDict = {
 "target-all" : [],
 "target-single-optional" : ["turn","jump"],
 "optionalSenderAndTarget" : ["auto"],
-"optionalPath" : [],
+"optionalPath" : ["list"],
 }
 hasDict["target-all"] = hasDict["target-all"] + hasDict["target"]
 hasDict["target"] = hasDict["target"] + hasDict["sender"]
