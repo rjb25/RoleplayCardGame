@@ -1048,19 +1048,19 @@ def dictToCommandString(dictionary):
     say(commandString)
     return commandString
 
-def populateParserArguments(parser,has,metaHas):
+def populateParserArguments(parser,has,metaHas,allOptional=False):
     if has.get("times"):
         parser.add_argument("--times", "-n", help='How many times to run the command', default="1")
 
     if has.get("sender"):
-        parser.add_argument("--sender", "-s", required=(not metaHas.get("optionalSenderAndTarget")), help='sender/s for command', nargs='+')
-        parser.add_argument("--do", "-d", required=True, help='What the sender is using on the target', nargs='+')
+        parser.add_argument("--sender", "-s", required=(not metaHas.get("optionalSenderAndTarget")) and (not allOptional), help='sender/s for command', nargs='+')
+        parser.add_argument("--do", "-d", required=(True and (not allOptional)), help='What the sender is using on the target', nargs='+')
 
     if has.get("path"):
-        parser.add_argument("--path", "-p", required=(not has.get("optionalPath")), nargs='+',help='Path for json or api parsing with command. Space seperated')
+        parser.add_argument("--path", "-p", required=(not has.get("optionalPath")) and (not allOptional), nargs='+',help='Path for json or api parsing with command. Space seperated')
         if has.get("change"):
-            parser.add_argument("--change", "-c", required=True, help='What you would like to set or modify a number by')
-            parser.add_argument("--roll", "-r", help='Whether or not the change indicated is a dice change', dest='roll', action='store_true', required=False)
+            parser.add_argument("--change", "-c", required=True and (not allOptional), help='What you would like to set or modify a number by')
+            parser.add_argument("--roll", "-r", help='Whether or not the change indicated is a dice change', dest='roll', action='store_true')
             parser.set_defaults(roll=False)
 
     if has.get("level"):
@@ -1068,15 +1068,15 @@ def populateParserArguments(parser,has,metaHas):
 
     if has.get("target"):
         if (has.get("identity") or has.get("file")):
-            parser.add_argument("--target", "-t", required=True, help='Target/s creature types to fetch from the cache the api or a file', nargs='+')
+            parser.add_argument("--target", "-t", required=True and (not allOptional), help='Target/s creature types to fetch from the cache the api or a file', nargs='+')
         else:
-            parser.add_argument("--target", "-t", required=(not metaHas.get("optionalSenderAndTarget")), help='Target/s for command', nargs='+')
+            parser.add_argument("--target", "-t", required=(not metaHas.get("optionalSenderAndTarget")) and (not allOptional), help='Target/s for command', nargs='+')
 
     if has.get("target-single-optional"):
-        parser.add_argument("--target", "-t", required=False, help='Target for command')
+        parser.add_argument("--target", "-t", help='Target for command')
 
     if has.get("group"):
-        req = True
+        req = True and (not allOptional)
         if has.get("no-alias"):
             req = False
         else:
@@ -1084,18 +1084,18 @@ def populateParserArguments(parser,has,metaHas):
         parser.add_argument("--group", "-g", help='A group which will be reduced to a target list', required=req, nargs='+')
 
     if has.get("category"):
-        parser.add_argument("--category", "-c", choices=['monsters','equipment','spells'], help='A category for content',required=True)
+        parser.add_argument("--category", "-c", choices=['monsters','equipment','spells'], help='A category for content',required=True and (not allOptional))
 
     if has.get("commandString"):
-        parser.add_argument("--commandString", "-c", help='A command string to be run', nargs='+',required=True)
-        parser.add_argument("--resolve", "-r", help='Whether or not to resolve aliases inside command string. party -> guy1 guy2 girl', dest='resolve', action='store_true', required=False)
+        parser.add_argument("--commandString", "-c", help='A command string to be run', nargs='+',required=True and (not allOptional))
+        parser.add_argument("--resolve", "-r", help='Whether or not to resolve aliases inside command string. party -> guy1 guy2 girl', dest='resolve', action='store_true')
         parser.set_defaults(resolve=False)
 
     if has.get("fill"):
-        parser.add_argument("--fill", "-f", help='What to fill of a incomplete command', nargs='+', required=False)
+        parser.add_argument("--fill", "-f", help='What to fill of a incomplete command', nargs='+')
 
     if has.get("allowIncomplete"):
-        parser.add_argument("--incomplete", "-i", help='Whether or not what is being stored is an incomplete command', dest='incomplete', action='store_true', required=False)
+        parser.add_argument("--incomplete", "-i", help='Whether or not what is being stored is an incomplete command', dest='incomplete', action='store_true')
 
     if has.get("identity"):
         parser.add_argument("--identity", "-i", help='Identities for added monsters', nargs='+')
@@ -1110,11 +1110,11 @@ def populateParserArguments(parser,has,metaHas):
         parser.add_argument("--file", "-f", help='The file you would like to interact with')
         
     if has.get("append"):
-        parser.add_argument("--append", "-a", help='Whether this command should replace the existing set or be added on', dest='append', action='store_true', required=False)
+        parser.add_argument("--append", "-a", help='Whether this command should replace the existing set or be added on', dest='append', action='store_true')
         parser.set_defaults(append=False)
 
     if has.get("dice"):
-        parser.add_argument("--dice", "-d", help='A dice string to be used',required=True)
+        parser.add_argument("--dice", "-d", help='A dice string to be used',required=True and (not allOptional))
 
 command_descriptions_dict = {
 "action" : 'Do a generic action. Like:\n\taction --do Multiattack --sender sahuagin#2 --target druid#3 --times 1 --advantage 1\n',
@@ -1215,7 +1215,7 @@ hasDict["target"] = hasDict["target"] + hasDict["sender"]
 hasDict["advantage"] = hasDict["advantage"] + hasDict["sender"]
 hasDict["times"] = hasDict["times"] + hasDict["sender"]
 
-def parseOnly(command_string_to_parse,metaCommand=""):
+def parseOnly(command_string_to_parse,metaCommand="",allOptional=False):
     args = command_string_to_parse.split(" ")
     command = args[0]
     has = hasParse(command)
@@ -1225,7 +1225,7 @@ def parseOnly(command_string_to_parse,metaCommand=""):
             description=geti(command_descriptions_dict,command,'Dnd DM Assistant'),
             formatter_class=argparse.RawTextHelpFormatter
             )
-    populateParserArguments(parser,has,metaHas)
+    populateParserArguments(parser,has,metaHas,allOptional)
     entryString = " ".join(args[1:])
     entries = shlex.split(entryString)
     #parameters
@@ -1233,27 +1233,6 @@ def parseOnly(command_string_to_parse,metaCommand=""):
     argDictMain = vars(a)
     argDictMain["command"] = command
     argDictMain["has"] = has
-
-    return argDictMain
-
-def parseArbitrary(command_string_to_parse):
-    args = command_string_to_parse.split(" ")
-    command = args[0]
-    parser = ArgumentParser(
-            prog=command,
-            description='Dnd DM Assistant',
-            formatter_class=argparse.RawTextHelpFormatter
-            )
-    entryString = " ".join(args[1:])
-    entries = shlex.split(entryString)
-    #parameters
-    none, arbitraryArgs = parser.parse_known_args(entries)
-    if arbitraryArgs:
-        argDictMain = vars(arbitraryArgs)
-    else:
-        argDictMain = {}
-    argDictMain["command"] = command
-    argDictMain["has"] = {}
 
     return argDictMain
 
@@ -1313,7 +1292,7 @@ def parse_command(command_string_to_parse, caller=False):
         for commandString in argDictMain["commandString"]:
             argDictTemp = {}
             if argDictMain.get("incomplete"):
-                argDictTemp = parseArbitrary(commandString)
+                argDictTemp = parseOnly(commandString,command,True)
             else:
                 argDictTemp = parseOnly(commandString,command)
             argDictTemp = handleAllAliases(argDictTemp,argDictMain["resolve"])
