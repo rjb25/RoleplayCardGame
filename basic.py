@@ -310,7 +310,7 @@ def applyAction(a):
     actionKey = a["do"]
     sender = a["sender"]
     target = a["target"]
-    advantage = a["advantage"]
+    advantage = int(a["advantage"])
     senderJson = battleTable[sender]
     targetJson = battleTable[target]
     actions = senderJson.get("actions")
@@ -327,7 +327,7 @@ def applyAction(a):
     if action:
         threshold = targetJson["armor_class"]
 
-        advMod = senderJson["advantage"]
+        advMod = int(senderJson["advantage"])
         dc = action.get("dc")
 
         saveMult = 0
@@ -340,7 +340,7 @@ def applyAction(a):
 
             if dc.get("dc_success") == "half" or dc.get("success_type") == "half":
                 saveMult = 0.5
-            advMod = senderJson["advantage"]
+            advMod = int(senderJson["advantage"])
             mod = getMod("saveDc", action, targetJson)
         else:
             mod = getMod("actionHit",action,senderJson)
@@ -405,16 +405,19 @@ def callWeapon(a):
     if attackJson:
         sender = a["sender"]
         target = a["target"]
-        advantage = a["advantage"]
+        advantage = int(a["advantage"])
         targetJson = battleTable[target]
         senderJson = battleTable[sender]
         mod = getMod("hit",attackJson,senderJson)
         threshold = targetJson["armor_class"]
-        advMod = senderJson["advantage"]
+        advMod = int(senderJson["advantage"])
         hitCrit = checkHit(mod,threshold,advantage+advMod)
         if hitCrit[0]:
             hurt = roll(attackJson["damage"]["damage_dice"]+"+"+str(getMod("dmg",attackJson,senderJson)),hitCrit[1])
             applyDamage(targetJson,hurt,attackJson["damage"]["damage_type"])
+    else:
+        return False
+    return True
 
 def checkHit(mod,threshold,advantage=0,save=False):
     d20 = rolld20(advantage,mod)
@@ -436,7 +439,7 @@ def callCast(a):
         sender = a["sender"]
         target = a["target"]
         level = a["level"]
-        advantage = a["advantage"]
+        advantage = int(a["advantage"])
         targetJson = battleTable.get(target)
         senderJson = battleTable.get(sender)
         if not targetJson or not senderJson:
@@ -476,17 +479,20 @@ def callCast(a):
 
             if dc.get("dc_success") == "half" or dc.get("success_type") == "half":
                 saveMult = 0.5
-            advMod = senderJson["advantage"]
+            advMod = int(senderJson["advantage"])
         else:
             mod = getMod("spellHit",attackJson,senderJson)
             threshold = targetJson["armor_class"]
-            advMod = targetJson["advantage"]
+            advMod = int(targetJson["advantage"])
         
         hitCrit = checkHit(mod,threshold,advantage+advMod,bool(dc))
         if hitCrit[0]:
             applyDamage(targetJson,roll(dmgString,hitCrit[1]),attackJson["damage"]["damage_type"])
         elif saveMult != 0:
             applyDamage(targetJson,saveMult*roll(dmgString,hitCrit[1]),attackJson["damage"]["damage_type"])
+    else:
+        return False
+    return True
 
 def removeDown(a=''):
     for nick, combatant in battleTable.copy().items():
@@ -542,7 +548,9 @@ def callAction(a):
                 action_result = 'This combatant cannot use ' + actionKey
         else:
             applyAction(a)
-    return action_result
+    else:
+        return False
+    return True
 def assignDeep(json,steps,value):
     battle = battleTable.copy()
     
@@ -686,36 +694,18 @@ def showInfo(a):
     else:
         printJson(battleInfo[a["info"]])
 
-
-def callUseStrict(a):
-    attackPath = a["do"].lower()
-    attackWeapon = getJson(["equipment",attackPath])
-    if attackWeapon:
-        callWeapon(a)
-        return
-
-    attackSpell = getJson(["spells",attackPath])
-    if attackSpell:
-        callCast(a)
-        return
-
-    actionKey = a["do"].title()
-    sender = a["sender"]
-    senderJson = battleTable[sender]
-    actions = senderJson.get("actions")
-    attackAction = actionKey in actions
-    if attackAction:
-        callAction(a)
-        return
-
-    print("Trying to use/do something that is not a weapon nor a spell nor an action.")
-
 def callUse(a):
-    isnumber = a["do"].lower().isnumeric()
-    if not isnumber:
-        callWeapon(a)
-        callCast(a)
-    callAction(a)
+    if callAction(a):
+        say("action")
+        return True
+    elif callWeapon(a):
+        say("weapon")
+        return True
+    elif callCast(a):
+        say("spell")
+        return True
+    else:
+        print("Trying to use/do something that is not a weapon nor a spell nor an action.")
 
 def helpMessage(a):
     for key, value in a["commandDescriptions"].items():
@@ -779,7 +769,8 @@ def callTurn(a,directCommand=True):
 
             combatantJson = battleTable[nickCurrent]
             isValidCommand = validateCommands(combatantJson)
-            if isValidCommand and (not combatantJson["paused"]):
+            say(nickCurrent)
+            if isValidCommand and ((not combatantJson["paused"]) or directCommand):
                 if not combatantJson["disabled"]:
                     runAuto(combatantJson,nickCurrent)
                 if whoTurn() == nickCurrent:
@@ -841,7 +832,7 @@ def hasParse(command):
 def onlyAlive(combatants):
     aliveCombatants = []
     for combatant in combatants:
-        if battleTable.get(combatant):
+        if battleTable.get(combatant) or combatant == "?":
             aliveCombatants.append(combatant)
     return aliveCombatants
 
@@ -865,6 +856,8 @@ def handleAliases(combatantLists,resolve=True,doAll=False):
                     combatantList = combatantList + battleOrder
                 elif combatant == "me":
                     combatantList.append(whoTurn())
+                elif combatant == "?":
+                    combatantList.append("?")
 
             if not combatantList:
                 combatantList.append(combatant)
@@ -984,10 +977,22 @@ def callStore(a):
         battleInfo = set_nested_item(battleInfo, path, commandStrings)
 
 def callRun(a):
-    path = ["commands"]+a["path"]
+    fullpath = [] 
+    for step in a["path"]:
+        if "," in step:
+            for subitem in step.split(","):
+                fullpath.append(subitem)
+        else:
+            fullpath.append(step)
+
+    path = ["commands"]+fullpath
     global battleInfo
-    for command in get_nested_item(battleInfo,path):
-        parse_command(command)
+    commands = get_nested_item(battleInfo,path)
+    if commands:
+        for command in commands:
+            parse_command(command)
+    else:
+        print("Invalid command", a["path"][0])
 
 def callShortRest(a):
     combatant = a["target"]
@@ -1046,7 +1051,7 @@ def dictToCommandString(dictionary):
 
 def populateParserArguments(parser,has,metaHas):
     if has.get("times"):
-        parser.add_argument("--times", "-n", help='How many times to run the command',type=int, default=1)
+        parser.add_argument("--times", "-n", help='How many times to run the command', default="1")
 
     if has.get("sender"):
         parser.add_argument("--sender", "-s", required=(not metaHas.get("optionalSenderAndTarget")), help='sender/s for command', nargs='+')
@@ -1060,7 +1065,7 @@ def populateParserArguments(parser,has,metaHas):
             parser.set_defaults(roll=False)
 
     if has.get("level"):
-        parser.add_argument("--level", "-l", type=int, help='Level to cast a spell at')
+        parser.add_argument("--level", "-l", help='Level to cast a spell at')
 
     if has.get("target"):
         if (has.get("identity") or has.get("file")):
@@ -1094,7 +1099,7 @@ def populateParserArguments(parser,has,metaHas):
         parser.add_argument("--info", "-i", help='Info category to interact with')
 
     if has.get("advantage"):
-        parser.add_argument("--advantage", "-a", choices=[1,0,-1], type=int, help='Advantage for attacks', nargs='+')
+        parser.add_argument("--advantage", "-a", choices=["1","0","-1","?"], help='Advantage for attacks', nargs='+')
 
     if has.get("file"):
         parser.add_argument("--file", "-f", help='The file you would like to interact with')
@@ -1221,13 +1226,39 @@ def parseOnly(command_string_to_parse,metaCommand=""):
 
     return argDictMain
 
+def replaceWithInput(value,key):
+    replacing = True
+    result = value
+    while replacing:
+        if "?" in result:
+            result = result.replace("?",input("What is the "+str(key)+"?"),1)
+        else:
+            replacing = False
+    return result
+
+def parseQuestions(a):
+    dictionary = a
+    for key, value in dictionary.items():
+        if key != "commandString":
+            if isinstance(value,list):
+                dictionary[key] = []
+                for val in value:
+                    result = replaceWithInput(val,key)
+                    dictionary[key].append(result)
+            elif value and (not isinstance(value, bool)):
+                result = replaceWithInput(value,key)
+                dictionary[key] = result
+
 def parse_command(command_string_to_parse, caller=False):
     argDictMain = parseOnly(command_string_to_parse)
+    if "?" in command_string_to_parse:
+        print("Evaluating manual input for:\n"+command_string_to_parse)
+        parseQuestions(argDictMain)
     command = argDictMain["command"]
     has = argDictMain["has"]
 
     command_result = ''
-    times = 1;
+    times = "1";
     if has["times"]:
         times = argDictMain["times"]
 
@@ -1281,11 +1312,12 @@ def parse_command(command_string_to_parse, caller=False):
     argDictCopy = handleAllAliases(argDictMain.copy())
     argDictSingle = argDictCopy.copy()
 
-    for time in range(times):
+    for time in range(int(times)):
         for sender in argDictCopy["sender"]:
             argDictSingle["sender"] = sender
             for number,target in enumerate(argDictCopy["target"]):
                 argDictSingle["target"] = target
+
                 if has["identity"]:
                     argDictSingle["identity"] = geti(argDictCopy["identity"],number,target)
                 if has["advantage"]:
@@ -1304,8 +1336,8 @@ def parse_command(command_string_to_parse, caller=False):
                         command_result += "ignored an invalid target"
                         print('ignored an invalid target',target)
                 else:
-                    print('Incorrect command. Try running the `help` command')
-                    command_result += 'incorrect command was entered. Try again?'
+                    parse_command("run -p " + command)
+
     if has["sort"]:
         setBattleOrder()
 
