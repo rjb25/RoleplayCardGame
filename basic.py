@@ -730,6 +730,7 @@ def validateCommand(commandString):
         oneSender = geti(senders,0,False)
         if not oneSender:
             return False
+    #Maybe some day add validation here that checks api and cache to see if a["do"] is a spell, action, or weapon that exists. For now I don't see a way to do it that isn't very slow due to calling the api far more than needed.
 
     return True
 
@@ -767,7 +768,7 @@ def callTurn(a,directCommand=True):
                 turnTo(nickNext)
             else:
                 #"Paused due to no target for auto commands or no commands or you simply marked this creature for pausing"
-                print("Paused --> Needs commands?", not combatantJson.get("autoCommand"), ". Paused set?",combatantJson["paused"], ". Invalid command?", (not isValidCommand) and bool(combatantJson.get("autoCommand")))
+                print("Paused --> Needs commands?", not combatantJson.get("autoCommand"), ". Paused set?",combatantJson["paused"], ". No targets or senders?", (not isValidCommand) and bool(combatantJson.get("autoCommand")))
         else:
             print("Bounced an invalid turn attempt trying to callturn on someone who's turn it is not")
     else:
