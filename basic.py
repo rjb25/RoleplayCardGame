@@ -519,6 +519,16 @@ def remove(a):
         nickNext = whoTurnNext()
         battleTable.pop(nick)
         battleOrder.remove(nick)
+        groups = battleInfo["groups"]
+
+        for group, members in groups.copy().items():
+            if nick in members:
+                members.remove(nick)
+
+        for group in list(groups):
+            if len(battleInfo["groups"][group]) == 0:
+                callDelete({"path":["groups",group]})
+
         if myTurn and nickNext and len(battleOrder)>0:
             callJump({"target":nickNext})
     return "removed " + nick
@@ -605,14 +615,13 @@ def say(string):
 
 def callAddAuto(a):
    target = a["target"] 
-   parse_command("add -t "+target+" -g "+target+"s enemies --append") 
-   parse_command("auto -t "+target+"s -c 'action -d 0 -t party!r'") 
-   #parse_command("delete -p groups "+target+"s")
-   #Next command would be a group remove because auto has been set
-   #Then simply clean out enemies list on remove down
-   #Next nail in the coffin would be something like an auto mod
-   say("We should add a command to modify auto commands given an index and some flags")
-   say("We should also have groups be auto removed and trimmed by remove down")
+   identity = a["identity"]
+   if identity:
+       parse_command("add -t "+target+" -i "+identity+" -g "+identity+"s enemies --append") 
+       parse_command("auto -t "+identity+"s -c 'action -d 0 -t party!r'") 
+   else:
+       parse_command("add -t "+target+" -g "+target+"s enemies --append") 
+       parse_command("auto -t "+target+"s -c 'action -d 0 -t party!r'") 
 
 def addCreature(a):
     name = a["target"]
@@ -795,7 +804,7 @@ def callPause(a):
     target = a["target"]
     combatantJson = battleTable[target]
     combatantJson["paused"] = True 
-def callUnpause(a):
+def callResume(a):
     target = a["target"]
     combatantJson = battleTable[target]
     combatantJson["paused"] = False 
@@ -981,12 +990,22 @@ def callGroup(a):
     members = a["member"] 
     groups = a["group"]
     append = a["append"]
+    remove = a.get("remove")
     for group in groups:
-        storeInfo(["groups",group],list(set(members)),append)
+        if remove:
+            for member in members:
+                battleInfo["groups"][group].remove(member)
+                if len(battleInfo["groups"][group]) == 0:
+                    callDelete({"path":["groups",group]})
+        else:
+            storeInfo(["groups",group],list(set(members)),append)
 
 def pathing(steps,dictionary):
     for step in steps:
-        dictionary = dictionary[step]
+        if step.isnumeric():
+            dictionary = dictionary.get(int(step))
+        else:
+            dictionary = dictionary.get(step)
     return dictionary
 
 def callDelete(a):
@@ -1136,6 +1155,10 @@ def populateParserArguments(parser,has,metaHas,allOptional=False):
         parser.add_argument("--append", "-a", help='Whether this command should replace the existing set or be added on', dest='append', action='store_true')
         parser.set_defaults(append=False)
 
+    if has.get("remove"):
+        parser.add_argument("--remove", "-r", help='Whether this command should replace the existing set or be added on', dest='remove', action='store_true')
+        parser.set_defaults(remove=False)
+
     if has.get("dice"):
         parser.add_argument("--dice", "-d", help='A dice string to be used',required=True and (not allOptional))
 
@@ -1165,7 +1188,7 @@ command_descriptions_dict = {
 "jump" : 'This persons turn:\n\tjump -t goblin#2 \n',
 "skip" : 'Do nothing:\n\tskip\n',
 "pause" : 'Forces a pause when the targets turn is there without removing his auto commands:\n\tpause -t thinker\n',
-"unpause" : 'Set creature to run auto command when it is their turn:\n\tunpause -t menial-minded\n',
+"resume" : 'Set creature to run auto command when it is their turn:\n\tresume -t menial-minded\n',
 "enable" : 'Dont skip this persons turn:\n\tenable -t no-longer-stunned-person\n',
 "disable" : 'Skip this persons turn and try running the auto command for the next person:\n\tdisable -t not-yet-in-combat\n',
 "help" : 'Display this message. Like:\n\thelp\n',
@@ -1202,34 +1225,36 @@ funcDict = {
 "skip" : callSkip,
 "callAuto" : callAuto,
 "pause" : callPause,
-"unpause" : callUnpause,
+"resume" : callResume,
 "enable" : callEnable,
 "disable" : callDisable,
 "save" : "",
 "exit" : "",
 "abort" : "",
 "addAuto": callAddAuto,
+"aa": callAddAuto,
 "delete": callDelete,
 }
 
 hasDict = {
 "sender" : ["action","weapon","cast","use"],
 "path" : ["request","mod","set","list","listkeys","store","run","delete"],
-"target" : ["init","initiative","remove","mod","set","list","listkeys","auto","add","longrest","shortrest","callAuto","enable","disable","pause","unpause","addAuto"],
+"target" : ["init","initiative","remove","mod","set","list","listkeys","auto","add","longrest","shortrest","callAuto","enable","disable","pause","resume","addAuto","aa"],
 "change" : ["mod","set"],
 "level" : ["cast"],
-"identity" : ["add"],
+"identity" : ["add","addAuto","aa"],
 "advantage" : [],
 "sort" : ["add","init","initiative"],
 "file" : ["load"],
 "category" : ["load"],
-"times" : ["mod", "add","roll","longrest","shortrest","callAuto","turn","run","addAuto"],
+"times" : ["mod", "add","roll","longrest","shortrest","callAuto","turn","run","addAuto","aa"],
 "commandString" : ["auto","store"],
 "group" : ["group","add"],
 "dice" : ["roll"],
 "info" : ["info"],
 "append" : ["group","add","auto","store"],
-"no-alias" : ["add","addAuto"],
+"remove" : ["group"],
+"no-alias" : ["add","addAuto","aa"],
 "target-all" : [],
 "target-single-optional" : ["turn","jump"],
 "optionalSenderAndTarget" : ["auto"],

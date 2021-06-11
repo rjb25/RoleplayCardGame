@@ -1,2 +1,6 @@
-store -p encounter1 -c "add -t goblin -n 3 -i gobleeker -g leekers" "auto -t leekers -c 'use -t party -d 0'"
-Fix turn command
+#parse_command("delete -p groups "+target+"s")
+#Next command would be a group remove because auto has been set
+#Then simply clean out enemies list on remove down
+#Next nail in the coffin would be something like an auto mod
+say("We should add a command to modify auto commands given an index and some flags")
+say("We should also have groups be auto removed and trimmed by remove down")
