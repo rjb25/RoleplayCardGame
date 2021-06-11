@@ -502,6 +502,11 @@ def removeDown(a=''):
             remove({"target": nick})
         elif combatant["current_hp"] > combatant["max_hp"]:
             combatant["current_hp"] = combatant["max_hp"]
+    enemyPath = ["groups","enemies"]
+    enemies = getInfo(enemyPath)
+    if enemies:
+        storeInfo(enemyPath, onlyAlive(enemies), False)
+
 
 def callRequest(a):
     steps = a["path"]
@@ -553,16 +558,6 @@ def callAction(a):
     else:
         return False
     return True
-def assignDeep(json,steps,value):
-    battle = battleTable.copy()
-    
-    for i,key in enumerate(steps):
-        if i < len(steps)-1:
-            if key.isnumeric():
-                battle = battle[int(key)]
-            else:
-                battle = battle[key]
-    return
 
 def followPath(a):
     steps = a["path"]
@@ -608,6 +603,17 @@ def followPath(a):
 def say(string):
     printJson(string)
 
+def callAddAuto(a):
+   target = a["target"] 
+   parse_command("add -t "+target+" -g "+target+"s enemies --append") 
+   parse_command("auto -t "+target+"s -c 'action -d 0 -t party!r'") 
+   #parse_command("delete -p groups "+target+"s")
+   #Next command would be a group remove because auto has been set
+   #Then simply clean out enemies list on remove down
+   #Next nail in the coffin would be something like an auto mod
+   say("We should add a command to modify auto commands given an index and some flags")
+   say("We should also have groups be auto removed and trimmed by remove down")
+
 def addCreature(a):
     name = a["target"]
     combatant = getJson(["monsters",name])
@@ -648,6 +654,7 @@ def addCreature(a):
         combatant["identity"] = nick
         combatant["advantage"] = 0
     
+        combatant["nick"] = nick
         battleTable[nick] = combatant
         a["target"] = nick
         if a.get("group"):
@@ -956,6 +963,9 @@ def callStore(a):
     append = a["append"]
     storeInfo(path,commandStrings,append)
 
+def getInfo(path):
+    return get_nested_item(battleInfo,path)
+
 def storeInfo(path,value,append):
     global battleInfo
     if append:
@@ -973,6 +983,16 @@ def callGroup(a):
     append = a["append"]
     for group in groups:
         storeInfo(["groups",group],list(set(members)),append)
+
+def pathing(steps,dictionary):
+    for step in steps:
+        dictionary = dictionary[step]
+    return dictionary
+
+def callDelete(a):
+    path = a["path"]
+    deep = pathing(path[:-1],battleInfo)
+    deep.pop(path[-1],None)
 
 def callRun(a):
     fullpath = [] 
@@ -1149,6 +1169,8 @@ command_descriptions_dict = {
 "enable" : 'Dont skip this persons turn:\n\tenable -t no-longer-stunned-person\n',
 "disable" : 'Skip this persons turn and try running the auto command for the next person:\n\tdisable -t not-yet-in-combat\n',
 "help" : 'Display this message. Like:\n\thelp\n',
+"addAuto" : 'Display this message. Like:\n\thelp\n',
+"delete" : 'Display this message. Like:\n\thelp\n',
 }
 
 funcDict = {
@@ -1186,12 +1208,14 @@ funcDict = {
 "save" : "",
 "exit" : "",
 "abort" : "",
+"addAuto": callAddAuto,
+"delete": callDelete,
 }
 
 hasDict = {
 "sender" : ["action","weapon","cast","use"],
-"path" : ["request","mod","set","list","listkeys","store","run"],
-"target" : ["init","initiative","remove","mod","set","list","listkeys","auto","add","longrest","shortrest","callAuto","enable","disable","pause","unpause"],
+"path" : ["request","mod","set","list","listkeys","store","run","delete"],
+"target" : ["init","initiative","remove","mod","set","list","listkeys","auto","add","longrest","shortrest","callAuto","enable","disable","pause","unpause","addAuto"],
 "change" : ["mod","set"],
 "level" : ["cast"],
 "identity" : ["add"],
@@ -1199,13 +1223,13 @@ hasDict = {
 "sort" : ["add","init","initiative"],
 "file" : ["load"],
 "category" : ["load"],
-"times" : ["mod", "add","roll","longrest","shortrest","callAuto","turn","run"],
+"times" : ["mod", "add","roll","longrest","shortrest","callAuto","turn","run","addAuto"],
 "commandString" : ["auto","store"],
 "group" : ["group","add"],
 "dice" : ["roll"],
 "info" : ["info"],
 "append" : ["group","add","auto","store"],
-"no-alias" : ["add"],
+"no-alias" : ["add","addAuto"],
 "target-all" : [],
 "target-single-optional" : ["turn","jump"],
 "optionalSenderAndTarget" : ["auto"],
@@ -1352,7 +1376,7 @@ def parse_command(command_string_to_parse, caller=False):
                 if has["advantage"]:
                     argDictSingle["advantage"] = geti(argDictCopy["advantage"],number,0)
 
-                if battleTable.get(target) or not has["target"] or command == "add" or command == "load":
+                if battleTable.get(target) or not has["target"] or has.get("no-alias") or command == "load":
                     if not argDictCopy.get("do"):
                         argDictCopy["do"] = ["none"]
                     for do in argDictCopy["do"]:
