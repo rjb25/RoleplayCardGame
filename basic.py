@@ -318,14 +318,16 @@ def applyAction(a):
 
     action = False
     action_result = ''
-    for act in actions:
-        if act["name"] == actionKey:
-            action = act
-    for special in specialAbilities:
-        if special["name"] == actionKey:
-            action = special
+    if actions:
+        for act in actions:
+            if act["name"] == actionKey:
+                action = act
+    if specialAbilities:
+        for special in specialAbilities:
+            if special["name"] == actionKey:
+                action = special
     if action:
-        threshold = targetJson["armor_class"]
+        threshold = int(targetJson["armor_class"])
 
         advMod = int(senderJson["advantage"])
         dc = action.get("dc")
@@ -333,7 +335,7 @@ def applyAction(a):
         saveMult = 0
         mod = 0
         if dc:
-            threshold = dc.get("dc_value")
+            threshold = int(dc.get("dc_value"))
             if not threshold:
                 print("Has a dc for this action but no dc_value. Defaulting to 10")
                 threshold = 10
@@ -409,7 +411,7 @@ def callWeapon(a):
         targetJson = battleTable[target]
         senderJson = battleTable[sender]
         mod = getMod("hit",attackJson,senderJson)
-        threshold = targetJson["armor_class"]
+        threshold = int(targetJson["armor_class"])
         advMod = int(senderJson["advantage"])
         hitCrit = checkHit(mod,threshold,advantage+advMod)
         if hitCrit[0]:
@@ -482,7 +484,7 @@ def callCast(a):
             advMod = int(senderJson["advantage"])
         else:
             mod = getMod("spellHit",attackJson,senderJson)
-            threshold = targetJson["armor_class"]
+            threshold = int(targetJson["armor_class"])
             advMod = int(targetJson["advantage"])
         
         hitCrit = checkHit(mod,threshold,advantage+advMod,bool(dc))

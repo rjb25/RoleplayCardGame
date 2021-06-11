@@ -1,0 +1,18 @@
+{"index": "erky",
+ "armor_class": 12,
+ "hit_points": 15,
+ "strength": 8,
+ "dexterity": 8,
+ "constitution": 8,
+ "intelligence": 8,
+ "wisdom": 12,
+ "charisma": 14,
+ "damage_vulnerabilities": [],
+ "damage_resistances": [],
+ "damage_immunities": [],
+ "level": 1,
+ "weapon_proficiencies": "",
+ "proficiency_bonus": 2,
+ "spellcasting": {"ability": {"index" : "cha"}},
+ "class": "cleric"
+ }
