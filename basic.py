@@ -719,15 +719,15 @@ def whoTurnNext():
 def validateCommand(commandString):
     a = parseOnly(commandString)
     a = handleAllAliases(a)
-    has = a["has"]
+    has = hasParse(a["command"])
 
-    if has["target"]:
+    if has.get("target"):
         targets = onlyAlive(a["target"])
         oneTarget = geti(targets,0,False)
         if not oneTarget:
             return False
 
-    if has["sender"]:
+    if has.get("sender"):
         senders = onlyAlive(a["sender"])
         oneSender = geti(senders,0,False)
         if not oneSender:
@@ -809,13 +809,18 @@ class ArgumentParser(argparse.ArgumentParser):
         print(self.format_help())
 
 def hasParse(command):
-    has = hasDict.copy()
-    for key, hasList in has.items():
-        if hasList.count(command) > 0:
-            has[key] = True
-        else:
-            has[key] = False
-    return has
+    attributeDict = {}
+    attributeList = hasDict.get(command)
+    if attributeList:
+        for attribute in attributeList:
+            attributeDict[attribute] = True
+    return attributeDict
+
+def hasAttribute(attribute,command):
+    if attribute in hasDict.get(command):
+        return True
+    else:
+        return False
 
 def onlyAlive(combatants):
     aliveCombatants = []
@@ -895,14 +900,14 @@ def handleNumerics(combatantList):
 
 def handleAllAliases(toDict,resolve=True):
     command = toDict["command"]
-    has = toDict["has"]
+    has = hasParse(command)
 
     #sender is optional some times
     if (not has.get("no-alias") and has.get("sender")) and toDict.get("sender"):
         toDict["sender"] = handleAliases(toDict["sender"],resolve,True)
 
     if (not has.get("no-alias") and has.get("target")) and toDict.get("target"):
-        toDict["target"] = handleAliases(toDict["target"],resolve,has["target-all"])
+        toDict["target"] = handleAliases(toDict["target"],resolve,has.get("target-all"))
 
     if toDict.get("group") and command != "add":
         toDict["member"] = handleAliases(toDict["member"],resolve,True)
@@ -933,7 +938,6 @@ def callAuto(a):
 def setAuto(a):
     combatant = a["target"]
     combatantJson = battleTable[combatant]
-    combatantJson["useAuto"] = True
     append = a["append"]
     if append:
         if not combatantJson.get("autoCommand"):
@@ -944,11 +948,33 @@ def setAuto(a):
     commandStrings = a["commandString"]
     for commandString in commandStrings:
         argDict = parseOnly(commandString,"auto")
-        if argDict["has"]["sender"] and not argDict["sender"]:
+        command = argDict["command"]
+        has = hasParse(command)
+        if has.get("sender") and not argDict["sender"]:
             commandString = commandString + " --sender " + combatant
-        if argDict["has"]["target"] and not argDict["target"]:
+        if has.get("target") and not argDict["target"]:
             commandString = commandString + " --target " + combatant
         combatantJson["autoCommand"].append(commandString)
+
+def setAutoDict(a):
+    combatant = a["target"]
+    combatantJson = battleTable[combatant]
+    append = a["append"]
+    if append:
+        if not combatantJson.get("autoDict"):
+            combatantJson["autoDict"] = []
+    else:
+        combatantJson["autoDict"] = []
+
+    commandDicts = a["commandDict"]
+    for commandDict in commandDicts:
+        command = commandDict["command"]
+        has = hasParse(command)
+        if has.get("sender") and not commandDict["sender"]:
+            commandDict["sender"] = combatant
+        if has.get("target") and not commandDict["target"]:
+            commandDict["target"] = combatant
+        combatantJson["autoDict"].append(commandDict)
 
 def callStore(a):
     commandStrings = a["commandString"]
@@ -1168,7 +1194,7 @@ funcDict = {
 "load" : loadCategory,
 "help" : helpMessage,
 "turn" : callTurn,
-"auto" : setAuto,
+"auto" : setAutoDict,
 "group" : callGroup,
 "info" : showInfo,
 "store" : callStore,
@@ -1188,35 +1214,45 @@ funcDict = {
 "abort" : "",
 }
 
+def inverseDict(index):
+    new_dic = {}
+    for k,v in index.items():
+        for x in v:
+            new_dic.setdefault(x,[]).append(k)
+    return new_dic
+
+senderList = ["sender","target","advantage","times"]
 hasDict = {
-"sender" : ["action","weapon","cast","use"],
-"path" : ["request","mod","set","list","listkeys","store","run"],
-"target" : ["init","initiative","remove","mod","set","list","listkeys","auto","add","longrest","shortrest","callAuto","enable","disable","pause","unpause"],
-"change" : ["mod","set"],
-"level" : ["cast"],
-"identity" : ["add"],
-"advantage" : [],
-"sort" : ["add","init","initiative"],
-"file" : ["load"],
-"category" : ["load"],
-"times" : ["mod", "add","roll","longrest","shortrest","callAuto","turn","run"],
-"commandString" : ["auto","store"],
-"group" : ["group","add"],
-"dice" : ["roll"],
-"info" : ["info"],
-"append" : ["group","add","auto","store"],
-"no-alias" : ["add"],
-"target-all" : [],
-"target-single-optional" : ["turn","jump"],
-"optionalSenderAndTarget" : ["auto"],
-"optionalPath" : ["list"],
-"allowIncomplete" : ["store"],
-"fill" : ["run"]
+"action": senderList,
+"weapon": senderList,
+"cast": senderList,
+"use": senderList,
+"request": ["path"],
+"mod": ["path", "target", "change", "times", "target-all"],
+"set": ["path", "target", "change", "target-all"],
+"list": ["path", "target", "target-all", "optionalPath"],
+"listkeys": ["path", "target", "target-all"],
+"store": ["path", "commandString", "append", "allowIncomplete"],
+"run": ["path", "times", "fill"],
+"init": ["target", "sort", "target-all"],
+"initiative": ["target", "sort", "target-all"],
+"remove": ["target", "target-all"],
+"auto": ["target", "commandString", "append", "target-all", "optionalSenderAndTarget"],
+"add": ["target", "identity", "sort", "times", "group", "append", "no-alias", "target-all"],
+"longrest": ["target", "times", "target-all"],
+"shortrest": ["target", "times", "target-all"],
+"callAuto": ["target", "times", "target-all"],
+"enable": ["target", "target-all"],
+"disable": ["target", "target-all"],
+"pause": ["target", "target-all"],
+"unpause": ["target", "target-all"],
+"load": ["file", "category"],
+"roll": ["times", "dice"],
+"turn": ["times", "target-single-optional"],
+"group": ["group", "append"],
+"info": ["info"],
+"jump": ["target-single-optional"]
 }
-hasDict["target-all"] = hasDict["target-all"] + hasDict["target"]
-hasDict["target"] = hasDict["target"] + hasDict["sender"]
-hasDict["advantage"] = hasDict["advantage"] + hasDict["sender"]
-hasDict["times"] = hasDict["times"] + hasDict["sender"]
 
 def parseOnly(command_string_to_parse,metaCommand="",allOptional=False):
     args = command_string_to_parse.split(" ")
@@ -1235,7 +1271,6 @@ def parseOnly(command_string_to_parse,metaCommand="",allOptional=False):
     a = parser.parse_args(entries)
     argDictMain = vars(a)
     argDictMain["command"] = command
-    argDictMain["has"] = has
 
     return argDictMain
 
@@ -1280,33 +1315,37 @@ def parse_command(command_string_to_parse, caller=False):
         parseQuestions(argDictMain)
     #Redundant but if I change something in the parser I want to update this
     command = argDictMain["command"]
-    has = argDictMain["has"]
+    has = hasParse(command)
 
     command_result = ''
     times = "1";
-    if has["times"]:
-        times = argDictMain["times"]
+    if has.get("times"):
+        times = argDictMain.get("times")
 
     if command == "help":
         argDictMain["commandDescriptions"] = command_descriptions_dict
 
-    if has["commandString"]: 
+    if has.get("commandString"): 
         commandStrings = []
+        commandDicts = []
         for commandString in argDictMain["commandString"]:
             argDictTemp = {}
             if argDictMain.get("incomplete"):
                 argDictTemp = parseOnly(commandString,command,True)
             else:
                 argDictTemp = parseOnly(commandString,command)
+
             argDictTemp = handleAllAliases(argDictTemp,argDictMain["resolve"])
-            
             commandStrings.append(dictToCommandString(argDictTemp))
+            commandDicts.append(argDictTemp)
+
+        argDictMain["commandDict"] = commandDicts
         argDictMain["commandString"] = commandStrings
 
-    if not has["sender"]:
+    if not has.get("sender"):
         argDictMain["sender"] = ["none"]
 
-    if not has["target"] and (not has["target-single-optional"]):
+    if not has.get("target") and (not has.get("target-single-optional")):
         argDictMain["target"] = ["none"]
 
     if argDictMain.get("roll"):
@@ -1347,12 +1386,12 @@ def parse_command(command_string_to_parse, caller=False):
             for number,target in enumerate(argDictCopy["target"]):
                 argDictSingle["target"] = target
 
-                if has["identity"]:
+                if has.get("identity"):
                     argDictSingle["identity"] = geti(argDictCopy["identity"],number,target)
-                if has["advantage"]:
+                if has.get("advantage"):
                     argDictSingle["advantage"] = geti(argDictCopy["advantage"],number,0)
 
-                if battleTable.get(target) or not has["target"] or command == "add" or command == "load":
+                if battleTable.get(target) or not has.get("target") or command == "add" or command == "load":
                     if not argDictCopy.get("do"):
                         argDictCopy["do"] = ["none"]
                     for do in argDictCopy["do"]:
@@ -1363,7 +1402,7 @@ def parse_command(command_string_to_parse, caller=False):
                 else:
                     command_result += "ignored an invalid target"
                     print('ignored an invalid target',target)
-    if has["sort"]:
+    if has.get("sort"):
         setBattleOrder()
 
     return command_result
