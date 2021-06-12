@@ -502,6 +502,11 @@ def removeDown(a=''):
             remove({"target": nick})
         elif combatant["current_hp"] > combatant["max_hp"]:
             combatant["current_hp"] = combatant["max_hp"]
+    enemyPath = ["groups","enemies"]
+    enemies = getInfo(enemyPath)
+    if enemies:
+        storeInfo(enemyPath, onlyAlive(enemies), False)
+
 
 def callRequest(a):
     steps = a["path"]
@@ -514,6 +519,16 @@ def remove(a):
         nickNext = whoTurnNext()
         battleTable.pop(nick)
         battleOrder.remove(nick)
+        groups = battleInfo["groups"]
+
+        for group, members in groups.copy().items():
+            if nick in members:
+                members.remove(nick)
+
+        for group in list(groups):
+            if len(battleInfo["groups"][group]) == 0:
+                callDelete({"path":["groups",group]})
+
         if myTurn and nickNext and len(battleOrder)>0:
             callJump({"target":nickNext})
     return "removed " + nick
@@ -553,16 +568,6 @@ def callAction(a):
     else:
         return False
     return True
-def assignDeep(json,steps,value):
-    battle = battleTable.copy()
-    
-    for i,key in enumerate(steps):
-        if i < len(steps)-1:
-            if key.isnumeric():
-                battle = battle[int(key)]
-            else:
-                battle = battle[key]
-    return
 
 def followPath(a):
     steps = a["path"]
@@ -608,6 +613,16 @@ def followPath(a):
 def say(string):
     printJson(string)
 
+def callAddAuto(a):
+   target = a["target"] 
+   identity = a["identity"]
+   if identity:
+       parse_command("add -t "+target+" -i "+identity+" -g "+identity+"s enemies --append") 
+       parse_command("auto -t "+identity+"s -c 'action -d 0 -t party!r'") 
+   else:
+       parse_command("add -t "+target+" -g "+target+"s enemies --append") 
+       parse_command("auto -t "+target+"s -c 'action -d 0 -t party!r'") 
+
 def addCreature(a):
     name = a["target"]
     combatant = getJson(["monsters",name])
@@ -648,6 +663,7 @@ def addCreature(a):
         combatant["identity"] = nick
         combatant["advantage"] = 0
     
+        combatant["nick"] = nick
         battleTable[nick] = combatant
         a["target"] = nick
         if a.get("group"):
@@ -788,7 +804,7 @@ def callPause(a):
     target = a["target"]
     combatantJson = battleTable[target]
     combatantJson["paused"] = True 
-def callUnpause(a):
+def callResume(a):
     target = a["target"]
     combatantJson = battleTable[target]
     combatantJson["paused"] = False 
@@ -982,6 +998,9 @@ def callStore(a):
     append = a["append"]
     storeInfo(path,commandStrings,append)
 
+def getInfo(path):
+    return get_nested_item(battleInfo,path)
+
 def storeInfo(path,value,append):
     global battleInfo
     if append:
@@ -997,8 +1016,28 @@ def callGroup(a):
     members = a["member"] 
     groups = a["group"]
     append = a["append"]
+    remove = a.get("remove")
     for group in groups:
-        storeInfo(["groups",group],list(set(members)),append)
+        if remove:
+            for member in members:
+                battleInfo["groups"][group].remove(member)
+                if len(battleInfo["groups"][group]) == 0:
+                    callDelete({"path":["groups",group]})
+        else:
+            storeInfo(["groups",group],list(set(members)),append)
+
+def pathing(steps,dictionary):
+    for step in steps:
+        if step.isnumeric():
+            dictionary = dictionary.get(int(step))
+        else:
+            dictionary = dictionary.get(step)
+    return dictionary
+
+def callDelete(a):
+    path = a["path"]
+    deep = pathing(path[:-1],battleInfo)
+    deep.pop(path[-1],None)
 
 def callRun(a):
     fullpath = [] 
@@ -1142,6 +1181,10 @@ def populateParserArguments(parser,has,metaHas,allOptional=False):
         parser.add_argument("--append", "-a", help='Whether this command should replace the existing set or be added on', dest='append', action='store_true')
         parser.set_defaults(append=False)
 
+    if has.get("remove"):
+        parser.add_argument("--remove", "-r", help='Whether this command should replace the existing set or be added on', dest='remove', action='store_true')
+        parser.set_defaults(remove=False)
+
     if has.get("dice"):
         parser.add_argument("--dice", "-d", help='A dice string to be used',required=True and (not allOptional))
 
@@ -1171,10 +1214,12 @@ command_descriptions_dict = {
 "jump" : 'This persons turn:\n\tjump -t goblin#2 \n',
 "skip" : 'Do nothing:\n\tskip\n',
 "pause" : 'Forces a pause when the targets turn is there without removing his auto commands:\n\tpause -t thinker\n',
-"unpause" : 'Set creature to run auto command when it is their turn:\n\tunpause -t menial-minded\n',
+"resume" : 'Set creature to run auto command when it is their turn:\n\tresume -t menial-minded\n',
 "enable" : 'Dont skip this persons turn:\n\tenable -t no-longer-stunned-person\n',
 "disable" : 'Skip this persons turn and try running the auto command for the next person:\n\tdisable -t not-yet-in-combat\n',
 "help" : 'Display this message. Like:\n\thelp\n',
+"addAuto" : 'Display this message. Like:\n\thelp\n',
+"delete" : 'Display this message. Like:\n\thelp\n',
 }
 
 funcDict = {
@@ -1206,12 +1251,15 @@ funcDict = {
 "skip" : callSkip,
 "callAuto" : callAuto,
 "pause" : callPause,
-"unpause" : callUnpause,
+"resume" : callResume,
 "enable" : callEnable,
 "disable" : callDisable,
 "save" : "",
 "exit" : "",
 "abort" : "",
+"addAuto": callAddAuto,
+"aa": callAddAuto,
+"delete": callDelete,
 }
 
 def inverseDict(index):
@@ -1245,13 +1293,40 @@ hasDict = {
 "enable": ["target", "target-all"],
 "disable": ["target", "target-all"],
 "pause": ["target", "target-all"],
-"unpause": ["target", "target-all"],
+"resume": ["target", "target-all"],
 "load": ["file", "category"],
 "roll": ["times", "dice"],
 "turn": ["times", "target-single-optional"],
 "group": ["group", "append"],
 "info": ["info"],
 "jump": ["target-single-optional"]
+"aa": ["target", "identity", "sort", "times", "no-alias", "target-all"],
+=======
+"sender" : ["action","weapon","cast","use"],
+"path" : ["request","mod","set","list","listkeys","store","run","delete"],
+"target" : ["init","initiative","remove","mod","set","list","listkeys","auto","add","longrest","shortrest","callAuto","enable","disable","pause","resume","addAuto","aa"],
+"change" : ["mod","set"],
+"level" : ["cast"],
+"identity" : ["add","addAuto","aa"],
+"advantage" : [],
+"sort" : ["add","init","initiative"],
+"file" : ["load"],
+"category" : ["load"],
+"times" : ["mod", "add","roll","longrest","shortrest","callAuto","turn","run","addAuto","aa"],
+"commandString" : ["auto","store"],
+"group" : ["group","add"],
+"dice" : ["roll"],
+"info" : ["info"],
+"append" : ["group","add","auto","store"],
+"remove" : ["group"],
+"no-alias" : ["add","addAuto","aa"],
+"target-all" : [],
+"target-single-optional" : ["turn","jump"],
+"optionalSenderAndTarget" : ["auto"],
+"optionalPath" : ["list"],
+"allowIncomplete" : ["store"],
+"fill" : ["run"]
+>>>>>>> 5fa468493ce1f36843a1c6cf46c1ef099ae7a9eb
 }
 
 def parseOnly(command_string_to_parse,metaCommand="",allOptional=False):
@@ -1391,7 +1466,7 @@ def parse_command(command_string_to_parse, caller=False):
                 if has.get("advantage"):
                     argDictSingle["advantage"] = geti(argDictCopy["advantage"],number,0)
 
-                if battleTable.get(target) or not has.get("target") or command == "add" or command == "load":
+                if battleTable.get(target) or not has.get("target") or has.get("no-alias") or command == "load":
                     if not argDictCopy.get("do"):
                         argDictCopy["do"] = ["none"]
                     for do in argDictCopy["do"]:
