@@ -45,7 +45,7 @@ def set_nested_item(dataDict, mapList, val):
 def get_nested_item(input_dict, nested_key):
     internal_dict_value = input_dict
     for k in nested_key:
-        internal_dict_value = internal_dict_value.get(k, None)
+        internal_dict_value = geti(internal_dict_value, k, None)
         if internal_dict_value is None:
             return None
     return internal_dict_value
@@ -1015,7 +1015,6 @@ def callRun(a):
         parseAndRun(string)
 
 def setAutoDict(a):
-    #wrong say(a)
     combatant = a["target"]
     combatantJson = battleTable[combatant]
     mode = a["mode"]
@@ -1027,7 +1026,7 @@ def setAutoDict(a):
 
     commandDicts = a["commandDict"]
     if mode == "mod":
-        commandDicts = modInfo([combatant,"autoDict",a["index"]],commandDicts,battleTable)
+        commandDicts = modInfo([combatant,"autoDict",a["path"]],commandDicts,battleTable)
     for commandDict in commandDicts:
         command = commandDict["command"]
         has = hasParse(command)
@@ -1056,7 +1055,10 @@ def getInfo(path):
 
 def modInfo(path,modDictionaries,dictionary):
     startPosition = path[-1]
-    if startPosition.isnumeric():
+    if startPosition == None:
+        startPosition = 0
+        path = path[:-1]
+    elif startPosition.isnumeric():
         startPosition = int(startPosition)
         path = path[:-1]
     else:
@@ -1223,9 +1225,6 @@ def populateParserArguments(parser,has,metaHas,allOptional=False):
     if has.get("allowIncomplete"):
         parser.add_argument("--incomplete", "-i", help='Whether or not what is being stored is an incomplete command', dest='incomplete', action='store_true')
 
-    if has.get("index"):
-        parser.add_argument("--index", "-i", help='Index of the content to start with')
-
     if has.get("identity"):
         parser.add_argument("--identity", "-i", help='Identities for added monsters', nargs='+')
 
@@ -1331,13 +1330,6 @@ funcDict = {
 "run": callRun,
 }
 
-def inverseDict(index):
-    new_dic = {}
-    for k,v in index.items():
-        for x in v:
-            new_dic.setdefault(x,[]).append(k)
-    return new_dic
-
 senderList = ["sender","target","advantage","times"]
 hasDict = {
 "action": senderList,
@@ -1352,7 +1344,7 @@ hasDict = {
 "store": ["path", "commandString", "mode", "allowIncomplete"],
 "init": ["target", "sort", "target-all"],
 "remove": ["target", "target-all"],
-"auto": ["target", "commandString", "mode", "target-all", "optionalSenderAndTarget","index"],
+"auto": ["target", "commandString", "mode", "target-all", "optionalSenderAndTarget","path","allowIncomplete","optionalPath"],
 "add": ["target", "identity", "sort", "times", "group", "append", "no-alias", "target-all"],
 "longrest": ["target", "times", "target-all"],
 "shortrest": ["target", "times", "target-all"],
@@ -1583,7 +1575,7 @@ def run_assistant():
             print("")#This catches argParses attempts to exit.
 
         except Exception:
-            print("oneechan makes awkward-sounding noises at you, enter the 'exit' command to exit.")
+            print("ERROR, enter the 'exit' command to exit.")
             traceback.print_exc()
 
             # Error Spam Prevention #
