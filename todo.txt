@@ -1,2 +1,1 @@
-Add the run command back in so it can be aliased to so things like party work if either of it's sub items change
-so party could be store -p party -c "run -p autoParty" "run -p loadParty"
+Add fudge ability for hits and damage

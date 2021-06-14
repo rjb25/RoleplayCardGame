@@ -317,12 +317,14 @@ def getMod(modType, attackJson, combatantJson, additional = 0):
 def statMod(stat):
         return math.floor((stat-10)/2)
 def printUse(a):
-    print(a["sender"], "uses", a["do"], "on", a["target"])
+    print(a["sender"].upper(), "uses", a["do"], "on", a["target"])
 
 def applyAction(a):
     actionKey = a["do"]
     sender = a["sender"]
     target = a["target"]
+    landFudge = a["landFudge"]
+    weaponFudge = a["weaponFudge"]
     advantage = int(a["advantage"])
     senderJson = battleTable[sender]
     targetJson = battleTable[target]
@@ -361,7 +363,7 @@ def applyAction(a):
             mod = getMod("actionHit",action,senderJson)
             advMod = int(senderJson["advantage"])
         printUse(a)
-        hitCrit = checkHit(mod,threshold,advantage+advMod,bool(dc))
+        hitCrit = checkHit(mod,threshold,advantage+advMod,bool(dc),landFudge)
         if hitCrit[0]:
             saveMult = 1
         if hitCrit[0] or saveMult !=0:
@@ -418,6 +420,8 @@ def isCantrip(attackJson):
 def callWeapon(a):
     attackPath = a["do"].lower()
     attackJson = getJson(["equipment",attackPath])
+    landFudge = a["landFudge"]
+    weaponFudge = a["weaponFudge"]
     if attackJson:
         sender = a["sender"]
         target = a["target"]
@@ -428,7 +432,7 @@ def callWeapon(a):
         threshold = int(targetJson["armor_class"])
         advMod = int(senderJson["advantage"])
         printUse(a)
-        hitCrit = checkHit(mod,threshold,advantage+advMod)
+        hitCrit = checkHit(mod,threshold,advantage+advMod,False,landFudge)
         if hitCrit[0]:
             hurt = roll(attackJson["damage"]["damage_dice"]+"+"+str(getMod("dmg",attackJson,senderJson)),hitCrit[1])
             applyDamage(targetJson,hurt,attackJson["damage"]["damage_type"])
@@ -436,22 +440,95 @@ def callWeapon(a):
         return False
     return True
 
-def checkHit(mod,threshold,advantage=0,save=False):
-    d20 = rolld20(advantage,mod)
-    got20 = ((int(d20) - int(mod)) == 20)
+def rollMany(rollString):
+    parts = rollString.split(",")
+    mathString = ""
+    for part in parts:
+        sign = ""
+        dice = part
+        if "-" in part:
+            dice = part.split("-")[1]
+            sign = "-"
+        else:
+            sign = "+"
+
+        if "d" in dice:
+            dice = str(roll(dice))
+
+        mathString = mathString + sign + dice
+    return eval(mathString)
+
+def handleFudge(fudgeString,method,currentVal):
+    result = 0
+
+    if isinstance(method, bool):
+        method = "mod"
+    if method in ["mod","m"]:
+        fudgeValue = rollMany(fudgeString)
+        result = currentVal + fudgeValue
+    if method in ["advantage","a"]:
+        newRoll = rollMany(fudgeString)
+        result = max(currentVal,newRoll)
+    if method in ["disadvantage","d"]:
+        newRoll = rollMany(fudgeString)
+        result = min(currentVal,newRoll)
+    if method in ["reroll","r"]:
+        result = rollMany(fudgeString)
+    #Maybe add a greater and or lesser as alternative to advantage. Or simply make it that if there is a string before them it uses that as default
+
+    return result
+
+def checkHit(mod,threshold,advantage=0,save=False,fudge=False,hitOverride=False,wasCrit=False):
+    hit = 0
+    if isinstance(hitOverride,bool):
+        hit = rolld20(advantage,mod)
+    else:
+        hit = hitOverride
+    
+    method = ""
+    fudgeString = ""
+    if not isinstance(fudge,bool):
+        valueMethod = fudge.split("!")
+        fudgeString = valueMethod[0]
+        method = geti(valueMethod,1,False)
+
+    got20 = False
+    #if isinstance(hitOverride,bool):
+    got20 = ((int(hit) - int(mod)) == 20)
+    if method in ["mod","m"]:
+        got20 = wasCrit
+    #elif method in ["advantage","disadvantage","a","d","reroll","r"]:
+    #    got20 = ((int(hit) - int(mod)) == 20)
+
     crit = (got20) and (not save)
     success = False
     if crit:
         success = True
     else:
-        success = not ((d20 >= threshold) == save)
+        success = not ((hit >= threshold) == save)
 
-    print("Hit or failed save?", success, "is", d20, ">",threshold, "Crit?",crit)
+    print("Hit or failed save?", success, "is", hit, ">",threshold, "Crit?",crit)
+    fudgeResult = False
+    if not isinstance(fudge,bool):
+        modString = ""
+        if not fudgeString:
+            if mod < 0:
+                modString = ""+(mod)
+            elif mod > 0:
+                modString = "+"+str(mod)
+            fudgeString = "1d20"+modString
+        fudgeResult = handleFudge(fudgeString,method,hit)
+
+    if not isinstance(fudgeResult,bool):
+        return checkHit(mod,threshold,0,save,False,fudgeResult,crit)
+
     return [success, crit]
 
 def callCast(a):
     attackPath = a["do"].lower()
     attackJson = getJson(["spells",attackPath])
+    landFudge = a["landFudge"]
+    weaponFudge = a["weaponFudge"]
     if attackJson:
         sender = a["sender"]
         target = a["target"]
@@ -503,7 +580,7 @@ def callCast(a):
             advMod = int(senderJson["advantage"])
         
         printUse(a)
-        hitCrit = checkHit(mod,threshold,advantage+advMod,bool(dc))
+        hitCrit = checkHit(mod,threshold,advantage+advMod,bool(dc),landFudge)
         if hitCrit[0]:
             applyDamage(targetJson,roll(dmgString,hitCrit[1]),attackJson["damage"]["damage_type"])
         elif saveMult != 0:
@@ -1174,6 +1251,10 @@ def dictToCommandString(dictionary):
     return commandString
 
 def populateParserArguments(parser,has,metaHas,allOptional=False):
+    if has.get("fudge"):
+        parser.add_argument("--landFudge", "-l", help='A dice string to be used for fudging a hit')
+        parser.add_argument("--weaponFudge", "-w", help='A dice string to be used for fudging damage')
+
     if has.get("times"):
         parser.add_argument("--times", "-n", help='How many times to run the command')
 
@@ -1330,7 +1411,7 @@ funcDict = {
 "run": callRun,
 }
 
-senderList = ["sender","target","advantage","times"]
+senderList = ["sender","target","advantage","times","fudge"]
 hasDict = {
 "action": senderList,
 "weapon": senderList,
