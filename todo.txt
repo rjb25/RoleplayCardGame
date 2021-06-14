@@ -1,6 +1,2 @@
-#parse_command("delete -p groups "+target+"s")
-#Next command would be a group remove because auto has been set
-#Then simply clean out enemies list on remove down
-#Next nail in the coffin would be something like an auto mod
-say("We should add a command to modify auto commands given an index and some flags")
-say("We should also have groups be auto removed and trimmed by remove down")
+Add the run command back in so it can be aliased to so things like party work if either of it's sub items change
+so party could be store -p party -c "run -p autoParty" "run -p loadParty"
