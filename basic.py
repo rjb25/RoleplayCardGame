@@ -145,7 +145,7 @@ def rolld20(advantage = 0, modifier=0):
         d20 = roll("1d20+"+mod)
     return d20
 
-def roll(dice_string,crit=False):
+def roll(dice_strings,crit=False):
     '''
     # PRECONDITIONS #
     Input: String with dice number, type, and modifier, e.g. 3d20+1
@@ -158,33 +158,39 @@ def roll(dice_string,crit=False):
     Return: Integer returned, representing the dice roll result
     Side Effects/State: None
     '''
-    dsplit = dice_string.split("d")
-    usesDice = len(dsplit)>1
-    sum = 0
-    diceMod = 0
-    if usesDice:
-        remaining = ""
-        if "+" in dice_string:
-            remaining = dsplit[1].split("+")
-            diceMod = float(remaining[1])
-        elif "-" in dice_string:
-            remaining = dsplit[1].split("-")
-            diceMod = -1*float(remaining[1])
+    diceStrings = dice_strings.split(",")
+    total = 0
+    message = dice_strings.replace(","," + ")
+
+    if crit:
+        message = "CRIT! Double dice count for "+dice_string
+
+    for dice_string in diceStrings: 
+        dsplit = dice_string.split("d")
+        usesDice = len(dsplit)>1
+        diceMod = 0
+        if usesDice:
+            remaining = dsplit[1]
+            if "+" in dice_string:
+                remaining = dsplit[1].split("+")
+                diceMod = float(remaining[1])
+            elif "-" in dice_string:
+                remaining = dsplit[1].split("-")
+                diceMod = -1*float(remaining[1])
+            
+            diceCount = int(dsplit[0])
+            if crit:
+                diceCount = diceCount*2
+            diceType = float(remaining[0])
+            for x in range(diceCount):
+                total += math.ceil(diceType*random.random())
+            total += diceMod
         else:
-            remaining = dsplit[1].split("-")
-        
-        diceCount = int(dsplit[0])
-        if crit:
-            diceCount = diceCount*2
-            dice_string = "2*"+dice_string
-        diceType = float(remaining[0])
-        for x in range(diceCount):
-            sum += math.ceil(diceType*random.random())
-    else:
-        sum = int(dice_string)
-    print("roll",dice_string,"=",sum+diceMod)
+            total += int(dice_string)
+
+    print("roll",message,"=",total)
     
-    return int(sum + diceMod)
+    return int(total)
 
 def rollString(a):
     roll(a["dice"])
@@ -440,65 +446,37 @@ def callWeapon(a):
         return False
     return True
 
-def rollMany(rollString):
-    parts = rollString.split(",")
-    mathString = ""
-    for part in parts:
-        sign = ""
-        dice = part
-        if "-" in part:
-            dice = part.split("-")[1]
-            sign = "-"
-        else:
-            sign = "+"
-
-        if "d" in dice:
-            dice = str(roll(dice))
-
-        mathString = mathString + sign + dice
-    return eval(mathString)
-
 def handleFudge(fudgeString,method,currentVal):
     result = 0
 
     if isinstance(method, bool):
         method = "mod"
     if method in ["mod","m"]:
-        fudgeValue = rollMany(fudgeString)
+        fudgeValue = roll(fudgeString)
         result = currentVal + fudgeValue
     if method in ["advantage","a"]:
-        newRoll = rollMany(fudgeString)
+        newRoll = roll(fudgeString)
         result = max(currentVal,newRoll)
     if method in ["disadvantage","d"]:
-        newRoll = rollMany(fudgeString)
+        newRoll = roll(fudgeString)
         result = min(currentVal,newRoll)
     if method in ["reroll","r"]:
-        result = rollMany(fudgeString)
-    #Maybe add a greater and or lesser as alternative to advantage. Or simply make it that if there is a string before them it uses that as default
+        result = roll(fudgeString)
 
     return result
 
-def checkHit(mod,threshold,advantage=0,save=False,fudge=False,hitOverride=False,wasCrit=False):
+def checkHit(mod,threshold,advantage=0,save=False,fudge="",hitOverride=False,wasCrit=False,priorMethod=""):
     hit = 0
     if isinstance(hitOverride,bool):
         hit = rolld20(advantage,mod)
     else:
         hit = hitOverride
-    
-    method = ""
-    fudgeString = ""
-    if not isinstance(fudge,bool):
-        valueMethod = fudge.split("!")
-        fudgeString = valueMethod[0]
-        method = geti(valueMethod,1,False)
 
     got20 = False
-    #if isinstance(hitOverride,bool):
-    got20 = ((int(hit) - int(mod)) == 20)
-    if method in ["mod","m"]:
+    if priorMethod in ["mod","m"]:
         got20 = wasCrit
-    #elif method in ["advantage","disadvantage","a","d","reroll","r"]:
-    #    got20 = ((int(hit) - int(mod)) == 20)
+    else:
+        got20 = ((int(hit) - int(mod)) == 20)
 
     crit = (got20) and (not save)
     success = False
@@ -508,19 +486,39 @@ def checkHit(mod,threshold,advantage=0,save=False,fudge=False,hitOverride=False,
         success = not ((hit >= threshold) == save)
 
     print("Hit or failed save?", success, "is", hit, ">",threshold, "Crit?",crit)
-    fudgeResult = False
-    if not isinstance(fudge,bool):
-        modString = ""
+    
+
+    fudgeNext = ""
+    if fudge:
+        if ("$" in fudge):
+            fudge = fudge.replace("$","")
+            override = input("`enter`->"+ fudge +". `skip`->nothing Override?->")
+
+            if override == "skip":
+                fudge = ""
+            elif len(override) != 0:
+                say(override)
+                if override == "$":
+                    fudgeNext = fudge + "$"
+                else:
+                    fudgeNext = override
+                    fudge = override.replace("$","")
+
+    if fudge:#checking again now that it has been modified
+        valueMethod = fudge.split("!")
+        fudgeString = valueMethod[0]
+
         if not fudgeString:
             if mod < 0:
-                modString = ""+(mod)
+                modString = str(mod)
             elif mod > 0:
                 modString = "+"+str(mod)
             fudgeString = "1d20"+modString
-        fudgeResult = handleFudge(fudgeString,method,hit)
 
-    if not isinstance(fudgeResult,bool):
-        return checkHit(mod,threshold,0,save,False,fudgeResult,crit)
+        method = geti(valueMethod,1,False)
+
+        fudgeResult = handleFudge(fudgeString,method,hit)
+        return checkHit(mod,threshold,0,save,fudgeNext,fudgeResult,crit,method)
 
     return [success, crit]
 
@@ -1585,22 +1583,7 @@ def parse_command_dict(argDictToParse):
         argDictMain["target"] = ["none"]
 
     if argDictMain.get("roll"):
-        parts = str(argDictMain["change"]).split(",")
-        mathString = ""
-        for part in parts:
-            sign = ""
-            dice = part
-            if "-" in part:
-                dice = part.split("-")[1]
-                sign = "-"
-            else:
-                sign = "+"
-
-            if "d" in dice:
-                dice = str(roll(dice))
-
-            mathString = mathString + sign + dice
-        argDictMain["change"] = eval(mathString)
+        argDictMain["change"] = roll(argDictMain["change"])
 
     if command == "save":
         saveBattle()
