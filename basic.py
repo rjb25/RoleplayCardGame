@@ -1191,6 +1191,7 @@ def callStore(a):
 def getInfo(path):
     return get_nested_item(battleInfo,path)
 
+#add a mode which allows for the use of append_value instead of update so you could bless someone with two different options
 def modInfo(path,modDictionaries,dictionary):
     startPosition = path[-1]
     if startPosition == None:
@@ -1213,6 +1214,14 @@ def modInfo(path,modDictionaries,dictionary):
     else:
         dictionary = set_nested_item(dictionary, path, modDictionaries)
     return get_nested_item(dictionary,path)
+
+def append_value(dict_obj, key, value):
+    if key in dict_obj:
+        if not isinstance(dict_obj[key], list):
+            dict_obj[key] = [dict_obj[key]]
+        dict_obj[key].append(value)
+    else:
+        dict_obj[key] = value
 
         
 def storeInfo(path,value,append):
@@ -1311,7 +1320,7 @@ def dictToCommandString(dictionary):
                 commandString = commandString +" --"+ key + valueString
     return commandString
 
-def populateParserArguments(parser,has,metaHas,allOptional=False):
+def populateParserArguments(parser,has,metaHas,verify=True):
     if has.get("fudge"):
         parser.add_argument("--landFudge", "-l", help='A dice string to be used for fudging a hit')
         parser.add_argument("--weaponFudge", "-w", help='A dice string to be used for fudging damage')
@@ -1320,16 +1329,16 @@ def populateParserArguments(parser,has,metaHas,allOptional=False):
         parser.add_argument("--times", "-n", help='How many times to run the command')
 
     if has.get("sender"):
-        parser.add_argument("--sender", "-s", required=(not metaHas.get("optionalSenderAndTarget")) and (not allOptional), help='sender/s for command', nargs='+')
-        parser.add_argument("--do", "-d", required=(True and (not allOptional)), help='What the sender is using on the target', nargs='+')
+        parser.add_argument("--sender", "-s", required=(not metaHas.get("optionalSenderAndTarget")) and verify, help='sender/s for command', nargs='+')
+        parser.add_argument("--do", "-d", required=(True and verify), help='What the sender is using on the target', nargs='+')
 
     if has.get("do"):
         parser.add_argument("--do", "-d", help='What the sender is using on the target', nargs='+')
 
     if has.get("path"):
-        parser.add_argument("--path", "-p", required=(not has.get("optionalPath")) and (not allOptional), nargs='+',help='Path for json or api parsing with command. Space seperated')
+        parser.add_argument("--path", "-p", required=(not has.get("optionalPath")) and verify, nargs='+',help='Path for json or api parsing with command. Space seperated')
         if has.get("change"):
-            parser.add_argument("--change", "-c", required=True and (not allOptional), help='What you would like to set or modify a number by')
+            parser.add_argument("--change", "-c", required=True and verify, help='What you would like to set or modify a number by')
             parser.add_argument("--roll", "-r", help='Whether or not the change indicated is a dice change', dest='roll', action='store_true')
             parser.set_defaults(roll=False)
 
@@ -1338,15 +1347,15 @@ def populateParserArguments(parser,has,metaHas,allOptional=False):
 
     if has.get("target"):
         if (has.get("identity") or has.get("file")):
-            parser.add_argument("--target", "-t", required=True and (not allOptional), help='Target/s creature types to fetch from the cache the api or a file', nargs='+')
+            parser.add_argument("--target", "-t", required=True and verify, help='Target/s creature types to fetch from the cache the api or a file', nargs='+')
         else:
-            parser.add_argument("--target", "-t", required=(not metaHas.get("optionalSenderAndTarget")) and (not allOptional), help='Target/s for command', nargs='+')
+            parser.add_argument("--target", "-t", required=(not metaHas.get("optionalSenderAndTarget")) and verify, help='Target/s for command', nargs='+')
 
     if has.get("target-single-optional"):
         parser.add_argument("--target", "-t", help='Target for command')
 
     if has.get("group"):
-        req = True and (not allOptional)
+        req = True and verify
         if has.get("no-alias"):
             req = False
         else:
@@ -1354,18 +1363,18 @@ def populateParserArguments(parser,has,metaHas,allOptional=False):
         parser.add_argument("--group", "-g", help='A group which will be reduced to a target list', required=req, nargs='+')
 
     if has.get("category"):
-        parser.add_argument("--category", "-c", choices=['monsters','equipment','spells'], help='A category for content',required=True and (not allOptional))
+        parser.add_argument("--category", "-c", choices=['monsters','equipment','spells'], help='A category for content',required=True and verify)
 
     if has.get("commandString"):
-        parser.add_argument("--commandString", "-c", help='A command string to be run', nargs='+',required=True and (not allOptional))
+        parser.add_argument("--commandString", "-c", help='A command string to be run', nargs='+',required=True and verify)
         parser.add_argument("--resolve", "-r", help='Whether or not to resolve aliases inside command string. party -> guy1 guy2 girl', dest='resolve', action='store_true')
         parser.set_defaults(resolve=False)
 
     if has.get("arbitraryString"):
-        parser.add_argument("--string", "-s", help='A string to run from the very top level with no processing when saved', nargs='+',required=True and (not allOptional))
+        parser.add_argument("--string", "-s", help='A string to run from the very top level with no processing when saved', nargs='+',required=True and verify)
 
     if has.get("allowIncomplete"):
-        parser.add_argument("--incomplete", "-i", help='Whether or not what is being stored is an incomplete command', dest='incomplete', action='store_true')
+        parser.add_argument("--verify", "-v", help='Whether or not what is being stored is an incomplete command', dest='verify', action='store_true')
 
     if has.get("identity"):
         parser.add_argument("--identity", "-i", help='Identities for added monsters', nargs='+')
@@ -1381,7 +1390,7 @@ def populateParserArguments(parser,has,metaHas,allOptional=False):
         
     if has.get("mode"):
         parser.add_argument("--mode", "-m", choices=["set","append","mod","?"],help='How does this information fit with the previous existing information?')
-        parser.set_defaults(mode="set")
+        parser.set_defaults(mode="mod")
 
     if has.get("append"):
         parser.add_argument("--append", "-a", help='Whether this command should replace the existing set or be added on', dest='append', action='store_true')
@@ -1399,7 +1408,7 @@ def populateParserArguments(parser,has,metaHas,allOptional=False):
         parser.set_defaults(remove=False)
 
     if has.get("dice"):
-        parser.add_argument("--dice", "-d", help='A dice string to be used',required=True and (not allOptional))
+        parser.add_argument("--dice", "-d", help='A dice string to be used',required=True and verify)
 
 command_descriptions_dict = {
 "use" : 'Do a generic action weapon or cast. Like:\n\tuse --do greatsword --sender groovyBoy --target druid#3 --times 1 --advantage 1\n',
@@ -1522,13 +1531,13 @@ def getBaseCommand(command):
     else:
         return False
 
-def parseOnly(command_string_to_parse,metaCommand="",allOptional=False):
+def parseOnly(command_string_to_parse,metaCommand="",verify=True):
     args = command_string_to_parse.split(" ")
     command = args[0]
 
     entryString = ""
     desc = "Dnd DM Assistant"
-    if "-" in command and allOptional:
+    if "-" in command and not verify:
         command = ""
         entryString = command_string_to_parse
     else:
@@ -1542,7 +1551,7 @@ def parseOnly(command_string_to_parse,metaCommand="",allOptional=False):
             description=desc,
             formatter_class=argparse.RawTextHelpFormatter
             )
-    populateParserArguments(parser,has,metaHas,allOptional)
+    populateParserArguments(parser,has,metaHas,verify)
     entries = shlex.split(entryString)
     #parameters
     a = parser.parse_args(entries)
@@ -1574,7 +1583,7 @@ def parseQuestions(a):
                 result = replaceWithInput(value,key)
                 dictionary[key] = result
 
-def parse_command_string(command_string_to_parse,metaCommand="",allOptional=False):
+def parse_command_string(command_string_to_parse,metaCommand="",verify=True):
     args = command_string_to_parse.split(" ")
     command = args[0]
     argDictMains = []
@@ -1587,7 +1596,7 @@ def parse_command_string(command_string_to_parse,metaCommand="",allOptional=Fals
                 if baseCommand:
                     if len(commandDict) == 1:
                         entryString = " ".join(args[1:])
-                        aliasDict = parseOnly(baseCommand + " " + entryString,metaCommand,True)
+                        aliasDict = parseOnly(baseCommand + " " + entryString,metaCommand,False)
                         aliasDict = weedNones(aliasDict)
                         copyDict = copy.deepcopy(commandDict[0])
                         copyDict.update(aliasDict)
@@ -1601,7 +1610,7 @@ def parse_command_string(command_string_to_parse,metaCommand="",allOptional=Fals
         else:
             print("Here would be some arbitrary command handling that does it's best to get args without command context")
     else:
-        argDictMains.append(parseOnly(command_string_to_parse,metaCommand,allOptional))
+        argDictMains.append(parseOnly(command_string_to_parse,metaCommand,verify))
 
     if "?" in command_string_to_parse:
         print("Evaluating manual input for:\n"+command_string_to_parse)
@@ -1633,7 +1642,7 @@ def parse_command_dict(argDictToParse):
     if has.get("commandString"): 
         commandDicts = []
         for commandString in argDictMain["commandString"]:
-            argDictTemps = parse_command_string(commandString,command,argDictMain.get("incomplete"))
+            argDictTemps = parse_command_string(commandString,command,argDictMain.get("verify"))
             for argDictTemp in argDictTemps:
                 commandDicts.append(handleAllAliases(argDictTemp,argDictMain["resolve"]))
 
