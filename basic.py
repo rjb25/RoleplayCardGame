@@ -465,6 +465,23 @@ def handleFudge(fudgeString,method,currentVal):
 
     return result
 
+def handleFudgeInput(fudge):
+    fudgeNext = ""
+    if ("$" in fudge):
+        fudge = fudge.replace("$","")
+        override = input("`enter`->"+ fudge +". `skip`->nothing Override?->")
+
+        if override == "skip":
+            fudge = ""
+        elif len(override) != 0:
+            say(override)
+            if override == "$":
+                fudgeNext = fudge + "$"
+            else:
+                fudgeNext = override
+                fudge = override.replace("$","")
+    return [fudge,fudgeNext]
+
 def checkHit(mod,threshold,advantage=0,save=False,fudge="",hitOverride=False,wasCrit=False,priorMethod=""):
     hit = 0
     if isinstance(hitOverride,bool):
@@ -488,21 +505,9 @@ def checkHit(mod,threshold,advantage=0,save=False,fudge="",hitOverride=False,was
     print("Hit or failed save?", success, "is", hit, ">",threshold, "Crit?",crit)
     
 
-    fudgeNext = ""
-    if fudge:
-        if ("$" in fudge):
-            fudge = fudge.replace("$","")
-            override = input("`enter`->"+ fudge +". `skip`->nothing Override?->")
-
-            if override == "skip":
-                fudge = ""
-            elif len(override) != 0:
-                say(override)
-                if override == "$":
-                    fudgeNext = fudge + "$"
-                else:
-                    fudgeNext = override
-                    fudge = override.replace("$","")
+    fudgePlusNext = handleFudgeInput(fudge)
+    fudge = fudgePlusNext[0]
+    fudgeNext = fudgePlusNext[1]
 
     if fudge:#checking again now that it has been modified
         valueMethod = fudge.split("!")
