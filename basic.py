@@ -252,31 +252,29 @@ def canCast(combatantJson):
             return spellcasting
     return False
 
-def applyDamage(targetJson,damage,dmgType):
+def applyDamage(targetJson,damage):
+    
+    targetJson["current_hp"] -= math.floor(damageDealt)
+
+def getAffinityMod(targetJson,damage,dmgType):
     immunities = targetJson.get("damage_immunities")
     vulnerabilities = targetJson.get("damage_vulnerabilities")
     resistances = targetJson.get("damage_resistances")
 
     damageDealt = damage
     damageType = dmgType["index"]
-    searching = True
-    if immunities and searching:
-        for method in immunities:
-            if method == damageType:
-                damageDealt = 0
-                searching = False
-    if vulnerabilities and searching:
-        for method in vulnerabilities:
-            if method == damageType:
-                damageDealt *= 2 
-                searching = False
-    if resistances and searching:
-        for method in resistances:
-            if method == damageType:
-                damageDealt *= 0.5
-
-    targetJson["current_hp"] -= math.floor(damageDealt)
-
+    if immunities:
+        for affinity in immunities:
+            if affinity == damageType:
+                return 0
+    if vulnerabilities:
+        for affinity in vulnerabilities:
+            if affinity == damageType:
+                return 2 
+    if resistances:
+        for affinity in resistances:
+            if affinity == damageType:
+                return 0.5
         
 def getMod(modType, attackJson, combatantJson, additional = 0):
         modSum = 0
