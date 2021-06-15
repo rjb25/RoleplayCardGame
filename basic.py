@@ -145,7 +145,7 @@ def rolld20(advantage = 0, modifier=0):
         d20 = roll("1d20+"+mod)
     return d20
 
-def roll(dice_strings,crit=False):
+def roll(dice_strings,crit=False,affinityMod=1):
     '''
     # PRECONDITIONS #
     Input: String with dice number, type, and modifier, e.g. 3d20+1
@@ -161,9 +161,10 @@ def roll(dice_strings,crit=False):
     diceStrings = dice_strings.split(",")
     total = 0
     message = dice_strings.replace(","," + ")
-
     if crit:
-        message = "CRIT! Double dice count for "+dice_string
+        message = "CRIT! Double dice count for "+message
+    if affinityMod != 1:
+        message += "AFFINITY! " +affinityMod +"*("+ message +")"
 
     for dice_string in diceStrings: 
         dsplit = dice_string.split("d")
@@ -187,6 +188,8 @@ def roll(dice_strings,crit=False):
             total += diceMod
         else:
             total += int(dice_string)
+
+    total = math.floor(total * affinityMod)
 
     print("roll",message,"=",total)
     
@@ -253,16 +256,13 @@ def canCast(combatantJson):
     return False
 
 def applyDamage(targetJson,damage):
-    
-    targetJson["current_hp"] -= math.floor(damageDealt)
+    targetJson["current_hp"] -= math.floor(damage)
 
-def getAffinityMod(targetJson,damage,dmgType):
+def getAffinityMod(targetJson,damageType):
     immunities = targetJson.get("damage_immunities")
     vulnerabilities = targetJson.get("damage_vulnerabilities")
     resistances = targetJson.get("damage_resistances")
 
-    damageDealt = damage
-    damageType = dmgType["index"]
     if immunities:
         for affinity in immunities:
             if affinity == damageType:
@@ -275,6 +275,7 @@ def getAffinityMod(targetJson,damage,dmgType):
         for affinity in resistances:
             if affinity == damageType:
                 return 0.5
+    return 1
         
 def getMod(modType, attackJson, combatantJson, additional = 0):
         modSum = 0
@@ -426,6 +427,7 @@ def callWeapon(a):
     attackJson = getJson(["equipment",attackPath])
     landFudge = a["landFudge"]
     weaponFudge = a["weaponFudge"]
+    say(weaponFudge)
     if attackJson:
         sender = a["sender"]
         target = a["target"]
@@ -438,13 +440,88 @@ def callWeapon(a):
         printUse(a)
         hitCrit = checkHit(mod,threshold,advantage+advMod,False,landFudge)
         if hitCrit[0]:
-            hurt = roll(attackJson["damage"]["damage_dice"]+"+"+str(getMod("dmg",attackJson,senderJson)),hitCrit[1])
-            applyDamage(targetJson,hurt,attackJson["damage"]["damage_type"])
+            hurtString = attackJson["damage"]["damage_dice"]+"+"+str(getMod("dmg",attackJson,senderJson))
+            damageType = attackJson["damage"]["damage_type"]["index"]
+            crit = hitCrit[1]
+            #called twice because I want to make sure at least the first damage is put in if no fudge is specified
+            damage = rollDamage(targetJson,0,hurtString+"@"+damageType,crit)
+            fudgedDamage = rollDamage(targetJson,damage,weaponFudge,crit)#need to set up fudge damageTypes
+            applyDamage(targetJson,fudgedDamage)
     else:
         return False
     return True
 
-def handleFudge(fudgeString,method,currentVal):
+def getStringMethodType(fudge):
+    fudgeString = ""
+    method = ""
+    damage = ""
+
+    valueMethod = fudge.split("!")
+    methodTypeRaw = geti(valueMethod,1,False)
+    if methodTypeRaw:
+        fudgeString = valueMethod[0]
+        methodType = methodTypeRaw.split("@")
+        method = geti(methodType,0,False)
+        damage = geti(methodType,1,"")
+    else:
+        valueDamage = valueMethod[0].split("@")
+        fudgeString = valueDamage[0]
+        method = False
+        damage = geti(valueDamage,1,"")
+
+    return [fudgeString,method,damage]
+
+def rollDamage(targetJson, priorDamage, fudge, crit=False):
+    if fudge:
+        fudgePlusNext = handleFudgeInput(fudge)
+        fudge = fudgePlusNext[0]
+        fudgeNext = fudgePlusNext[1]
+
+        stringMethodType = getStringMethodType(fudge)
+        fudgeString = stringMethodType[0]
+        method = stringMethodType[1]
+        damageType = stringMethodType[2]
+
+        affinityMod = getAffinityMod(targetJson,damageType)
+        fudgeResult = handleFudgeWeapon(fudgeString,method,priorDamage,crit,affinityMod)
+        return rollDamage(targetJson,fudgeResult,fudgeNext,crit)
+    else:
+        return priorDamage
+
+def handleFudgeWeapon(fudgeString,method,currentVal,crit,affinityMod):
+    result = 0
+    fudge = roll(fudgeString,crit,affinityMod)
+    if isinstance(method, bool):
+        method = "mod"
+    if method in ["mod","m"]:
+        result = currentVal + fudge
+    if method in ["advantage","a"]:
+        result = max(currentVal,fudge)
+    if method in ["disadvantage","d"]:
+        result = min(currentVal,fudge)
+    if method in ["reroll","r"]:
+        result = fudge
+
+    return result
+
+def handleFudgeInput(fudge):
+    fudgeNext = ""
+    if fudge and ("$" in fudge):
+        fudge = fudge.replace("$","")
+        override = input("`enter`->"+ fudge +". `skip`->nothing Override?->")
+
+        if override == "skip":
+            fudge = ""
+        elif len(override) != 0:
+            say(override)
+            if override == "$":
+                fudgeNext = fudge + "$"
+            else:
+                fudgeNext = override
+                fudge = override.replace("$","")
+    return [fudge,fudgeNext]
+
+def handleFudgeLand(fudgeString,method,currentVal):
     result = 0
 
     if isinstance(method, bool):
@@ -462,23 +539,6 @@ def handleFudge(fudgeString,method,currentVal):
         result = roll(fudgeString)
 
     return result
-
-def handleFudgeInput(fudge):
-    fudgeNext = ""
-    if ("$" in fudge):
-        fudge = fudge.replace("$","")
-        override = input("`enter`->"+ fudge +". `skip`->nothing Override?->")
-
-        if override == "skip":
-            fudge = ""
-        elif len(override) != 0:
-            say(override)
-            if override == "$":
-                fudgeNext = fudge + "$"
-            else:
-                fudgeNext = override
-                fudge = override.replace("$","")
-    return [fudge,fudgeNext]
 
 def checkHit(mod,threshold,advantage=0,save=False,fudge="",hitOverride=False,wasCrit=False,priorMethod=""):
     hit = 0
@@ -507,7 +567,7 @@ def checkHit(mod,threshold,advantage=0,save=False,fudge="",hitOverride=False,was
     fudge = fudgePlusNext[0]
     fudgeNext = fudgePlusNext[1]
 
-    if fudge:#checking again now that it has been modified
+    if fudge:
         valueMethod = fudge.split("!")
         fudgeString = valueMethod[0]
 
@@ -520,7 +580,7 @@ def checkHit(mod,threshold,advantage=0,save=False,fudge="",hitOverride=False,was
 
         method = geti(valueMethod,1,False)
 
-        fudgeResult = handleFudge(fudgeString,method,hit)
+        fudgeResult = handleFudgeLand(fudgeString,method,hit)
         return checkHit(mod,threshold,0,save,fudgeNext,fudgeResult,crit,method)
 
     return [success, crit]
