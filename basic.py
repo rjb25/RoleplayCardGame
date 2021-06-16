@@ -427,7 +427,6 @@ def callWeapon(a):
     attackJson = getJson(["equipment",attackPath])
     landFudge = a["landFudge"]
     weaponFudge = a["weaponFudge"]
-    say(weaponFudge)
     if attackJson:
         sender = a["sender"]
         target = a["target"]
@@ -513,7 +512,6 @@ def handleFudgeInput(fudge):
         if override == "skip":
             fudge = ""
         elif len(override) != 0:
-            say(override)
             if override == "$":
                 fudgeNext = fudge + "$"
             else:
@@ -1162,7 +1160,7 @@ def setAutoDict(a):
     elif mode == "set":
         combatantJson["autoDict"] = []
 
-    commandDicts = a["commandDict"]
+    commandDicts = processCommandStrings(a)
     if mode == "mod":
         commandDicts = modInfo([combatant,"autoDict",a["path"]],commandDicts,battleTable)
     for commandDict in commandDicts:
@@ -1175,8 +1173,43 @@ def setAutoDict(a):
         if mode == "append" or mode == "set":
             combatantJson["autoDict"].append(commandDict)
 
+def processCommandStrings(a):
+    if a.get("command") != "store":
+        combatant = a["target"]
+        combatantJson = battleTable.get(combatant)
+        autoDicts = combatantJson.get("autoDict")
+        startIndex = a.get("path")
+        if not startIndex:
+            startIndex = 0
+
+    commandDicts = []
+    for index,commandString in enumerate(a["commandString"]):
+        if (not (a.get("method") in ["append","a"])) and a.get("command") != "store":
+            args = commandString.split(" ")
+            subCommand = args[0]
+            if not(subCommand in funcDict):
+                baseCommand = getBaseCommand(subCommand)
+                if not baseCommand:
+                    subCommand = autoDicts[index+startIndex]["command"]
+                    commandString = subCommand +" "+ commandString
+            
+        argDictTemps = parse_command_string(commandString,a.get("command"),a.get("verify"))
+        for argDictTemp in argDictTemps:
+            commandDicts.append(handleAllAliases(argDictTemp,a["resolve"]))
+    return commandDicts
+
+#This is an unused function but it makes it clear that most of processCommandStrings relates to setAutoDict and not callStore
+def proccessCommandStringsStore(a):
+    commandDicts = []
+    for index,commandString in enumerate(a["commandString"]):
+        argDictTemps = parse_command_string(commandString,a.get("command"),a.get("verify"))
+        for argDictTemp in argDictTemps:
+            commandDicts.append(handleAllAliases(argDictTemp,a["resolve"]))
+
+    return commandDicts
+
 def callStore(a):
-    commandDicts = a["commandDict"]
+    commandDicts = processCommandStrings(a)
     path = ["commands"]+a["path"]
     mode = a["mode"]
     if mode == "append":
@@ -1596,6 +1629,7 @@ def parse_command_string(command_string_to_parse,metaCommand="",verify=True):
                 if baseCommand:
                     if len(commandDict) == 1:
                         entryString = " ".join(args[1:])
+                        say(entryString)
                         aliasDict = parseOnly(baseCommand + " " + entryString,metaCommand,False)
                         aliasDict = weedNones(aliasDict)
                         copyDict = copy.deepcopy(commandDict[0])
@@ -1608,7 +1642,7 @@ def parse_command_string(command_string_to_parse,metaCommand="",verify=True):
             else:
                 argDictMains = copy.deepcopy(commandDict)
         else:
-            print("Here would be some arbitrary command handling that does it's best to get args without command context")
+            print("Invalid command. None specified or not an alias nor built in command")
     else:
         argDictMains.append(parseOnly(command_string_to_parse,metaCommand,verify))
 
@@ -1620,6 +1654,8 @@ def parse_command_string(command_string_to_parse,metaCommand="",verify=True):
     return argDictMains
 
 def parseAndRun(command_string_to_run):
+    command_string_to_run = command_string_to_run.replace("\"-","\" -")#Ugh arg parse can't handle: auto -t guy -c "-t guy"
+    #But it can handle: auto -t guy -c " -t guy" 
     returns = []
     for dictionary in parse_command_string(command_string_to_run):
         returns.append(parse_command_dict(dictionary))
@@ -1638,15 +1674,6 @@ def parse_command_dict(argDictToParse):
 
     if command == "help":
         argDictMain["commandDescriptions"] = command_descriptions_dict
-
-    if has.get("commandString"): 
-        commandDicts = []
-        for commandString in argDictMain["commandString"]:
-            argDictTemps = parse_command_string(commandString,command,argDictMain.get("verify"))
-            for argDictTemp in argDictTemps:
-                commandDicts.append(handleAllAliases(argDictTemp,argDictMain["resolve"]))
-
-        argDictMain["commandDict"] = commandDicts
 
     if not has.get("sender"):
         argDictMain["sender"] = ["none"]
