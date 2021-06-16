@@ -17,6 +17,17 @@ import re
 import shlex
 import copy
 
+class bcolors:
+    HEADER = '\033[95m'
+    OKBLUE = '\033[94m'
+    OKCYAN = '\033[96m'
+    OKGREEN = '\033[92m'
+    WARNING = '\033[93m'
+    FAIL = '\033[91m'
+    ENDC = '\033[0m'
+    BOLD = '\033[1m'
+    UNDERLINE = '\033[4m'
+
 def geti(list, index, default_value):
     try:
         return list[index]
@@ -59,8 +70,11 @@ def load(a):
 
 def callLoad(a):
     global cacheTable
+    directory = ""
+    if a.get("directory"):
+        directory = a["directory"]
     for newFile in a["file"]:
-        creatureJson = load({"file": newFile})
+        creatureJson = load({"file": directory+"/"+newFile})
         hasCategory = cacheTable.get(a["category"])
         if hasCategory:
             cacheTable[a["category"]][creatureJson["index"]] = creatureJson
@@ -145,7 +159,7 @@ def rolld20(advantage = 0, modifier=0):
         d20 = roll("1d20+"+mod)
     return d20
 
-def roll(dice_strings,crit=False,affinityMod=1):
+def roll(dice_strings,crit=False,affinityMod=1,saveMult=1):
     '''
     # PRECONDITIONS #
     Input: String with dice number, type, and modifier, e.g. 3d20+1
@@ -164,7 +178,9 @@ def roll(dice_strings,crit=False,affinityMod=1):
     if crit:
         message = "CRIT! Double dice count for "+message
     if affinityMod != 1:
-        message += "AFFINITY! " +affinityMod +"*("+ message +")"
+        message = "AFFINITY! " + str(affinityMod) +"*("+ message +")"
+    if saveMult != 1:
+        message = "SAVE! " + str(saveMult) +"*("+ message +")"
 
     for dice_string in diceStrings: 
         dsplit = dice_string.split("d")
@@ -189,7 +205,7 @@ def roll(dice_strings,crit=False,affinityMod=1):
         else:
             total += int(dice_string)
 
-    total = math.floor(total * affinityMod)
+    total = math.floor(total * affinityMod * saveMult)
 
     print("roll",message,"=",total)
     
@@ -321,6 +337,7 @@ def getMod(modType, attackJson, combatantJson, additional = 0):
 
 def statMod(stat):
         return math.floor((stat-10)/2)
+
 def printUse(a):
     print(a["sender"].upper(), "uses", a["do"], "on", a["target"])
 
@@ -335,6 +352,8 @@ def applyAction(a):
     targetJson = battleTable[target]
     actions = senderJson.get("actions")
     specialAbilities = senderJson.get("special_abilities")
+    landFudge = a["landFudge"]
+    weaponFudge = a["weaponFudge"]
 
     action = False
     action_result = ''
@@ -371,14 +390,23 @@ def applyAction(a):
         hitCrit = checkHit(mod,threshold,advantage+advMod,bool(dc),landFudge)
         if hitCrit[0]:
             saveMult = 1
+        crit = hitCrit[1]
         if hitCrit[0] or saveMult !=0:
             for damage in action["damage"]:         
                 if damage.get("choose"):
                     for actions in range(int(damage["choose"])):
                         chosenAction = random.choice(damage["from"])
-                        applyDamage(targetJson,saveMult*roll(chosenAction["damage_dice"],hitCrit[1]),chosenAction["damage_type"])
+                        hurtString = chosenAction["damage_dice"]
+                        damageType = damage["damage_type"]["index"]
+                        damage = rollDamage(targetJson,0,hurtString+"@"+damageType,crit,saveMult)
+                        fudgedDamage = rollDamage(targetJson,damage,weaponFudge,crit,saveMult)
+                        applyDamage(targetJson,fudgedDamage)
                 else:   
-                    applyDamage(targetJson,saveMult*roll(damage["damage_dice"],hitCrit[1]),damage["damage_type"])
+                    hurtString = damage["damage_dice"]
+                    damageType = damage["damage_type"]["index"]
+                    damage = rollDamage(targetJson,0,hurtString+"@"+damageType,crit,saveMult)
+                    fudgedDamage = rollDamage(targetJson,damage,weaponFudge,crit,saveMult)
+                    applyDamage(targetJson,fudgedDamage)
     else:
         print('Invalid action for this combatant')
         action_result = 'Invalid action for this combatant'
@@ -470,7 +498,7 @@ def getStringMethodType(fudge):
 
     return [fudgeString,method,damage]
 
-def rollDamage(targetJson, priorDamage, fudge, crit=False):
+def rollDamage(targetJson, priorDamage, fudge, crit=False, saveMult=1):
     if fudge:
         fudgePlusNext = handleFudgeInput(fudge)
         fudge = fudgePlusNext[0]
@@ -482,14 +510,14 @@ def rollDamage(targetJson, priorDamage, fudge, crit=False):
         damageType = stringMethodType[2]
 
         affinityMod = getAffinityMod(targetJson,damageType)
-        fudgeResult = handleFudgeWeapon(fudgeString,method,priorDamage,crit,affinityMod)
-        return rollDamage(targetJson,fudgeResult,fudgeNext,crit)
+        fudgeResult = handleFudgeWeapon(fudgeString,method,priorDamage,crit,affinityMod,saveMult)
+        return rollDamage(targetJson,fudgeResult,fudgeNext,crit,saveMult)
     else:
         return priorDamage
 
-def handleFudgeWeapon(fudgeString,method,currentVal,crit,affinityMod):
+def handleFudgeWeapon(fudgeString,method,currentVal,crit,affinityMod,saveMult=1):
     result = 0
-    fudge = roll(fudgeString,crit,affinityMod)
+    fudge = roll(fudgeString,crit,affinityMod,saveMult)
     if isinstance(method, bool):
         method = "mod"
     if method in ["mod","m"]:
@@ -618,7 +646,7 @@ def callCast(a):
             dmgString = attackJson["damage"][dmgAtKey][lowestLevel]
             print("Defaulting cast to lowest level",lowestLevel)
 
-        saveMult = 0
+        saveMult = 1
         mod = 0;
         threshold = 0;
         
@@ -632,6 +660,8 @@ def callCast(a):
 
             if dc.get("dc_success") == "half" or dc.get("success_type") == "half":
                 saveMult = 0.5
+            else:
+                saveMult = 0
             advMod = int(targetJson["save_advantage"])
         else:
             mod = getMod("spellHit",attackJson,senderJson)
@@ -640,10 +670,14 @@ def callCast(a):
         
         printUse(a)
         hitCrit = checkHit(mod,threshold,advantage+advMod,bool(dc),landFudge)
-        if hitCrit[0]:
-            applyDamage(targetJson,roll(dmgString,hitCrit[1]),attackJson["damage"]["damage_type"])
-        elif saveMult != 0:
-            applyDamage(targetJson,saveMult*roll(dmgString,hitCrit[1]),attackJson["damage"]["damage_type"])
+
+        if hitCrit[0] or saveMult != 0:
+            crit = hitCrit[1]
+            hurtString = dmgString
+            damageType = attackJson["damage"]["damage_type"]["index"]
+            damage = rollDamage(targetJson,0,hurtString+"@"+damageType,crit,saveMult)
+            fudgedDamage = rollDamage(targetJson,damage,weaponFudge,crit,saveMult)
+            applyDamage(targetJson,fudgedDamage)
     else:
         return False
     return True
@@ -659,10 +693,18 @@ def removeDown(a=''):
     if enemies:
         storeInfo(enemyPath, onlyAlive(enemies), False)
 
-
 def callRequest(a):
     steps = a["path"]
+    result = dictify(getJson(steps))
     pprint.pprint(dictify(getJson(steps)), sort_dicts=False)
+
+    directory = ""
+    if a.get("directory"):
+        directory = a["directory"]
+    if a.get("file"):
+        for output in a.get("file"):
+            with open(directory+"/"+output, 'w') as f:
+                json.dump(dictify(result),f,indent=4)       
 
 def remove(a):
     nick = a["target"]
@@ -1162,7 +1204,10 @@ def setAutoDict(a):
 
     commandDicts = processCommandStrings(a)
     if mode == "mod":
-        commandDicts = modInfo([combatant,"autoDict",a["path"]],commandDicts,battleTable)
+        if a.get("path"):
+            commandDicts = modInfo([combatant,"autoDict"]+a["path"],commandDicts,battleTable)
+        else:
+            commandDicts = modInfo([combatant,"autoDict"],commandDicts,battleTable)
     for commandDict in commandDicts:
         command = commandDict["command"]
         has = hasParse(command)
@@ -1420,6 +1465,7 @@ def populateParserArguments(parser,has,metaHas,verify=True):
 
     if has.get("file"):
         parser.add_argument("--file", "-f", help='The file you would like to interact with', nargs='+')
+        parser.add_argument("--directory", "-d", help='The directory path you would like to interact with')
         
     if has.get("mode"):
         parser.add_argument("--mode", "-m", choices=["set","append","mod","?"],help='How does this information fit with the previous existing information?')
@@ -1520,7 +1566,7 @@ hasDict = {
 "weapon": senderList,
 "cast": senderList,
 "use": senderList,
-"request": ["path"],
+"request": ["path","file"],
 "mod": ["path", "target", "change", "times", "target-all"],
 "set": ["path", "target", "change", "target-all"],
 "list": ["path", "target", "target-all", "optionalPath"],
@@ -1629,7 +1675,6 @@ def parse_command_string(command_string_to_parse,metaCommand="",verify=True):
                 if baseCommand:
                     if len(commandDict) == 1:
                         entryString = " ".join(args[1:])
-                        say(entryString)
                         aliasDict = parseOnly(baseCommand + " " + entryString,metaCommand,False)
                         aliasDict = weedNones(aliasDict)
                         copyDict = copy.deepcopy(commandDict[0])
