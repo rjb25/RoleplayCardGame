@@ -273,6 +273,7 @@ def canCast(combatantJson):
 
 def applyDamage(targetJson,damage):
     targetJson["current_hp"] -= math.floor(damage)
+    targetJson["current_hp"] = max(targetJson["current_hp"],0)
 
 def getAffinityMod(targetJson,damageType):
     immunities = targetJson.get("damage_immunities")
@@ -345,15 +346,13 @@ def applyAction(a):
     actionKey = a["do"]
     sender = a["sender"]
     target = a["target"]
-    landFudge = a["landFudge"]
-    weaponFudge = a["weaponFudge"]
+    landFudge = a.get("landFudge")
+    weaponFudge = a.get("weaponFudge")
     advantage = int(a["advantage"])
     senderJson = battleTable[sender]
     targetJson = battleTable[target]
     actions = senderJson.get("actions")
     specialAbilities = senderJson.get("special_abilities")
-    landFudge = a["landFudge"]
-    weaponFudge = a["weaponFudge"]
 
     action = False
     action_result = ''
@@ -397,7 +396,7 @@ def applyAction(a):
                     for actions in range(int(damage["choose"])):
                         chosenAction = random.choice(damage["from"])
                         hurtString = chosenAction["damage_dice"]
-                        damageType = damage["damage_type"]["index"]
+                        damageType = chosenAction["damage_type"]["index"]
                         damage = rollDamage(targetJson,0,hurtString+"@"+damageType,crit,saveMult)
                         fudgedDamage = rollDamage(targetJson,damage,weaponFudge,crit,saveMult)
                         applyDamage(targetJson,fudgedDamage)
@@ -453,8 +452,8 @@ def isCantrip(attackJson):
 def callWeapon(a):
     attackPath = a["do"].lower()
     attackJson = getJson(["equipment",attackPath])
-    landFudge = a["landFudge"]
-    weaponFudge = a["weaponFudge"]
+    landFudge = a.get("landFudge")
+    weaponFudge = a.get("weaponFudge")
     if attackJson:
         sender = a["sender"]
         target = a["target"]
@@ -614,8 +613,8 @@ def checkHit(mod,threshold,advantage=0,save=False,fudge="",hitOverride=False,was
 def callCast(a):
     attackPath = a["do"].lower()
     attackJson = getJson(["spells",attackPath])
-    landFudge = a["landFudge"]
-    weaponFudge = a["weaponFudge"]
+    landFudge = a.get("landFudge")
+    weaponFudge = a.get("weaponFudge")
     if attackJson:
         sender = a["sender"]
         target = a["target"]
@@ -685,13 +684,12 @@ def callCast(a):
 def removeDown(a=''):
     for nick, combatant in battleTable.copy().items():
         if combatant["current_hp"] <= 0:
-            remove({"target": nick})
+            if not (combatant.get("downable") == "True"):
+                remove({"target": nick})
+            else:
+                combatant["current_hp"] = 0
         elif combatant["current_hp"] > combatant["max_hp"]:
             combatant["current_hp"] = combatant["max_hp"]
-    enemyPath = ["groups","enemies"]
-    enemies = getInfo(enemyPath)
-    if enemies:
-        storeInfo(enemyPath, onlyAlive(enemies), False)
 
 def callRequest(a):
     steps = a["path"]
