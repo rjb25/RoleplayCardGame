@@ -1,1 +1,10 @@
-Add fudge ability for hits and damage
+Implement some kind of custom save check. Like wisdom -t horby and it rolls wisdom. or stat -t horby -r wisdom -a 1
+Possibly implement a custom check/damage operator
+for things like environmental hazards
+custom --target climber --check (dex,ac,10) --damage 1d8@bludgeoning$ 2d8@heal
+Implement heals using above like @heal and @temphp
+Implement temporary hp
+Allow for numerics when referencing weapons and spells by adding to an arsenal list
+Mayyyybe convert all attacks and spells and weapons to be command strings in json using the above custom function
+Then just start the grind of storing weapons etc in files as partials and storing the partials in enemies as well.
+Global log returned for Nathan's code.

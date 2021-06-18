@@ -293,6 +293,21 @@ def getAffinityMod(targetJson,damageType):
             if affinity == damageType:
                 return 0.5
     return 1
+
+classSavesDict = {
+"barbarian" : ["str","con"],
+"bard" : ["dex","cha"],
+"cleric" : ["wis","cha"],
+"druid" : ["int","wis"],
+"fighter" : ["str","con"],
+"monk" : ["str","dex"],
+"paladin" : ["wis","cha"],
+"ranger" : ["str","dex"],
+"rogue" : ["dex","int"],
+"sorcerer" : ["con","cha"],
+"warlock" : ["wis","cha"],
+"wizard" : ["int","wis"],
+}
         
 def getMod(modType, attackJson, combatantJson, additional = 0):
         modSum = 0
@@ -320,7 +335,11 @@ def getMod(modType, attackJson, combatantJson, additional = 0):
                 modSum += getProf(combatantJson)
 
             if modType == "saveDc":
-                modSum += statMod(combatantJson[expandStatWord(attackJson["dc"]["dc_type"]["index"])])
+                saveType = attackJson["dc"]["dc_type"]["index"]
+                modSum += statMod(combatantJson[expandStatWord(saveType)])
+                saveProficiencies = geti(classSavesDict,className,[])
+                if saveType in saveProficiencies:
+                    modSum += getProf(combatantJson)
 
             if modType == "spellHit" or modType == "spellDc":
                 special_abilities = combatantJson.get("special_abilities")
@@ -391,21 +410,24 @@ def applyAction(a):
             saveMult = 1
         crit = hitCrit[1]
         if hitCrit[0] or saveMult !=0:
-            for damage in action["damage"]:         
-                if damage.get("choose"):
-                    for actions in range(int(damage["choose"])):
-                        chosenAction = random.choice(damage["from"])
-                        hurtString = chosenAction["damage_dice"]
-                        damageType = chosenAction["damage_type"]["index"]
+            if action.get("damage"):
+                for damage in action["damage"]:         
+                    if damage.get("choose"):
+                        for actions in range(int(damage["choose"])):
+                            chosenAction = random.choice(damage["from"])
+                            hurtString = chosenAction["damage_dice"]
+                            damageType = chosenAction["damage_type"]["index"]
+                            damage = rollDamage(targetJson,0,hurtString+"@"+damageType,crit,saveMult)
+                            fudgedDamage = rollDamage(targetJson,damage,weaponFudge,crit,saveMult)
+                            applyDamage(targetJson,fudgedDamage)
+                    else:   
+                        hurtString = damage["damage_dice"]
+                        damageType = damage["damage_type"]["index"]
                         damage = rollDamage(targetJson,0,hurtString+"@"+damageType,crit,saveMult)
                         fudgedDamage = rollDamage(targetJson,damage,weaponFudge,crit,saveMult)
                         applyDamage(targetJson,fudgedDamage)
-                else:   
-                    hurtString = damage["damage_dice"]
-                    damageType = damage["damage_type"]["index"]
-                    damage = rollDamage(targetJson,0,hurtString+"@"+damageType,crit,saveMult)
-                    fudgedDamage = rollDamage(targetJson,damage,weaponFudge,crit,saveMult)
-                    applyDamage(targetJson,fudgedDamage)
+            else:
+                print("SUCCESS for this non damaging action")
     else:
         print('Invalid action for this combatant')
         action_result = 'Invalid action for this combatant'
@@ -426,7 +448,7 @@ def applyInit(participant):
         print("I'm sorry I couldn't find that combatant to apply init to.")
 
 def setBattleOrder():
-    initiativeOrder = sorted(battleTable.items(), key=lambda x: x[1]["initiative"], reverse=True)
+    initiativeOrder = sorted(battleTable.items(), key=lambda x: int(x[1]["initiative"]), reverse=True)
     tempOrder = []
     for keyPair in initiativeOrder:
         tempOrder.append(keyPair[0])
@@ -466,13 +488,16 @@ def callWeapon(a):
         printUse(a)
         hitCrit = checkHit(mod,threshold,advantage+advMod,False,landFudge)
         if hitCrit[0]:
-            hurtString = attackJson["damage"]["damage_dice"]+"+"+str(getMod("dmg",attackJson,senderJson))
-            damageType = attackJson["damage"]["damage_type"]["index"]
-            crit = hitCrit[1]
-            #called twice because I want to make sure at least the first damage is put in if no fudge is specified
-            damage = rollDamage(targetJson,0,hurtString+"@"+damageType,crit)
-            fudgedDamage = rollDamage(targetJson,damage,weaponFudge,crit)#need to set up fudge damageTypes
-            applyDamage(targetJson,fudgedDamage)
+            if attackJson.get("damage"):
+                hurtString = attackJson["damage"]["damage_dice"]+"+"+str(getMod("dmg",attackJson,senderJson))
+                damageType = attackJson["damage"]["damage_type"]["index"]
+                crit = hitCrit[1]
+                #called twice because I want to make sure at least the first damage is put in if no fudge is specified
+                damage = rollDamage(targetJson,0,hurtString+"@"+damageType,crit)
+                fudgedDamage = rollDamage(targetJson,damage,weaponFudge,crit)#need to set up fudge damageTypes
+                applyDamage(targetJson,fudgedDamage)
+            else:
+                print("SUCCESS for this non damaging weapon")
     else:
         return False
     return True
@@ -671,12 +696,15 @@ def callCast(a):
         hitCrit = checkHit(mod,threshold,advantage+advMod,bool(dc),landFudge)
 
         if hitCrit[0] or saveMult != 0:
-            crit = hitCrit[1]
-            hurtString = dmgString
-            damageType = attackJson["damage"]["damage_type"]["index"]
-            damage = rollDamage(targetJson,0,hurtString+"@"+damageType,crit,saveMult)
-            fudgedDamage = rollDamage(targetJson,damage,weaponFudge,crit,saveMult)
-            applyDamage(targetJson,fudgedDamage)
+            if attackJson.get("damage"):
+                crit = hitCrit[1]
+                hurtString = dmgString
+                damageType = attackJson["damage"]["damage_type"]["index"]
+                damage = rollDamage(targetJson,0,hurtString+"@"+damageType,crit,saveMult)
+                fudgedDamage = rollDamage(targetJson,damage,weaponFudge,crit,saveMult)
+                applyDamage(targetJson,fudgedDamage)
+            else:
+                print("SUCCESS for this non damaging spell")
     else:
         return False
     return True
@@ -1565,8 +1593,8 @@ hasDict = {
 "cast": senderList,
 "use": senderList,
 "request": ["path","file"],
-"mod": ["path", "target", "change", "times", "target-all"],
-"set": ["path", "target", "change", "target-all"],
+"mod": ["path", "target", "change", "times", "target-all","sort"],
+"set": ["path", "target", "change", "target-all","sort"],
 "list": ["path", "target", "target-all", "optionalPath"],
 "listkeys": ["path", "target", "target-all"],
 "store": ["path", "commandString", "mode", "allowIncomplete"],
