@@ -1,3 +1,4 @@
+Update the fricking help messages and stop being lazy.
 Implement some kind of custom save check. Like wisdom -t horby and it rolls wisdom. or stat -t horby -r wisdom -a 1
 Possibly implement a custom check/damage operator
 for things like environmental hazards

@@ -13,6 +13,6 @@
  "level": 1,
  "weapon_proficiencies": "",
  "proficiency_bonus": 2,
- "spellcasting": {"ability": {"index" : "cha"}},
+ "special_abilities" : [{"spellcasting": {"ability": {"index" : "cha"}}}],
  "class": "cleric"
  }
