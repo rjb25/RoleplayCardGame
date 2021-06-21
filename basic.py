@@ -16,6 +16,137 @@ import argparse
 import re
 import shlex
 import copy
+from itertools import takewhile
+
+command_descriptions_dict = {
+"do" : '''Run a custom attack with no sender:
+do --target climber --landFudge 1d20+4$ --check 10 --weaponFudge 1d8@bludgeoning 1d4@piercing --blockMult 0.5 --save
+''',
+
+"use" : '''Do a generic action weapon or cast:
+use --do greatsword --sender groovyBoy --target druid#3 --times 1 --advantage 1
+''',
+
+"action" : '''Do a generic action:
+action --do Multiattack --sender sahuagin#2 --target druid#3 --times 1 --advantage 1
+''',
+
+"weapon" : '''Use a weapon:
+weapon --do greatsword --sender sahuagin#2 --target druid#3 --times 3 --advantage -1
+''',
+
+"cast" : '''Cast a spell:
+cast --sender druid#3 --target sahuagin#2 --times 2 --do fire-bolt --level 4 --advantage 0
+''',
+
+"remove" : '''Remove an item:
+remove --target sahuagin#2
+''',
+
+"request" : '''Make a request:
+request --path monsters sahuagin
+''',
+
+"set" : '''Set some aspect of the character or other item:
+set --target sahuagin# --path initiative --change 18
+''',
+
+"mod" : '''Modify a stat on a creature:
+mod --target sahuagin#2 --path initiative --change -5
+''',
+
+"list" : '''List the features of a creature:
+list --target sahuagin#2 --path actions
+''',
+
+"listkeys" : '''List the keys for an item:
+listkeys --target sahuagin#2 --path actions
+''',
+
+"add" : '''Add a creature:
+add --target sahuagin --times 2 --identity Aqua-Soldier
+''',
+
+"init" : '''Roll for initiative:
+initiative --target sahuagin#2
+''',
+
+"load" : '''Load a content by file name:
+load --category monsters --file new_creature.json
+load --category equipment --file new_weapon.json
+load --category spells --file new_spell.json
+''',
+
+"turn" : '''Increments turn:
+turn
+''',
+
+"auto" : '''Set an automated command:
+auto --target sahuagin --commandString "action --target party!random --sender sahuagin --do multiattack"
+''',
+
+"group" : '''Set a group for use in targetting. Will be resolved to listed targets:
+group --member sahuagin sahuagin#2 --group sahuagang
+''',
+
+"info" : '''Shows all info for reference:
+info --info groups
+''',
+
+"roll" : '''Roll dice:
+roll --dice 1d20+2
+''',
+
+"store" : '''Store a command for use later:
+store --commandString "add -t sahuagin -n 2" --path encounter#2 --append
+''',
+
+"shortrest" : '''Auto heal from short rest:
+shortrest -t party 
+''',
+
+"longrest" : '''AutoHeal from long rest:
+longrest -t party 
+''',
+
+"jump" : '''This persons turn: jump -t goblin#2
+''',
+
+"skip" : '''Do nothing:
+skip
+''',
+
+"pause" : '''Forces a pause when the targets turn is there without removing his auto commands:
+pause -t thinker
+''',
+
+"resume" : '''Set creature to run auto command when it is their turn:
+resume -t menial-minded
+''',
+
+"enable" : '''Dont skip this persons turn:
+enable -t no-longer-stunned-person
+''',
+
+"disable" : '''Skip this persons turn and try running the auto command for the next person:
+disable -t not-yet-in-combat
+''',
+
+"addAuto" : '''Adds a creature and sets up a basic attack and target for it. In the case of monsters this is action #0:
+addAuto --target giant-rat
+addAuto --target npc-helper --do dagger --identity greg --method order --party
+''',
+
+"delete" : '''Delete a command or information entry such as a group:
+delete -p commands loadParty 1
+''',
+
+"help" : '''Display this message:
+help
+''',
+
+}
+
 
 class bcolors:
     HEADER = '\033[95m'
@@ -144,23 +275,9 @@ def getState():
             state_result.append(str(x["initiative"]) + ' ' + nick + ' ' + str(x["index"]) + ' ' + str(x["current_hp"]) + "/" + str(x["max_hp"]))
         return state_result
 
-def rolld20(advantage = 0, modifier=0):
-    d20 = 0
-    mod = str(modifier)
-    if advantage == 0:
-        d20 = roll("1d20+"+mod)["roll"]
-    elif advantage > 0:
-        d20 = max(roll("1d20+"+mod)["roll"],roll("1d20+"+mod)["roll"])
-    elif advantage < 0:
-        d20 = min(roll("1d20+"+mod)["roll"],roll("1d20+"+mod)["roll"])
-    else:
-        print("invalid advantage type", advantage)
-        action_result += '\n' + advantage + ' is an invalid advantage type.'
-        d20 = roll("1d20+"+mod)["roll"]
-    return d20
-
 def rollString(a):
-    roll(a["dice"])
+    for dice in a["dice"]:
+        roll(dice)
 
 def crToProf(cr):
     crVal = float(sum(Fraction(s) for s in str(cr).split()))
@@ -240,6 +357,8 @@ def getAffinityMod(targetJson,damageType):
         for affinity in resistances:
             if affinity == damageType:
                 return 0.5
+    if damageType == "heal":
+        return -1
     return 1
 
 classSavesDict = {
@@ -373,7 +492,11 @@ def applyAction(a):
                             landString = landString + "!" + advantage
 
                         save = dc
-                        a.update({"save" : save, "blockMult" : blockMult, "weaponFudge" : [hurtString]+weaponFudge, "landFudge" : [landString]+landFudge, "check" : threshold, "multiCrit" : [20]})
+                        if not landFudge:
+                            landFudge = []
+                        if not weaponFudge:
+                            weaponFudge = []
+                        a.update({"save" : save, "blockMult" : blockMult, "weaponFudge" : [hurtString]+weaponFudge, "landFudge" : [landString]+landFudge, "check" : threshold, "multiCrit" : ["20"]})
                         callDo(a)
 
                 else:   
@@ -385,7 +508,11 @@ def applyAction(a):
                         landString = landString + "!" + advantage
 
                     save = dc
-                    a.update({"save" : save, "blockMult" : blockMult, "weaponFudge" : [hurtString]+weaponFudge, "landFudge" : [landString]+landFudge, "check" : threshold, "multiCrit" : [20]})
+                    if not landFudge:
+                        landFudge = []
+                    if not weaponFudge:
+                        weaponFudge = []
+                    a.update({"save" : save, "blockMult" : blockMult, "weaponFudge" : [hurtString]+weaponFudge, "landFudge" : [landString]+landFudge, "check" : threshold, "multiCrit" : ["20"]})
                     callDo(a)
     else:
         print('Invalid action for this combatant')
@@ -431,6 +558,23 @@ def isCantrip(attackJson):
         raise Exception("Oops this is not a spell", attackJson)
 
 def getStringMethodType(fudge):
+    fudgeString = ""
+    method = ""
+    damage = ""
+     
+    methodSplit = fudge.split("!")
+    methodDirty = methodSplit[len(methodSplit)-1]
+    method = "".join(takewhile(lambda x: (not x.isnumeric() and x != "@"), methodDirty))
+
+    damageSplit = fudge.split("@")
+    damageDirty = damageSplit[len(damageSplit)-1]
+    damage = "".join(takewhile(lambda x: (not x.isnumeric() and x != "!"),damageDirty))
+
+    fudgeString = "".join(takewhile(lambda x: (not (x in ["@","!"] )),fudge))
+
+    return [fudgeString,method,damage]
+
+def getStringMethodTypeOrig(fudge):
     fudgeString = ""
     method = ""
     damage = ""
@@ -482,7 +626,11 @@ def callWeapon(a):
         hurtString = attackJson["damage"]["damage_dice"]+"+"+str(getMod("dmg",attackJson,senderJson)) + "@" + damageType
         blockMult = 0
         save = False
-        a.update({"save" : save, "blockMult" : blockMult, "weaponFudge" : [hurtString]+weaponFudge, "landFudge" : [landString]+landFudge, "check" : threshold, "multiCrit" : [20]})
+        if not landFudge:
+            landFudge = []
+        if not weaponFudge:
+            weaponFudge = []
+        a.update({"save" : save, "blockMult" : blockMult, "weaponFudge" : [hurtString]+weaponFudge, "landFudge" : [landString]+landFudge, "check" : threshold, "multiCrit" : ["20"]})
         callDo(a)
     else:
         return False
@@ -562,7 +710,11 @@ def callCast(a):
             landString = landString + "!" + advantage
 
         save = dc
-        a.update({"save" : save, "blockMult" : blockMult, "weaponFudge" : [hurtString]+weaponFudge, "landFudge" : [landString]+landFudge, "check" : threshold, "multiCrit" : [20]})
+        if not landFudge:
+            landFudge = []
+        if not weaponFudge:
+            weaponFudge = []
+        a.update({"save" : save, "blockMult" : blockMult, "weaponFudge" : [hurtString]+weaponFudge, "landFudge" : [landString]+landFudge, "check" : threshold, "multiCrit" : ["20"]})
         callDo(a)
     else:
         return False
@@ -634,7 +786,7 @@ def callAction(a):
                     runAction = action
         if specialAbilities:
             for special in specialAbilities:
-                if special["name"] == actionKey:
+                if special.get("name") == actionKey:
                     runAction = special
     if runAction:
         a["do"] = runAction["name"]
@@ -837,7 +989,6 @@ def handleFudgeInput(fudge):
                 fudge = override.replace("$","")
     return [fudge,fudgeNext]
 
-#do --target climber --landFudge 1d20+4$ --check ac,10 --weaponFudge 1d8@bludgeoning$ 2d8@heal --blockMult 0.5 --save
 
 def handleThreshold(a):
     resultDict = {}
@@ -868,16 +1019,18 @@ def callDo(a):
     if not save and not critValues:
         critValues = ["20"]
 
-    targetJson = battleTable[target]
-    hitCrit = {"roll":0,"crit":False}
+    targetJson = battleTable.get(target)
+    hitCrit = {"roll":0,"critHit":False}
+    if not landStrings:
+        landStrings = ["100"]
     for landString in landStrings:
-        hitCrit = rollFudge(targetJson,hitCrit,landString,1,critValues)
+        hitCrit = rollFudge(targetJson,hitCrit,landString,1,False,critValues,True)
     hit = hitCrit["roll"]
-    crit = hitCrit["crit"] 
+    critHit = hitCrit["critHit"] 
 
     hasDamage = 0
     success = False
-    if crit:
+    if critHit:
         hasDamage = 1
         success = True
     elif not ((hit >= threshold) == save):
@@ -887,15 +1040,26 @@ def callDo(a):
         success = False
         hasDamage = blockMult
 
-    print("Hit or failed save?", str(success)+".", " Is", hit, ">",threshold, "Crit?",crit)
+    print("Hit or failed save?", str(success)+".", " Is", hit, ">=",threshold, "Crit?",critHit)
 
     if hasDamage:
-        damage = {"roll":0,"crit":False}
+        damage = {"roll":0,"critHit":False} #This may show critHit false but we pass into the critDmg variable below so it's ok.
         for hurtString in hurtStrings:
-            damage = rollFudge(targetJson,damage,hurtString,hasDamage,crit)
-        applyDamage(targetJson,damage["roll"])
+            damage = rollFudge(targetJson,damage,hurtString,hasDamage,critHit,critValues)
+        if targetJson:
+            applyDamage(targetJson,damage["roll"])
 
-def rollFudge(targetJson, priorDict, fudge, successLevelMult=1, crit=False, critValues=[]):
+def handleStatAliases(rollString,combatantJson):
+    if combatantJson:
+        rollString = rollString.replace("str",str(statMod(int(combatantJson["strength"]))))
+        rollString = rollString.replace("dex",str(statMod(int(combatantJson["dexterity"]))))
+        rollString = rollString.replace("con",str(statMod(int(combatantJson["constitution"]))))
+        rollString = rollString.replace("int",str(statMod(int(combatantJson["intelligence"]))))
+        rollString = rollString.replace("wis",str(statMod(int(combatantJson["wisdom"]))))
+        rollString = rollString.replace("cha",str(statMod(int(combatantJson["charisma"]))))
+    return rollString
+
+def rollFudge(targetJson, priorDict, fudge, successLevelMult=1, critDmg=False, critValues=[],allowStatAliases=False):
     if fudge:
         fudgePlusNext = handleFudgeInput(fudge)
         fudge = fudgePlusNext[0]
@@ -903,51 +1067,62 @@ def rollFudge(targetJson, priorDict, fudge, successLevelMult=1, crit=False, crit
 
         stringMethodType = getStringMethodType(fudge)
         fudgeString = stringMethodType[0]
+        if allowStatAliases:
+            fudgeString = handleStatAliases(fudgeString,targetJson)
         method = stringMethodType[1]
         damageType = stringMethodType[2]
-
-        affinityMod = getAffinityMod(targetJson,damageType)
-        fudgeDict = handleFudge(fudgeString,method,priorDict,affinityMod,successLevelMult,crit,critValues)
-        return rollFudge(targetJson,fudgeDict,fudgeNext,successLevelMult,crit,critValues)
+        affinityMod = 1
+        if targetJson:
+            affinityMod = getAffinityMod(targetJson,damageType)
+        fudgeDict = handleFudge(fudgeString,method,priorDict,affinityMod,successLevelMult,critDmg,critValues)
+        return rollFudge(targetJson,fudgeDict,fudgeNext,successLevelMult,critDmg,critValues)
     else:
         return priorDict
 
-def handleFudge(fudgeString,method,currentDict,affinityMult=1,successLevelMult=1,crit=False,critValues=[]):
+def handleFudge(fudgeString,method,currentDict,affinityMult=1,successLevelMult=1,critDmg=False,critValues=[]):
     result = 0
-    fudgeCrit = roll(fudgeString,crit,affinityMult,successLevelMult,critValues)
+
+    fudgeCrit = roll(fudgeString,critDmg,affinityMult,successLevelMult,critValues)
     fudge = fudgeCrit["roll"]
-    crit = fudgeCrit["crit"]
+    critHit = fudgeCrit["critHit"]
+
+    fudgeCrit2 = {}
+    fudge2 = "1"
+    critHit2 = False
+    if method in ["a","advantage","d","disadvantage"]:
+        fudgeCrit2 = roll(fudgeString,critDmg,affinityMult,successLevelMult,critValues)
+        fudge2 = fudgeCrit2["roll"]
+        critHit2 = fudgeCrit2["critHit"]
+
     currentVal = currentDict["roll"]
-    currentCrit = currentDict["crit"]
-    if isinstance(method, bool):
+    currentCritHit = currentDict["critHit"]
+    if not method:
         method = "mod"
     if method in ["mod","m"]:
-        crit = currentCrit
+        critHit = critHit or currentCritHit
         result = currentVal + fudge
     #These refer to previous summed value
     if method in ["greater","g"]:
-        crit = currentCrit or crit
+        critHit = currentCritHit or critHit
         result = max(currentVal,fudge)
     if method in ["lesser","l"]:
-        crit = currentCrit and crit
+        critHit = currentCritHit and critHit
         result = min(currentVal,fudge)
     #These refer to a best of 2 rolls
     if method in ["advantage","a"]:
-        fudge2 = roll(fudgeString,crit,affinityMult,successLevelMult,critValues)["roll"]
-        crit2 = roll(fudgeString,crit,affinityMult,successLevelMult,critValues)["crit"]
-        crit = crit2 or crit
+        critHit = critHit2 or critHit
         result = max(fudge2,fudge)
     if method in ["disadvantage","d"]:
-        fudge2 = roll(fudgeString,crit,affinityMult,successLevelMult,critValues)["roll"]
-        crit2 = roll(fudgeString,crit,affinityMult,successLevelMult,critValues)["crit"]
-        crit = crit2 and crit
+        fudge2 = roll(fudgeString,critDmg,affinityMult,successLevelMult,critValues)["roll"]
+        critHit2 = roll(fudgeString,critDmg,affinityMult,successLevelMult,critValues)["critHit"]
+        critHit = critHit2 and critHit
         result = min(fudge2,fudge)
     if method in ["reroll","r"]:
         result = fudge
 
-    return {"roll":result,"crit":crit}
+    return {"roll":result,"critHit":critHit}
 
-def roll(dice_strings,crit=False,affinityMod=1,saveMult=1,critValues=[]):
+def roll(dice_strings,critDmg=False,affinityMod=1,saveMult=1,critValues=[]):
     '''
     # PRECONDITIONS #
     Input: String with dice number, type, and modifier, e.g. 3d20+1
@@ -962,7 +1137,7 @@ def roll(dice_strings,crit=False,affinityMod=1,saveMult=1,critValues=[]):
     '''
     diceStrings = dice_strings.split(",")
     total = 0
-    crit = False
+    critHit = False
 
     for dice_string in diceStrings: 
         dsplit = dice_string.split("d")
@@ -981,15 +1156,15 @@ def roll(dice_strings,crit=False,affinityMod=1,saveMult=1,critValues=[]):
             
             diceCount = int(dsplit[0])
 
-            if crit:
+            if critDmg:
                 diceCount = diceCount*2
 
             diceType = int(remaining)
             for x in range(diceCount):
                 roll = math.ceil(diceType*random.random())
                 total += roll
-                if diceCount == 1 and str(roll) in critValues:
-                    crit = True
+                if (diceCount == 1) and (str(roll) in critValues):
+                    critHit = True
             total += diceMod
         else:
             total += int(dice_string)
@@ -997,7 +1172,7 @@ def roll(dice_strings,crit=False,affinityMod=1,saveMult=1,critValues=[]):
     total = math.floor(total * affinityMod * saveMult)
 
     message = dice_strings.replace(","," + ")
-    if crit:
+    if critDmg:
         message = "CRIT! Double dice count for "+message
     if affinityMod != 1:
         message = "AFFINITY! " + str(affinityMod) +"*("+ message +")"
@@ -1006,7 +1181,7 @@ def roll(dice_strings,crit=False,affinityMod=1,saveMult=1,critValues=[]):
 
     print("roll",message,"=",total)
     
-    return {"roll":int(total), "crit":crit}
+    return {"roll":int(total), "critHit":critHit}
 
 def helpMessage(a):
     for key, value in a["commandDescriptions"].items():
@@ -1139,7 +1314,7 @@ def hasAttribute(attribute,command):
 def onlyAlive(combatants):
     aliveCombatants = []
     for combatant in combatants:
-        if battleTable.get(combatant) or combatant == "?":
+        if battleTable.get(combatant) or combatant == "?" or combatant == "ambiguous":
             aliveCombatants.append(combatant)
         elif battleInfo.get("groups").get(combatant):
             aliveCombatants = aliveCombatants + battleInfo.get("groups").get(combatant)
@@ -1255,15 +1430,18 @@ def handleAllAliases(toDict,resolve=True):
     return toDict
 
 
-def runAuto(combatantJson):
+def runAuto(combatantJson, target=""):
     autoDicts = combatantJson.get("autoDict")
     for commandDict in autoDicts:
+        if target:
+            commandDict["target"] = [target]
         parse_command_dict(commandDict)
 
 def callAuto(a):
-    combatant = a["target"]
-    combatantJson = battleTable[combatant]
-    runAuto(combatantJson)
+    sender = a["sender"]
+    target = a["target"]
+    senderJson = battleTable[sender]
+    runAuto(senderJson,target)
 
 def callRun(a):
     for string in a["string"]:
@@ -1484,7 +1662,9 @@ def populateParserArguments(parser,has,metaHas,verify=True):
         parser.add_argument("--times", "-n", help='How many times to run the command')
 
     if has.get("sender"):
-        parser.add_argument("--sender", "-s", required=(not metaHas.get("optionalSenderAndTarget")) and verify, help='sender/s for command', nargs='+')
+        parser.add_argument("--sender", "-s", required=(not metaHas.get("optionalSenderAndTarget")) and not has.get("optionalSenderAndTarget") and verify and not has.get("optionalTarget"), help='sender/s for command', nargs='+')
+
+    if has.get("must-do"):
         parser.add_argument("--do", "-d", required=(True and verify), help='What the sender is using on the target', nargs='+')
 
     if has.get("do"):
@@ -1504,7 +1684,7 @@ def populateParserArguments(parser,has,metaHas,verify=True):
         if (has.get("identity") or has.get("file")):
             parser.add_argument("--target", "-t", required=True and verify, help='Target/s creature types to fetch from the cache the api or a file', nargs='+')
         else:
-            parser.add_argument("--target", "-t", required=(not metaHas.get("optionalSenderAndTarget")) and verify, help='Target/s for command', nargs='+')
+            parser.add_argument("--target", "-t", required=((not metaHas.get("optionalSenderAndTarget")) and verify and (not has.get("optionalSenderAndTarget"))), help='Target/s for command', nargs='+')
 
     if has.get("target-single-optional"):
         parser.add_argument("--target", "-t", help='Target for command')
@@ -1554,8 +1734,8 @@ def populateParserArguments(parser,has,metaHas,verify=True):
 
     if has.get("check"):
         parser.add_argument("--blockMult", "-b", help='How much damage remains when blocked?')
-        parser.add_argument("--check", "-c", help='What the threshold is for blocking')
-        parser.add_argument("--save", "-s", help='Is this a save threshold?', dest='append', action='store_true')
+        parser.add_argument("--check", "-c", help='What the threshold is for blocking', default=-100)
+        parser.add_argument("--save", "-d", help='Is this a save threshold?', dest='append', action='store_true')
         parser.add_argument("--multiCrit", "-m", help='values which constitute a critical', nargs='+')
         parser.set_defaults(append=False)
 
@@ -1571,40 +1751,7 @@ def populateParserArguments(parser,has,metaHas,verify=True):
         parser.set_defaults(remove=False)
 
     if has.get("dice"):
-        parser.add_argument("--dice", "-d", help='A dice string to be used',required=True and verify)
-
-command_descriptions_dict = {
-"use" : 'Do a generic action weapon or cast. Like:\n\tuse --do greatsword --sender groovyBoy --target druid#3 --times 1 --advantage 1\n',
-"action" : 'Do a generic action. Like:\n\taction --do Multiattack --sender sahuagin#2 --target druid#3 --times 1 --advantage 1\n',
-"weapon" : 'Use a weapon. Like:\n\tweapon --do greatsword --sender sahuagin#2 --target druid#3 --times 3 --advantage -1\n',
-"cast" : 'Cast a spell. Like:\n\tcast --sender druid#3 --target sahuagin#2 --times 2 --do fire-bolt --level 4 --advantage 0\n',
-"remove" : 'Remove an item. Like:\n\tremove --target sahuagin#2\n',
-"request" : 'Make a request. Like:\n\trequest --path monsters sahuagin\n',
-"set" : 'Set some aspect of the character or other item. Like:\n\tset --target sahuagin# --path initiative --change 18\n',
-"mod" : 'Modify a stat on a creature. Like:\n\tmod --target sahuagin#2 --path initiative --change -5\n',
-"list" : 'List the features of a creature. Like:\n\tlist --target sahuagin#2 --path actions\n',
-"listkeys" : 'List the keys for an item. Like:\n\tlistkeys --target sahuagin#2 --path actions\n',
-"add" : 'Add a creature. Like:\n\tadd --target sahuagin --times 2 --identity Aqua-Soldier\n',
-"init" : 'Roll for initiative. Like:\n\tinitiative --target sahuagin#2\n',
-"load" : 'Load a content by file name. Like:\n\tload --category monsters --file new_creature.json\n\tload --category equipment --file new_weapon.json\n\tload --category spells --file new_spell.json\n',
-"turn" : 'Increments turn. Like:\n\tturn\n',
-"auto" : 'Set an automated command. Like:\n\tauto --target sahuagin --commandString "action --target party!random --sender sahuagin --do multiattack"\n',
-"group" : 'Set a group for use in targetting. Will be resolved to listed targets. Like:\n\tgroup --member sahuagin sahuagin#2 --group sahuagang\n',
-"info" : 'Shows all info for reference. Like:\n\info --info groups\n',
-"roll" : 'Roll dice. Like:\n\troll --dice 1d20+2\n',
-"store" : 'Store a command for use later. Like:\n\tstore --commandString "add -t sahuagin -n 2" --path encounter#2 --append\n',
-"shortrest" : 'Auto heal from short rest Like:\n\tshortrest -t party \n',
-"longrest" : 'AutoHeal from long restLike:\n\tlongrest -t party \n',
-"jump" : 'This persons turn:\n\tjump -t goblin#2 \n',
-"skip" : 'Do nothing:\n\tskip\n',
-"pause" : 'Forces a pause when the targets turn is there without removing his auto commands:\n\tpause -t thinker\n',
-"resume" : 'Set creature to run auto command when it is their turn:\n\tresume -t menial-minded\n',
-"enable" : 'Dont skip this persons turn:\n\tenable -t no-longer-stunned-person\n',
-"disable" : 'Skip this persons turn and try running the auto command for the next person:\n\tdisable -t not-yet-in-combat\n',
-"help" : 'Display this message. Like:\n\thelp\n',
-"addAuto" : 'Display this message. Like:\n\thelp\n',
-"delete" : 'Delete a command or information entry such as a group. Like:\n\tdelete -p commands loadParty 1\n',
-}
+        parser.add_argument("--dice", "-d", help='A dice string to be used',required=True and verify, nargs='+')
 
 funcDict = {
 "do" : callDo,
@@ -1645,7 +1792,7 @@ funcDict = {
 "run": callRun,
 }
 
-senderList = ["sender","target","advantage","times","fudge"]
+senderList = ["sender","target","advantage","times","fudge","must-do"]
 hasDict = {
 "action": senderList,
 "weapon": senderList,
@@ -1663,7 +1810,7 @@ hasDict = {
 "add": ["target", "identity", "sort", "times", "group", "append", "no-alias", "target-all"],
 "longrest": ["target", "times", "target-all"],
 "shortrest": ["target", "times", "target-all"],
-"callAuto": ["target", "times", "target-all"],
+"callAuto": ["target","times", "target-all","sender","optionalTarget"],
 "enable": ["target", "target-all"],
 "disable": ["target", "target-all"],
 "pause": ["target", "target-all"],
@@ -1677,7 +1824,7 @@ hasDict = {
 "addAuto": ["target", "identity", "sort", "times", "no-alias", "target-all","do","party","method"],
 "delete": ["path"],
 "run": ["arbitraryString"],
-"do": ["target", "fudge", "check"],
+"do": ["target", "fudge", "check","sender","optionalSenderAndTarget"],
 }
 
 def getBaseCommand(command):
@@ -1786,6 +1933,7 @@ def parse_command_string(command_string_to_parse,metaCommand="",verify=True):
 
 def parseAndRun(command_string_to_run):
     command_string_to_run = command_string_to_run.replace("\"-","\" -")#Ugh arg parse can't handle: auto -t guy -c "-t guy"
+    command_string_to_run = command_string_to_run.replace("\'-","\' -")#Ugh arg parse can't handle: auto -t guy -c "-t guy"
     #But it can handle: auto -t guy -c " -t guy" 
     returns = []
     for dictionary in parse_command_string(command_string_to_run):
@@ -1809,8 +1957,14 @@ def parse_command_dict(argDictToParse):
     if not has.get("sender"):
         argDictMain["sender"] = ["none"]
 
-    if not has.get("target") and (not has.get("target-single-optional")):
+    if not has.get("target") and not has.get("target-single-optional"):
         argDictMain["target"] = ["none"]
+
+    if command == "do":
+        if argDictMain["target"] == None:
+            argDictMain["target"] = ["ambiguous"]
+        if argDictMain["sender"] == None:
+            argDictMain["sender"] = ["ambiguous"]
 
     if argDictMain.get("roll"):
         argDictMain["change"] = roll(argDictMain["change"])["roll"]
@@ -1840,7 +1994,7 @@ def parse_command_dict(argDictToParse):
                 if has.get("advantage"):
                     argDictSingle["advantage"] = geti(argDictCopy["advantage"],number,0)
 
-                if battleTable.get(target) or not has.get("target") or has.get("no-alias") or command == "load":
+                if battleTable.get(target) or not has.get("target") or has.get("no-alias") or command == "load" or target == "ambiguous":
                     if not argDictCopy.get("do"):
                         argDictCopy["do"] = ["none"]
                     for do in argDictCopy["do"]:

@@ -1,8 +1,4 @@
-Update the fricking help messages and stop being lazy.
 Implement some kind of custom save check. Like wisdom -t horby and it rolls wisdom. or stat -t horby -r wisdom -a 1
-Possibly implement a custom check/damage operator
-for things like environmental hazards
-custom --target climber --check (dex,ac,10) --damage 1d8@bludgeoning$ 2d8@heal
 Implement heals using above like @heal and @temphp
 Implement temporary hp
 Allow for numerics when referencing weapons and spells by adding to an arsenal list
