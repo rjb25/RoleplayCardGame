@@ -271,7 +271,11 @@ def getState():
             turn = ""
             if x.get("my_turn"):
                 turn = "<-----------------| My Turn"
-            print(i,x["initiative"],nick,x["index"],str(x["current_hp"])+"/"+str(x["max_hp"])+turn)
+            temphp = 0
+            if x.get("temp_hp"):
+                temphp = x.get("temp_hp")
+
+            print(i,x["initiative"],nick,x["index"],str(x["current_hp"]+temphp)+"/"+str(x["max_hp"])+turn)
             state_result.append(str(x["initiative"]) + ' ' + nick + ' ' + str(x["index"]) + ' ' + str(x["current_hp"]) + "/" + str(x["max_hp"]))
         return state_result
 
@@ -337,8 +341,14 @@ def canCast(combatantJson):
     return False
 
 def applyDamage(targetJson,damage):
-    targetJson["current_hp"] -= math.floor(damage)
-    targetJson["current_hp"] = max(targetJson["current_hp"],0)
+    if targetJson.get("temp_hp"):
+        damage = damage - int(targetJson.get("temp_hp"))
+    if damage > 0:
+        targetJson["temp_hp"] = 0
+        targetJson["current_hp"] -= math.floor(damage)
+        targetJson["current_hp"] = max(targetJson["current_hp"],0)
+    if damage < 0:
+        targetJson["temp_hp"] = -1*damage
 
 def getAffinityMod(targetJson,damageType):
     immunities = targetJson.get("damage_immunities")
@@ -359,6 +369,8 @@ def getAffinityMod(targetJson,damageType):
                 return 0.5
     if damageType == "heal":
         return -1
+    if damageType in ["temp","temp_hp","temphp"]:
+        return "temphp"
     return 1
 
 classSavesDict = {
@@ -1006,12 +1018,16 @@ def handleThreshold(a):
 
 def callDo(a):
     target = a["target"]
-    threshold = int(a["check"])
+    sender = a["sender"]
+    targetJson = battleTable.get(target)
+    senderJson = battleTable.get(sender)
+    threshold = a["check"]
     landStrings = a["landFudge"]
     hurtStrings = a["weaponFudge"]
     blockMult = a["blockMult"]
     critValues = a["multiCrit"]
     save = bool(a.get("save"))
+    threshold = handleCheckAliases(threshold,senderJson,targetJson)
 
     if not blockMult:
         blockMult = 0
@@ -1019,12 +1035,11 @@ def callDo(a):
     if not save and not critValues:
         critValues = ["20"]
 
-    targetJson = battleTable.get(target)
     hitCrit = {"roll":0,"critHit":False}
     if not landStrings:
         landStrings = ["100"]
     for landString in landStrings:
-        hitCrit = rollFudge(targetJson,hitCrit,landString,1,False,critValues,True)
+        hitCrit = rollFudge(senderJson,targetJson,hitCrit,landString,1,False,critValues,"hit")
     hit = hitCrit["roll"]
     critHit = hitCrit["critHit"] 
 
@@ -1045,21 +1060,142 @@ def callDo(a):
     if hasDamage:
         damage = {"roll":0,"critHit":False} #This may show critHit false but we pass into the critDmg variable below so it's ok.
         for hurtString in hurtStrings:
-            damage = rollFudge(targetJson,damage,hurtString,hasDamage,critHit,critValues)
+            damage = rollFudge(senderJson,targetJson,damage,hurtString,hasDamage,critHit,[], "dmg")
         if targetJson:
             applyDamage(targetJson,damage["roll"])
 
-def handleStatAliases(rollString,combatantJson):
-    if combatantJson:
-        rollString = rollString.replace("str",str(statMod(int(combatantJson["strength"]))))
-        rollString = rollString.replace("dex",str(statMod(int(combatantJson["dexterity"]))))
-        rollString = rollString.replace("con",str(statMod(int(combatantJson["constitution"]))))
-        rollString = rollString.replace("int",str(statMod(int(combatantJson["intelligence"]))))
-        rollString = rollString.replace("wis",str(statMod(int(combatantJson["wisdom"]))))
-        rollString = rollString.replace("cha",str(statMod(int(combatantJson["charisma"]))))
+def handleHitModAliases(rollString,senderJson,targetJson, isSave=False):
+    if (senderJson and not isSave) or (targetJson and isSave):
+        proficiency = 0
+        saveProficiency = 0
+        finesseMod = 0
+        martialMod = 0
+        simpleMod = 0
+        spellHit = 0
+        if isSave:
+            Json = targetJson
+            proficiency = getProf(Json)
+            saveProficiencies = geti(classSavesDict,Json.get("class"),[])
+            if saveType in saveProficiencies:
+                saveProficiency = proficiency
+        else:
+            Json = senderJson
+            proficiency = getProf(Json)
+            if "finesse" in rollString:
+                finesseMod = max(statMod(int(Json["strength"])),statMod(int(Json["dexterity"])))
+            else:
+                finesseMod = statMod(int(Json["strength"]))
+
+            if "martial" in Json["weapon_proficiencies"]:
+                martialMod = proficiency
+
+            if "simple" in Json["weapon_proficiencies"]:
+                simpleMod = proficiency
+
+            if "spellhit" in rollString:
+                spellcasting = canCast(Json)
+                spellHit = 8 + statMod(Json[expandStatWord(spellcasting["ability"]["index"])]) + getProf(Json)
+        
+        if not isSave:
+            rollString = rollString.replace("normal",str(statMod(int(Json["strength"]))))
+            rollString = rollString.replace("finesse",str(finesseMod))
+
+            rollString = rollString.replace("martial",str(martialMod))
+            rollString = rollString.replace("simple",str(simpleMod))
+
+        rollString = rollString.replace("any",str(proficiency))
+        rollString = rollString.replace("proficiency",str(proficiency))
+        rollString = rollString.replace("prof",str(proficiency))
+
+        rollString = rollString.replace("spellhit",str(statMod(int(Json["charisma"]+saveProficiency))))
+        rollString = rollString.replace("str",str(statMod(int(Json["strength"]+saveProficiency))))
+        rollString = rollString.replace("dex",str(statMod(int(Json["dexterity"]+saveProficiency))))
+        rollString = rollString.replace("con",str(statMod(int(Json["constitution"]+saveProficiency))))
+        rollString = rollString.replace("int",str(statMod(int(Json["intelligence"]+saveProficiency))))
+        rollString = rollString.replace("wis",str(statMod(int(Json["wisdom"]+saveProficiency))))
+        rollString = rollString.replace("cha",str(statMod(int(Json["charisma"]+saveProficiency))))
+        rollString = rollString.replace("spellhit",str(spellHit))
+        rollString = rollString.replace(".",str("1d20"))
+
     return rollString
 
-def rollFudge(targetJson, priorDict, fudge, successLevelMult=1, critDmg=False, critValues=[],allowStatAliases=False):
+def handleDmgModAliases(rollString,senderJson):
+    if senderJson:
+        rollString = rollString.replace("str",str(statMod(int(senderJson["strength"]))))
+        rollString = rollString.replace("dex",str(statMod(int(senderJson["dexterity"]))))
+        rollString = rollString.replace("con",str(statMod(int(senderJson["constitution"]))))
+        rollString = rollString.replace("int",str(statMod(int(senderJson["intelligence"]))))
+        rollString = rollString.replace("wis",str(statMod(int(senderJson["wisdom"]))))
+        rollString = rollString.replace("cha",str(statMod(int(senderJson["charisma"]))))
+        rollString = rollString.replace("normal",str(statMod(int(senderJson["strength"]))))
+        proficiency = getProf(senderJson)
+        rollString = rollString.replace("any",str(proficiency))
+        rollString = rollString.replace("proficiency",str(proficiency))
+        rollString = rollString.replace("prof",str(proficiency))
+        finesseMod = 0
+        if "finesse" in rollString:
+            finesseMod = max(statMod(int(senderJson["strength"])),statMod(int(senderJson["dexterity"])))
+            rollString = rollString.replace("finesse",str(0))
+
+    return rollString
+
+def handleCheckAliases(checkString,senderJson,targetJson):
+    checkString = str(checkString).lower()
+    if targetJson:
+        checkString = checkString.replace("ac",str(targetJson["armor_class"]))
+    if senderJson and "spelldc" in checkString:
+        getProf(senderJson)
+        spellcasting = canCast(senderJson)
+        threshold = 8 + statMod(senderJson[expandStatWord(spellcasting["ability"]["index"])]) + getProf(senderJson)
+        checkString = checkString.replace("spelldc",str(threshold))
+    return int(checkString)
+
+def getModAlt(modType, attackJson, combatantJson, additional = 0):
+        modSum = 0
+        if modType == "actionHit" and attackJson.get("attack_bonus"):
+            modSum += attackJson.get("attack_bonus")
+        else:
+            if modType == "hit" or modType == "dmg":
+                finesse = False
+                properties = attackJson.get("properties")
+                if properties:
+                    for x in properties:
+                        if x["index"] == "finesse":
+                            finesse = True
+                if finesse:
+                    modSum += max(statMod(int(combatantJson["strength"])),statMod(int(combatantJson["dexterity"])))
+                else:
+                    modSum += statMod(int(combatantJson["strength"]))
+
+            if modType == "hit":
+                if combatantJson.get("weapon_proficiencies"):
+                    if attackJson["weapon_category"] in combatantJson["weapon_proficiencies"]:
+                        modSum += getProf(combatantJson)
+
+            if modType == "spellHit" or modType == "spellDc":
+                modSum += getProf(combatantJson)
+
+            if modType == "saveDc":
+                saveType = attackJson["dc"]["dc_type"]["index"]
+                modSum += statMod(combatantJson[expandStatWord(saveType)])
+                saveProficiencies = geti(classSavesDict,combatantJson.get("class"),[])
+                if saveType in saveProficiencies:
+                    modSum += getProf(combatantJson)
+            if modType == "spellHit" or modType == "spellDc":
+                special_abilities = combatantJson.get("special_abilities")
+                if special_abilities:
+                    spellcasting = canCast(combatantJson)
+                    if spellcasting:
+                        if modType == "spellHit" or modType == "spellDc":
+                            modSum += statMod(combatantJson[expandStatWord(spellcasting["ability"]["index"])])
+
+                        if modType == "spellDc":
+                            modSum += additional + 8 #In this case additional should be level of spell
+                    else:
+                        raise Exception("Attempted to have a non spellcaster cast a spell")
+        return modSum
+
+def rollFudge(senderJson, targetJson, priorDict, fudge, successLevelMult=1, critDmg=False, critValues=[],rollType="hit"):
     if fudge:
         fudgePlusNext = handleFudgeInput(fudge)
         fudge = fudgePlusNext[0]
@@ -1067,20 +1203,26 @@ def rollFudge(targetJson, priorDict, fudge, successLevelMult=1, critDmg=False, c
 
         stringMethodType = getStringMethodType(fudge)
         fudgeString = stringMethodType[0]
-        if allowStatAliases:
-            fudgeString = handleStatAliases(fudgeString,targetJson)
+        if rollType == "hit":
+            fudgeString = handleHitModAliases(fudgeString,senderJson,targetJson)
+        elif rollType == "dmg":
+            fudgeString = handleDmgModAliases(fudgeString,senderJson)
+
         method = stringMethodType[1]
         damageType = stringMethodType[2]
         affinityMod = 1
         if targetJson:
             affinityMod = getAffinityMod(targetJson,damageType)
-        fudgeDict = handleFudge(fudgeString,method,priorDict,affinityMod,successLevelMult,critDmg,critValues)
-        return rollFudge(targetJson,fudgeDict,fudgeNext,successLevelMult,critDmg,critValues)
+        fudgeDict = handleFudge(fudgeString,method,priorDict,affinityMod,successLevelMult,critDmg,critValues,targetJson)
+        return rollFudge(senderJson,targetJson,fudgeDict,fudgeNext,successLevelMult,critDmg,critValues,rollType)
     else:
         return priorDict
 
-def handleFudge(fudgeString,method,currentDict,affinityMult=1,successLevelMult=1,critDmg=False,critValues=[]):
+def handleFudge(fudgeString,method,currentDict,affinityMult=1,successLevelMult=1,critDmg=False,critValues=[],targetJson="only for temp hp"):
     result = 0
+    temphp = affinityMult == "temphp"
+    if temphp:
+        affinityMult = 1
 
     fudgeCrit = roll(fudgeString,critDmg,affinityMult,successLevelMult,critValues)
     fudge = fudgeCrit["roll"]
@@ -1096,6 +1238,21 @@ def handleFudge(fudgeString,method,currentDict,affinityMult=1,successLevelMult=1
 
     currentVal = currentDict["roll"]
     currentCritHit = currentDict["critHit"]
+    if temphp:
+        result = 0
+        if method in ["a","advantage"]:
+            result = max(fudge2,fudge)
+        elif method in ["d","disadvantage"]:
+            result = min(fudge2,fudge)
+        else:
+            result = fudge
+
+        if targetJson.get("temp_hp"):
+            targetJson["temp_hp"] = int(targetJson["temp_hp"]) + int(result)
+        else:
+            targetJson["temp_hp"] = result
+        return currentDict
+
     if not method:
         method = "mod"
     if method in ["mod","m"]:
@@ -1734,7 +1891,7 @@ def populateParserArguments(parser,has,metaHas,verify=True):
 
     if has.get("check"):
         parser.add_argument("--blockMult", "-b", help='How much damage remains when blocked?')
-        parser.add_argument("--check", "-c", help='What the threshold is for blocking', default=-100)
+        parser.add_argument("--check", "-c", help='What the threshold is for blocking. To include level of spell simply do spelldc+3. If it is a third level spell', default=-100)
         parser.add_argument("--save", "-d", help='Is this a save threshold?', dest='append', action='store_true')
         parser.add_argument("--multiCrit", "-m", help='values which constitute a critical', nargs='+')
         parser.set_defaults(append=False)

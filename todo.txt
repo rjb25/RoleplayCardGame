@@ -1,7 +1,10 @@
-Implement some kind of custom save check. Like wisdom -t horby and it rolls wisdom. or stat -t horby -r wisdom -a 1
 Implement heals using above like @heal and @temphp
 Implement temporary hp
 Allow for numerics when referencing weapons and spells by adding to an arsenal list
 Mayyyybe convert all attacks and spells and weapons to be command strings in json using the above custom function
 Then just start the grind of storing weapons etc in files as partials and storing the partials in enemies as well.
 Global log returned for Nathan's code.
+maybe instead of @ and ! for method and damage type I could use string that get's parsed like:
+--landFudge "--dice 1d20 --method advantage --type fire"
+start escaping quotes if this gets too deep like
+\" \' \\\" \\\' and so on by 2^n -1
