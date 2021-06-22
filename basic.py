@@ -19,8 +19,17 @@ import copy
 from itertools import takewhile
 
 command_descriptions_dict = {
-"do" : '''Run a custom attack with no sender:
+"do" : '''Run a custom attack this can be used for environmental factors or items that have yet to be added.
+Other functions will wrap around this:
 do --target climber --landFudge 1d20+4$ --check 10 --weaponFudge 1d8@bludgeoning 1d4@piercing --blockMult 0.5 --save
+healing potion
+do -t person --weaponFudge 2d4+2@heal
+greatsword
+do -s person -t enemy --landFudge 1d20+str+martial --check ac --weaponFudge 2d6+str@slashing
+firebolt
+do -s person -t enemy --landFudge 1d20+spellhit --check ac --weaponFudge 1d10@fire
+fireball
+do -s person -t enemies --landFudge 1d20+dex --check spelldc --weaponFudge 8d6@fire --save
 ''',
 
 "use" : '''Do a generic action weapon or cast:
@@ -341,13 +350,18 @@ def canCast(combatantJson):
     return False
 
 def applyDamage(targetJson,damage):
-    if targetJson.get("temp_hp"):
+    heal = False
+    if damage < 0:
+        heal = True
+
+    if targetJson.get("temp_hp") and (not heal):
         damage = damage - int(targetJson.get("temp_hp"))
-    if damage > 0:
-        targetJson["temp_hp"] = 0
+    if damage > 0 or heal:
+        if not heal:
+            targetJson["temp_hp"] = 0
         targetJson["current_hp"] -= math.floor(damage)
         targetJson["current_hp"] = max(targetJson["current_hp"],0)
-    if damage < 0:
+    elif damage < 0:
         targetJson["temp_hp"] = -1*damage
 
 def getAffinityMod(targetJson,damageType):
@@ -573,14 +587,16 @@ def getStringMethodType(fudge):
     fudgeString = ""
     method = ""
     damage = ""
-     
-    methodSplit = fudge.split("!")
-    methodDirty = methodSplit[len(methodSplit)-1]
-    method = "".join(takewhile(lambda x: (not x.isnumeric() and x != "@"), methodDirty))
+    
+    if "!" in fudge:
+        methodSplit = fudge.split("!")
+        methodDirty = methodSplit[len(methodSplit)-1]
+        method = "".join(takewhile(lambda x: (not x.isnumeric() and x != "@"), methodDirty))
 
-    damageSplit = fudge.split("@")
-    damageDirty = damageSplit[len(damageSplit)-1]
-    damage = "".join(takewhile(lambda x: (not x.isnumeric() and x != "!"),damageDirty))
+    if "@" in fudge:
+        damageSplit = fudge.split("@")
+        damageDirty = damageSplit[len(damageSplit)-1]
+        damage = "".join(takewhile(lambda x: (not x.isnumeric() and x != "!"),damageDirty))
 
     fudgeString = "".join(takewhile(lambda x: (not (x in ["@","!"] )),fudge))
 
@@ -1035,6 +1051,9 @@ def callDo(a):
     if not save and not critValues:
         critValues = ["20"]
 
+    if not critValues:
+        critValues = []
+
     hitCrit = {"roll":0,"critHit":False}
     if not landStrings:
         landStrings = ["100"]
@@ -1094,7 +1113,7 @@ def handleHitModAliases(rollString,senderJson,targetJson, isSave=False):
 
             if "spellhit" in rollString:
                 spellcasting = canCast(Json)
-                spellHit = 8 + statMod(Json[expandStatWord(spellcasting["ability"]["index"])]) + getProf(Json)
+                spellHit = statMod(Json[expandStatWord(spellcasting["ability"]["index"])]) + getProf(Json)
         
         if not isSave:
             rollString = rollString.replace("normal",str(statMod(int(Json["strength"]))))
@@ -1115,7 +1134,7 @@ def handleHitModAliases(rollString,senderJson,targetJson, isSave=False):
         rollString = rollString.replace("wis",str(statMod(int(Json["wisdom"]+saveProficiency))))
         rollString = rollString.replace("cha",str(statMod(int(Json["charisma"]+saveProficiency))))
         rollString = rollString.replace("spellhit",str(spellHit))
-        rollString = rollString.replace(".",str("1d20"))
+        rollString = rollString.replace(".","1d20")
 
     return rollString
 
@@ -1190,7 +1209,7 @@ def getModAlt(modType, attackJson, combatantJson, additional = 0):
                             modSum += statMod(combatantJson[expandStatWord(spellcasting["ability"]["index"])])
 
                         if modType == "spellDc":
-                            modSum += additional + 8 #In this case additional should be level of spell
+                            modSum += 8 
                     else:
                         raise Exception("Attempted to have a non spellcaster cast a spell")
         return modSum
@@ -1318,15 +1337,15 @@ def roll(dice_strings,critDmg=False,affinityMod=1,saveMult=1,critValues=[]):
 
             diceType = int(remaining)
             for x in range(diceCount):
-                roll = math.ceil(diceType*random.random())
-                total += roll
-                if (diceCount == 1) and (str(roll) in critValues):
+                rolled = math.ceil(diceType*random.random())
+                total += rolled
+                if (diceCount == 1) and (str(rolled) in critValues):
                     critHit = True
             total += diceMod
         else:
             total += int(dice_string)
 
-    total = math.floor(total * affinityMod * saveMult)
+    total = math.floor(total * affinityMod * float(saveMult))
 
     message = dice_strings.replace(","," + ")
     if critDmg:
@@ -1892,9 +1911,9 @@ def populateParserArguments(parser,has,metaHas,verify=True):
     if has.get("check"):
         parser.add_argument("--blockMult", "-b", help='How much damage remains when blocked?')
         parser.add_argument("--check", "-c", help='What the threshold is for blocking. To include level of spell simply do spelldc+3. If it is a third level spell', default=-100)
-        parser.add_argument("--save", "-d", help='Is this a save threshold?', dest='append', action='store_true')
+        parser.add_argument("--save", "-d", help='Is this a save threshold?', dest='save', action='store_true')
+        parser.set_defaults(save=False)
         parser.add_argument("--multiCrit", "-m", help='values which constitute a critical', nargs='+')
-        parser.set_defaults(append=False)
 
     if has.get("party"):
         parser.add_argument("--party", "-p", help='Should this be automated as a member of the party instead of as an enemy?', dest='party', action='store_true')

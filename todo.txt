@@ -8,3 +8,25 @@ maybe instead of @ and ! for method and damage type I could use string that get'
 --landFudge "--dice 1d20 --method advantage --type fire"
 start escaping quotes if this gets too deep like
 \" \' \\\" \\\' and so on by 2^n -1
+The method for storing weapons, spells, and items would be something like:
+healing potion
+do --weaponFudge 2d4+2@heal
+greatsword
+do --landFudge 1d20+str+martial --check ac --weaponFudge 2d6+str@slashing
+firebolt
+do --landFudge 1d20+spellhit --check ac --weaponFudge 1d20@fire
+fireball
+do --landFudge 1d20+dex --check spelldc --weaponFudge 8d6@fire --save
+Some function let's call it form will use the above strings and modify them to fill in, replace or modify paramters
+This will try to pull from an arsenal first, then it will pull from global? Not sure how to handle that as it would be a pain to modify both
+form --use heal -t person
+form --use greatsword -s person -t enemy -l 1d4 -w 2d8$ --method advantage
+form --use firebolt -s person -t enemy
+form --use fireball -s person -t enemies 
+This form function is basically
+run -p fireball -c "-s person -t enemies"
+Now all I need is a wrapper around this and to start storing them in a less cluttered list than the battleinfo section
+
+Problems with the above are that I need to add the ability to choose between appending to a parameter of the old dict, replacing a parameter of the old dict. This would simply be a --replace flag and would require all parameters to be set up how you want. otherwise everything would be additive. If you needed to simply add a method to the initial steps, you would fill in the -m parameter. like -m advantage like --method or -b advantage for --bonusmethod
+
+Or simply bring back --advantage for this form function
