@@ -990,15 +990,28 @@ def showInfo(a):
         printJson(battleInfo[a["info"]])
 
 def callUse(a):
+    do = a["do"]
+    senderJson = battleTable[a["sender"]]
+    arsenalList = senderJson.get("arsenal")
+    arsenalEntry = False
+    if arsenalList:
+        arsenalEntry = arsenalList.get(do)
+    if arsenalEntry:
+        parse_command_dict(arsenalEntry) # would need to append whatever the incoming arguments were to this. Arsenal entries should be stored as dicts to allow the updating with weednones
+        return True
+    #globalEntry = globalFunctions[do]
+    #if globalEntry:
+    #   parse_command_dict(globalEntry)
+    #   return True
+
     if callAction(a):
         return True
-    elif callWeapon(a):
+    if callWeapon(a):
         return True
-    elif callCast(a):
+    if callCast(a):
         return True
-    else:
-        print("Trying to use/do something that is not a weapon nor a spell nor an action.")
-        print(a)
+    print("Trying to use/do something that is not a weapon nor a spell nor an action. It also does not exist as a global function nor an arsenal entry for this sender")
+    print(a)
 
 
 def handleFudgeInput(fudge):

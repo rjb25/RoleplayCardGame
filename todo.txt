@@ -30,3 +30,14 @@ Now all I need is a wrapper around this and to start storing them in a less clut
 Problems with the above are that I need to add the ability to choose between appending to a parameter of the old dict, replacing a parameter of the old dict. This would simply be a --replace flag and would require all parameters to be set up how you want. otherwise everything would be additive. If you needed to simply add a method to the initial steps, you would fill in the -m parameter. like -m advantage like --method or -b advantage for --bonusmethod
 
 Or simply bring back --advantage for this form function
+
+use -d greatsword -s zanros -t goblin
+This will check:
+arsenal->global->action->weapon->spell
+use an alternative to store
+doable -p health-potion -c "do --weaponFudge 2d4+2@heal --target me"
+arsenal -t doctor -p health-potion -c "do --weaponFudge 2d4+2@heal --target me"
+maybe have a more permanent cache that can be edited for the above? Or just dump the battleInfo pretty.
+deepmod
+deepset
+above two commands allow for making changes to the file they were pulled from and their temporary cache.
