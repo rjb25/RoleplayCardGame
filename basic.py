@@ -991,18 +991,23 @@ def showInfo(a):
 
 def callUse(a):
     do = a["do"]
+
     senderJson = battleTable[a["sender"]]
     arsenalList = senderJson.get("arsenal")
-    arsenalEntry = False
+    command = False
     if arsenalList:
-        arsenalEntry = arsenalList.get(do)
-    if arsenalEntry:
-        parse_command_dict(arsenalEntry) # would need to append whatever the incoming arguments were to this. Arsenal entries should be stored as dicts to allow the updating with weednones
+        command = arsenalList.get(do)
+
+    doables = battleInfo.get("doable")[do]
+    if doables and not command:
+        command = doables.get(do)
+
+    if command:
+        command.get("command") = None
+        commandDict = weedNones(command)
+        commandDict.update(a)
+        parse_command_dict(command)
         return True
-    #globalEntry = globalFunctions[do]
-    #if globalEntry:
-    #   parse_command_dict(globalEntry)
-    #   return True
 
     if callAction(a):
         return True
@@ -1663,7 +1668,7 @@ def setAutoDict(a):
             combatantJson["autoDict"].append(commandDict)
 
 def processCommandStrings(a):
-    if a.get("command") != "store":
+    if a.get("command") == "auto":
         combatant = a["target"]
         combatantJson = battleTable.get(combatant)
         autoDicts = combatantJson.get("autoDict")
@@ -1673,7 +1678,7 @@ def processCommandStrings(a):
 
     commandDicts = []
     for index,commandString in enumerate(a["commandString"]):
-        if (not (a.get("method") in ["append","a"])) and a.get("command") != "store":
+        if (not (a.get("method") in ["append","a"])) and a.get("command") == "auto":
             args = commandString.split(" ")
             subCommand = args[0]
             if not(subCommand in funcDict):
@@ -1687,15 +1692,32 @@ def processCommandStrings(a):
             commandDicts.append(handleAllAliases(argDictTemp,a["resolve"]))
     return commandDicts
 
-#This is an unused function but it makes it clear that most of processCommandStrings relates to setAutoDict and not callStore
-def proccessCommandStringsStore(a):
-    commandDicts = []
-    for index,commandString in enumerate(a["commandString"]):
-        argDictTemps = parse_command_string(commandString,a.get("command"),a.get("verify"))
-        for argDictTemp in argDictTemps:
-            commandDicts.append(handleAllAliases(argDictTemp,a["resolve"]))
 
-    return commandDicts
+def callStoreDoable(a):
+    commandDicts = processCommandStrings(a)
+    path = ["doable"]+a["path"]
+    mode = a["mode"]
+    if mode == "append":
+        storeInfo(path,commandDicts,True,battleInfo)
+    elif mode == "set":
+        storeInfo(path,commandDicts,False,battleInfo)
+    elif mode == "mod":
+        modInfo(path,commandDicts,battleInfo)
+    else:
+        print("Invalid mode snuck by somehow")
+
+def callStoreArsenal(a):
+    commandDicts = processCommandStrings(a)
+    path = ["arsenal"]+a["path"]
+    mode = a["mode"]
+    if mode == "append":
+        storeInfo(path,commandDicts,True,battleTable.get(a["target"]))
+    elif mode == "set":
+        storeInfo(path,commandDicts,False,battleTable.get(a["target"]))
+    elif mode == "mod":
+        modInfo(path,commandDicts,battleTable.get(a["target"]))
+    else:
+        print("Invalid mode snuck by somehow")
 
 def callStore(a):
     commandDicts = processCommandStrings(a)
@@ -1709,6 +1731,7 @@ def callStore(a):
         modInfo(path,commandDicts,battleInfo)
     else:
         print("Invalid mode snuck by somehow")
+
 
 def getInfo(path):
     return get_nested_item(battleInfo,path)
@@ -1746,16 +1769,16 @@ def append_value(dict_obj, key, value):
         dict_obj[key] = value
 
         
-def storeInfo(path,value,append):
+def storeInfo(path,value,append,infoDict):
     global battleInfo
     if append:
-        appendTo = get_nested_item(battleInfo,path)
+        appendTo = get_nested_item(infoDict,path)
         if appendTo:
-            battleInfo = set_nested_item(battleInfo, path, appendTo + value)
+            battleInfo = set_nested_item(infoDict, path, appendTo + value)
         else:
-            battleInfo = set_nested_item(battleInfo, path, value)
+            battleInfo = set_nested_item(infoDict, path, value)
     else:
-        battleInfo = set_nested_item(battleInfo, path, value)
+        battleInfo = set_nested_item(infoDict, path, value)
 
 def callGroup(a):
     members = a["member"] 
@@ -1770,7 +1793,7 @@ def callGroup(a):
                 if len(battleInfo["groups"][group]) == 0:
                     callDelete({"path":["groups",group]})
         else:
-            storeInfo(["groups",group],list(set(members)),append)
+            storeInfo(["groups",group],list(set(members)),append,battleInfo)
 
 def pathing(steps,dictionary):
     for step in steps:
@@ -1963,6 +1986,8 @@ funcDict = {
 "group" : callGroup,
 "info" : showInfo,
 "store" : callStore,
+"doable" : callStoreDoable,
+"arsenal" : callStoreArsenal,
 "roll" : rollString,
 "shortrest" : callShortRest,
 "longrest" : callLongRest,
@@ -1982,6 +2007,7 @@ funcDict = {
 }
 
 senderList = ["sender","target","advantage","times","fudge","must-do"]
+storeList = ["path", "commandString", "mode", "allowIncomplete"]
 hasDict = {
 "action": senderList,
 "weapon": senderList,
@@ -1992,7 +2018,9 @@ hasDict = {
 "set": ["path", "target", "change", "target-all","sort"],
 "list": ["path", "target", "target-all", "optionalPath"],
 "listkeys": ["path", "target", "target-all"],
-"store": ["path", "commandString", "mode", "allowIncomplete"],
+"store": storeList,
+"doable": storeList,
+"arsenal": storeList + ["target","target-all"],
 "init": ["target", "sort", "target-all"],
 "remove": ["target", "target-all"],
 "auto": ["target", "commandString", "mode", "target-all", "optionalSenderAndTarget","path","allowIncomplete","optionalPath"],
