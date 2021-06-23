@@ -90,8 +90,8 @@ load --category spells --file new_spell.json
 turn
 ''',
 
-"auto" : '''Set an automated command:
-auto --target sahuagin --commandString "action --target party!random --sender sahuagin --do multiattack"
+"put" : '''Put a full or partial command into either a global or creature:
+put --target sahuagin --commandString "action --target party!random --sender sahuagin --do multiattack"
 ''',
 
 "group" : '''Set a group for use in targetting. Will be resolved to listed targets:
@@ -998,12 +998,11 @@ def callUse(a):
     if arsenalList:
         command = arsenalList.get(do)
 
-    doables = battleInfo.get("doable")[do]
-    if doables and not command:
-        command = doables.get(do)
+    if not command:
+        command = get_nested_item(battleInfo,["commands",do])
 
     if command:
-        command.get("command") = None
+        a["command"] = None
         commandDict = weedNones(command)
         commandDict.update(a)
         parse_command_dict(command)
@@ -1419,7 +1418,7 @@ def validateCommand(commandDict):
     return True
 
 def validateCommands(combatantJson):
-    commands = combatantJson.get("autoDict")
+    commands = get_nested_item(combatantJson, ["arsenal","autoDict"])
     if commands:
         for commandDict in commands:
             if validateCommand(commandDict.copy()):
@@ -1452,7 +1451,7 @@ def callTurn(a,directCommand=True):
                 turnTo(nickNext)
             else:
                 #"Paused due to no target for auto commands or no commands or you simply marked this creature for pausing"
-                print("Paused --> Needs commands?", not combatantJson.get("autoDict"), ". Paused set?",combatantJson["paused"], ". No targets or senders?", (not isValidCommand) and bool(combatantJson.get("autoDict")))
+                print("Paused --> Needs commands?", not get_nested_item(combatantJson,["arsenal","autoDict"]), ". Paused set?",combatantJson["paused"], ". No targets or senders?", (not isValidCommand) and bool(get_nested_item(combatantJson,["arsenal","autoDict"])))
         else:
             print("Bounced an invalid turn attempt trying to callturn on someone who's turn it is not")
     else:
@@ -1625,7 +1624,7 @@ def handleAllAliases(toDict,resolve=True):
 
 
 def runAuto(combatantJson, target=""):
-    autoDicts = combatantJson.get("autoDict")
+    autoDicts = get_nested_item(combatantJson,["arsenal","autoDict"])
     for commandDict in autoDicts:
         if target:
             commandDict["target"] = [target]
@@ -1641,112 +1640,74 @@ def callRun(a):
     for string in a["string"]:
         parseAndRun(string)
 
-def setAutoDict(a):
-    combatant = a["target"]
-    combatantJson = battleTable[combatant]
+def storeCommand(a):
     mode = a["mode"]
-    if mode == "append" or mode == "mod":
-        if not combatantJson.get("autoDict"):
-            combatantJson["autoDict"] = []
-    elif mode == "set":
-        combatantJson["autoDict"] = []
+    combatant = a["target"]
+    combatantJson = battleTable.get(combatant)
+    context = battleInfo
+    startIndex = a["index"]
+    if combatantJson:
+        context = combatantJson
+
+    path = a["path"]
+    if path:
+        if combatantJson:
+            path = ["arsenal"] + path
+        else:
+            path = ["commands"] + path
+    else:
+        if combatantJson:
+            path = ["arsenal","autoDict"]
+        else:
+            path = ["commands","genericCommand"]
+            print("failed to enter a path for command. Placing it in genericCommand")
 
     commandDicts = processCommandStrings(a)
+
     if mode == "mod":
-        if a.get("path"):
-            commandDicts = modInfo([combatant,"autoDict"]+a["path"],commandDicts,battleTable)
-        else:
-            commandDicts = modInfo([combatant,"autoDict"],commandDicts,battleTable)
+        commandDicts = modInfo(path,commandDicts,context,startIndex)
+
     for commandDict in commandDicts:
-        command = commandDict["command"]
-        has = hasParse(command)
-        if has.get("sender") and ((not commandDict.get("sender")) or (geti(commandDict.get("sender"),0,False) == "none")):
-            commandDict["sender"] = [combatant]
-        if has.get("target") and ((not commandDict.get("target")) or (geti(commandDict.get("target"),0,False) == "none")):
-            commandDict["target"] = [combatant]
+        if combatantJson:
+            command = commandDict["command"]
+            has = hasParse(command)
+            if has.get("sender") and ((not commandDict.get("sender")) or (geti(commandDict.get("sender"),0,False) == "none")):
+                commandDict["sender"] = [combatant]
+            if has.get("target") and ((not commandDict.get("target")) or (geti(commandDict.get("target"),0,False) == "none")):
+                commandDict["target"] = [combatant]
         if mode == "append" or mode == "set":
-            combatantJson["autoDict"].append(commandDict)
+            set_nested_item(context,path+[index+startIndex],commandDict)
+
+def getAutoBaseCommand(a,index,commandString):
+    combatant = a["target"]
+    combatantJson = battleTable[combatant]
+    autoDicts = combatantJson.get("autoDict")
+    args = commandString.split(" ")
+    subCommand = args[0]
+    baseCommand = resolveCommandAlias(subCommand,battleInfo)
+    if not baseCommand:
+        subCommand = autoDicts[index+startIndex]["command"]
+        return subCommand +" "+ commandString
+    return commandString
 
 def processCommandStrings(a):
-    if a.get("command") == "auto":
-        combatant = a["target"]
-        combatantJson = battleTable.get(combatant)
-        autoDicts = combatantJson.get("autoDict")
-        startIndex = a.get("path")
-        if not startIndex:
-            startIndex = 0
-
     commandDicts = []
+    startIndex = geti(a,"index",0)
+
     for index,commandString in enumerate(a["commandString"]):
-        if (not (a.get("method") in ["append","a"])) and a.get("command") == "auto":
-            args = commandString.split(" ")
-            subCommand = args[0]
-            if not(subCommand in funcDict):
-                baseCommand = getBaseCommand(subCommand)
-                if not baseCommand:
-                    subCommand = autoDicts[index+startIndex]["command"]
-                    commandString = subCommand +" "+ commandString
+        if (not (a.get("method") in ["append","a"])) and (a.get("command") in ["auto", "arsenal"]):
+            commandString = getAutoBaseCommand(a,startIndex+index, commandString)
             
         argDictTemps = parse_command_string(commandString,a.get("command"),a.get("verify"))
         for argDictTemp in argDictTemps:
             commandDicts.append(handleAllAliases(argDictTemp,a["resolve"]))
     return commandDicts
 
-
-def callStoreDoable(a):
-    commandDicts = processCommandStrings(a)
-    path = ["doable"]+a["path"]
-    mode = a["mode"]
-    if mode == "append":
-        storeInfo(path,commandDicts,True,battleInfo)
-    elif mode == "set":
-        storeInfo(path,commandDicts,False,battleInfo)
-    elif mode == "mod":
-        modInfo(path,commandDicts,battleInfo)
-    else:
-        print("Invalid mode snuck by somehow")
-
-def callStoreArsenal(a):
-    commandDicts = processCommandStrings(a)
-    path = ["arsenal"]+a["path"]
-    mode = a["mode"]
-    if mode == "append":
-        storeInfo(path,commandDicts,True,battleTable.get(a["target"]))
-    elif mode == "set":
-        storeInfo(path,commandDicts,False,battleTable.get(a["target"]))
-    elif mode == "mod":
-        modInfo(path,commandDicts,battleTable.get(a["target"]))
-    else:
-        print("Invalid mode snuck by somehow")
-
-def callStore(a):
-    commandDicts = processCommandStrings(a)
-    path = ["commands"]+a["path"]
-    mode = a["mode"]
-    if mode == "append":
-        storeInfo(path,commandDicts,True)
-    elif mode == "set":
-        storeInfo(path,commandDicts,False)
-    elif mode == "mod":
-        modInfo(path,commandDicts,battleInfo)
-    else:
-        print("Invalid mode snuck by somehow")
-
-
 def getInfo(path):
     return get_nested_item(battleInfo,path)
 
 #add a mode which allows for the use of append_value instead of update so you could bless someone with two different options
-def modInfo(path,modDictionaries,dictionary):
-    startPosition = path[-1]
-    if startPosition == None:
-        startPosition = 0
-        path = path[:-1]
-    elif startPosition.isnumeric():
-        startPosition = int(startPosition)
-        path = path[:-1]
-    else:
-        startPosition = 0
+def modInfo(path,modDictionaries,dictionary,startPosition=0):
     existingDictionaries = get_nested_item(dictionary,path)
     if existingDictionaries:
         for index, modDictionary in enumerate(modDictionaries):
@@ -1929,6 +1890,9 @@ def populateParserArguments(parser,has,metaHas,verify=True):
     if has.get("info"):
         parser.add_argument("--info", "-i", help='Info category to interact with')
 
+    if has.get("index"):
+        parser.add_argument("--index", "-i", help='Might be combined with a path',default=0)
+
     if has.get("advantage"):
         parser.add_argument("--advantage", "-a", choices=["1","0","-1","?"], help='Advantage for attacks', nargs='+')
 
@@ -1982,12 +1946,9 @@ funcDict = {
 "load" : callLoad,
 "help" : helpMessage,
 "turn" : callTurn,
-"auto" : setAutoDict,
+"put" : storeCommand,
 "group" : callGroup,
 "info" : showInfo,
-"store" : callStore,
-"doable" : callStoreDoable,
-"arsenal" : callStoreArsenal,
 "roll" : rollString,
 "shortrest" : callShortRest,
 "longrest" : callLongRest,
@@ -2020,10 +1981,10 @@ hasDict = {
 "listkeys": ["path", "target", "target-all"],
 "store": storeList,
 "doable": storeList,
-"arsenal": storeList + ["target","target-all"],
+"arsenal": storeList + ["target","target-all","index"],
 "init": ["target", "sort", "target-all"],
 "remove": ["target", "target-all"],
-"auto": ["target", "commandString", "mode", "target-all", "optionalSenderAndTarget","path","allowIncomplete","optionalPath"],
+"put": ["target", "commandString", "mode", "target-all", "optionalSenderAndTarget","allowIncomplete","index","path","optionalPath"],
 "add": ["target", "identity", "sort", "times", "group", "append", "no-alias", "target-all"],
 "longrest": ["target", "times", "target-all"],
 "shortrest": ["target", "times", "target-all"],
@@ -2043,22 +2004,24 @@ hasDict = {
 "run": ["arbitraryString"],
 "do": ["target", "fudge", "check","sender","optionalSenderAndTarget"],
 }
-
-def getBaseCommand(command):
+def resolveCommandAliasWorker(command,context):
     if command in funcDict:
         return command
-    comList = battleInfo["commands"].get(command)
-    comDict = geti(comList, 0,False)
+    comList = context["commands"].get(command)
+    comDict = geti(comList, 0, False)
     com = False
     if comDict:
         com = comDict.get("command")
     if com:
-        if com in funcDict:
-            return com
-        else:
-            return getBaseCommand(com)
+        return resolveCommandAliasWorker(com,context)
     else:
         return False
+
+def resolveCommandAlias(commandString,context):
+    args = commandString.split(" ")
+    command = args[0]
+    entryString = " ".join(args[1:])
+    resolveCommandAliasWorker(commandString,context)
 
 def parseOnly(command_string_to_parse,metaCommand="",verify=True):
     args = command_string_to_parse.split(" ")
@@ -2121,7 +2084,7 @@ def parse_command_string(command_string_to_parse,metaCommand="",verify=True):
         commandDict = battleInfo["commands"].get(command)
         if commandDict:
             if len(args) > 1:
-                baseCommand = getBaseCommand(command)
+                baseCommand = resolveCommandAlias(command,battleInfo)
                 if baseCommand:
                     if len(commandDict) == 1:
                         entryString = " ".join(args[1:])
@@ -2176,6 +2139,12 @@ def parse_command_dict(argDictToParse):
 
     if not has.get("target") and not has.get("target-single-optional"):
         argDictMain["target"] = ["none"]
+
+    if has.get("target") and argDictMain["target"] == None and has.get("optionalSenderAndTarget"):
+        argDictMain["target"] = ["ambiguous"]
+
+    if has.get("sender") and argDictMain["sender"] == None and has.get("optionalSenderAndTarget"):
+        argDictMain["sender"] = ["ambiguous"]
 
     if command == "do":
         if argDictMain["target"] == None:
