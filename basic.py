@@ -907,10 +907,10 @@ def callAddAuto(a):
 
     if identity:
         parseAndRun("add -t "+target+" -i "+identity+" -g "+identity+"s "+party+" --append") 
-        parseAndRun("auto -t "+identity+"s -c 'use -d "+do+" -t "+opponent+"!"+method+"'") 
+        parseAndRun("put -t "+identity+"s -c 'use -d "+do+" -t "+opponent+"!"+method+"'") 
     else:
         parseAndRun("add -t "+target+" -g "+target+"s "+party+" --append") 
-        parseAndRun("auto -t "+target+"s -c 'use -d "+do+" -t "+opponent+"!"+method+"'") 
+        parseAndRun("put -t "+target+"s -c 'use -d "+do+" -t "+opponent+"!"+method+"'") 
 
 def findAvailableNick(nick):
     nickPair = nick.split("#")
@@ -1004,16 +1004,19 @@ def callUse(a):
     doables = False
     if arsenalList:
         doables = arsenalList.get(do)
-
     if not doables:
         doables = get_nested_item(battleInfo,["commands",do])
 
+
     if doables:
-        for doable in doables:
+        for doableRef in doables:
+            doable = copy.deepcopy(doableRef)
+
             a["command"] = None
             a["sender"] = [a["sender"]]
             a["target"] = [a["target"]]
-            a["do"] = [a["do"]]
+            a["do"] = None
+            
             argDict = weedNones(a)
             doable.update(argDict)
             parse_command_dict(doable)
