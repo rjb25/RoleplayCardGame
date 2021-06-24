@@ -202,7 +202,7 @@ def get_nested_item(input_dict, nested_key):
     return internal_dict_value
 
 def weedNones(dictionary):
-    return {k:v for k,v in dictionary.items() if v is not None}
+    return {k:v for k,v in dictionary.items() if (v is not None) and v != []}
                 
 def load(a):
     with open(a["file"]) as f:
@@ -994,18 +994,19 @@ def callUse(a):
 
     senderJson = battleTable[a["sender"]]
     arsenalList = senderJson.get("arsenal")
-    command = False
+    doables = False
     if arsenalList:
-        command = arsenalList.get(do)
+        doables = arsenalList.get(do)
 
-    if not command:
-        command = get_nested_item(battleInfo,["commands",do])
+    if not doables:
+        doables = get_nested_item(battleInfo,["commands",do])
 
-    if command:
-        a["command"] = None
-        commandDict = weedNones(command)
-        commandDict.update(a)
-        parse_command_dict(command)
+    if doables:
+        for doable in doables:
+            a["command"] = None
+            argDict = weedNones(a)
+            doable.update(argDict)
+            parse_command_dict(doable)
         return True
 
     if callAction(a):
@@ -1050,6 +1051,7 @@ def handleThreshold(a):
     a.update(resultDict)
 
 def callDo(a):
+    say("called")
     target = a["target"]
     sender = a["sender"]
     targetJson = battleTable.get(target)
@@ -2121,6 +2123,7 @@ def parseAndRun(command_string_to_run):
     return returns
 
 def parse_command_dict(argDictToParse):
+    say(argDictToParse)
     argDictMain = copy.deepcopy(argDictToParse)
     command = argDictMain["command"]
     has = hasParse(command)
@@ -2165,9 +2168,11 @@ def parse_command_dict(argDictToParse):
 
     if command == "abort":
         return "EXIT"
+    say(argDictMain)
 
     argDictCopy = handleAllAliases(copy.deepcopy(argDictMain))
     argDictSingle = copy.deepcopy(argDictCopy)
+    say(argDictSingle)
 
     for time in range(int(times)):
         for sender in argDictCopy["sender"]:
