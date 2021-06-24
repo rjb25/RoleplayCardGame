@@ -171,7 +171,6 @@ class bcolors:
 def geti(list, index, default_value):
     try:
         return list[index]
-        
     except:
         return default_value
 
@@ -260,6 +259,9 @@ def saveBattle():
 
 def printJson(json):
     pprint.pprint(dictify(json), sort_dicts=False)
+
+def printBattleKeys():
+    print(battleTable.keys())
                 
 def getJson(steps):
         global cacheTable
@@ -750,13 +752,18 @@ def callCast(a):
 
 def removeDown(a=''):
     for nick, combatant in battleTable.copy().items():
-        if combatant["current_hp"] <= 0:
-            if not (combatant.get("downable") == "True"):
-                remove({"target": nick})
-            else:
-                combatant["current_hp"] = 0
-        elif combatant["current_hp"] > combatant["max_hp"]:
-            combatant["current_hp"] = combatant["max_hp"]
+        hp = combatant.get("current_hp")
+        if isinstance(hp, int):
+            if combatant["current_hp"] <= 0:
+                if not (combatant.get("downable") == "True"):
+                    remove({"target": nick})
+                else:
+                    combatant["current_hp"] = 0
+            elif combatant["current_hp"] > combatant["max_hp"]:
+                combatant["current_hp"] = combatant["max_hp"]
+        else:
+            print("Invalid combatant referenced by removeDown", nick)
+            printJson(combatant)
 
 def callRequest(a):
     steps = a["path"]
@@ -1004,6 +1011,9 @@ def callUse(a):
     if doables:
         for doable in doables:
             a["command"] = None
+            a["sender"] = [a["sender"]]
+            a["target"] = [a["target"]]
+            a["do"] = [a["do"]]
             argDict = weedNones(a)
             doable.update(argDict)
             parse_command_dict(doable)
@@ -1051,7 +1061,6 @@ def handleThreshold(a):
     a.update(resultDict)
 
 def callDo(a):
-    say("called")
     target = a["target"]
     sender = a["sender"]
     targetJson = battleTable.get(target)
@@ -1642,7 +1651,7 @@ def callRun(a):
     for string in a["string"]:
         parseAndRun(string)
 
-def storeCommand(a):
+def callPut(a):
     mode = a["mode"]
     combatant = a["target"]
     combatantJson = battleTable.get(combatant)
@@ -1664,7 +1673,7 @@ def storeCommand(a):
             path = ["commands","genericCommand"]
             print("failed to enter a path for command. Placing it in genericCommand")
 
-    commandDicts = processCommandStrings(a)
+    commandDicts = processCommandStrings(a,context,path)
 
     if mode == "mod":
         commandDicts = modInfo(path,commandDicts,context,startIndex)
@@ -1680,30 +1689,56 @@ def storeCommand(a):
         if mode == "append" or mode == "set":
             set_nested_item(context,path+[index+startIndex],commandDict)
 
-def getAutoBaseCommand(a,index,commandString):
-    combatant = a["target"]
-    combatantJson = battleTable[combatant]
-    autoDicts = combatantJson.get("autoDict")
-    args = commandString.split(" ")
-    subCommand = args[0]
-    baseCommand = resolveCommandAlias(subCommand,battleInfo)
-    if not baseCommand:
-        subCommand = autoDicts[index+startIndex]["command"]
-        return subCommand +" "+ commandString
-    return commandString
-
-def processCommandStrings(a):
+def processCommandStrings(a,context={},path=[]):
     commandDicts = []
     startIndex = geti(a,"index",0)
 
     for index,commandString in enumerate(a["commandString"]):
-        if (not (a.get("method") in ["append","a"])) and (a.get("command") in ["auto", "arsenal"]):
-            commandString = getAutoBaseCommand(a,startIndex+index, commandString)
+        if (not (a.get("method") in ["append","a"])):
+            commandString = getBaseCommand(startIndex+index, commandString, context, path)
             
         argDictTemps = parse_command_string(commandString,a.get("command"),a.get("verify"))
         for argDictTemp in argDictTemps:
             commandDicts.append(handleAllAliases(argDictTemp,a["resolve"]))
     return commandDicts
+
+def getBaseCommand(index,commandString,context,path):
+    baseDicts = get_nested_item(context,path)
+    resolvedCommandString = resolveCommandAlias(commandString,context,path)
+    if not resolvedCommandString:
+        if baseDicts:
+            subCommand = baseDicts[index]["command"]
+            return subCommand +" "+ commandString
+        else:
+            print("This is kind of giving up")
+            return "do " + commandString
+    else:
+        return resolvedCommandString
+
+    return commandString
+
+def resolveCommandAlias(commandString,context,path):
+    args = commandString.split(" ")
+    command = args[0]
+    entryString = " ".join(args[1:])
+    resolvedCommand = resolveCommandAliasWorker(command,context,path)
+    if resolvedCommand:
+        return resolvedCommand + " " +entryString 
+    else:
+        return False
+
+def resolveCommandAliasWorker(command,context,path):
+    if command in funcDict:
+        return command
+    comList = get_nested_item(dictify(context),path+[command])
+    comDict = geti(comList, 0, False)
+    com = False
+    if comDict:
+        com = comDict.get("command")
+    if com:
+        return resolveCommandAliasWorker(com,context,path)
+    else:
+        return False
 
 def getInfo(path):
     return get_nested_item(battleInfo,path)
@@ -1948,7 +1983,7 @@ funcDict = {
 "load" : callLoad,
 "help" : helpMessage,
 "turn" : callTurn,
-"put" : storeCommand,
+"put" : callPut,
 "group" : callGroup,
 "info" : showInfo,
 "roll" : rollString,
@@ -2006,24 +2041,6 @@ hasDict = {
 "run": ["arbitraryString"],
 "do": ["target", "fudge", "check","sender","optionalSenderAndTarget"],
 }
-def resolveCommandAliasWorker(command,context):
-    if command in funcDict:
-        return command
-    comList = context["commands"].get(command)
-    comDict = geti(comList, 0, False)
-    com = False
-    if comDict:
-        com = comDict.get("command")
-    if com:
-        return resolveCommandAliasWorker(com,context)
-    else:
-        return False
-
-def resolveCommandAlias(commandString,context):
-    args = commandString.split(" ")
-    command = args[0]
-    entryString = " ".join(args[1:])
-    resolveCommandAliasWorker(commandString,context)
 
 def parseOnly(command_string_to_parse,metaCommand="",verify=True):
     args = command_string_to_parse.split(" ")
@@ -2086,7 +2103,7 @@ def parse_command_string(command_string_to_parse,metaCommand="",verify=True):
         commandDict = battleInfo["commands"].get(command)
         if commandDict:
             if len(args) > 1:
-                baseCommand = resolveCommandAlias(command,battleInfo)
+                baseCommand = resolveCommandAlias(command,battleInfo,["commands",command])
                 if baseCommand:
                     if len(commandDict) == 1:
                         entryString = " ".join(args[1:])
@@ -2102,7 +2119,7 @@ def parse_command_string(command_string_to_parse,metaCommand="",verify=True):
             else:
                 argDictMains = copy.deepcopy(commandDict)
         else:
-            print("Invalid command. None specified or not an alias nor built in command")
+            print("Invalid command. None specified or not an alias nor built in command", commandDict, command)
     else:
         argDictMains.append(parseOnly(command_string_to_parse,metaCommand,verify))
 
@@ -2123,7 +2140,6 @@ def parseAndRun(command_string_to_run):
     return returns
 
 def parse_command_dict(argDictToParse):
-    say(argDictToParse)
     argDictMain = copy.deepcopy(argDictToParse)
     command = argDictMain["command"]
     has = hasParse(command)
@@ -2168,11 +2184,9 @@ def parse_command_dict(argDictToParse):
 
     if command == "abort":
         return "EXIT"
-    say(argDictMain)
 
     argDictCopy = handleAllAliases(copy.deepcopy(argDictMain))
     argDictSingle = copy.deepcopy(argDictCopy)
-    say(argDictSingle)
 
     for time in range(int(times)):
         for sender in argDictCopy["sender"]:
