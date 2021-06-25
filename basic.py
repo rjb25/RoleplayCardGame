@@ -1707,7 +1707,7 @@ def processCommandStrings(a,context={},path=[]):
 
 def getBaseCommand(index,commandString,context,path):
     baseDicts = get_nested_item(context,path)
-    resolvedCommandString = resolveCommandAlias(commandString,context,path)
+    resolvedCommandString = resolveCommandAlias(commandString,context,path[:-1])
     if not resolvedCommandString:
         if baseDicts:
             subCommand = baseDicts[index]["command"]
@@ -2106,11 +2106,10 @@ def parse_command_string(command_string_to_parse,metaCommand="",verify=True):
         commandDict = battleInfo["commands"].get(command)
         if commandDict:
             if len(args) > 1:
-                baseCommand = resolveCommandAlias(command,battleInfo,["commands"])
-                if baseCommand:
+                resolvedCommand = resolveCommandAlias(command_string_to_parse,battleInfo,["commands"])
+                if resolvedCommand:
                     if len(commandDict) == 1:
-                        entryString = " ".join(args[1:])
-                        aliasDict = parseOnly(baseCommand + " " + entryString,metaCommand,False)
+                        aliasDict = parseOnly(resolvedCommand,metaCommand,False)
                         aliasDict = weedNones(aliasDict)
                         copyDict = copy.deepcopy(commandDict[0])
                         copyDict.update(aliasDict)
@@ -2118,7 +2117,7 @@ def parse_command_string(command_string_to_parse,metaCommand="",verify=True):
                     else:
                         print("Can't fill alias arguments for aliases that map to multiple commands")
                 else:
-                    print("Here would be some arbitrary command handling that does it's best to get args without command context",commandDict,command,baseCommand)
+                    print("Here would be some arbitrary command handling that does it's best to get args without command context", command_string_to_parse)
             else:
                 argDictMains = copy.deepcopy(commandDict)
         else:
@@ -2135,7 +2134,7 @@ def parse_command_string(command_string_to_parse,metaCommand="",verify=True):
 
 def parseAndRun(command_string_to_run):
     command_string_to_run = command_string_to_run.replace("\"-","\" -")#Ugh arg parse can't handle: auto -t guy -c "-t guy"
-    command_string_to_run = command_string_to_run.replace("\'-","\' -")#Ugh arg parse can't handle: auto -t guy -c "-t guy"
+    command_string_to_run = command_string_to_run.replace("\'-","\' -")#Ugh arg parse can't handle: auto -t guy -c '-t guy'
     #But it can handle: auto -t guy -c " -t guy" 
     returns = []
     for dictionary in parse_command_string(command_string_to_run):
