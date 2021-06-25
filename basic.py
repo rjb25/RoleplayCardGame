@@ -1659,6 +1659,7 @@ def handleNumerics(combatantList):
     return result
 
 def handleAllAliases(toDict,resolve=True):
+    say(toDict)
     command = toDict["command"]
     has = hasParse(command)
 
@@ -1683,7 +1684,6 @@ def handleAllAliases(toDict,resolve=True):
         toDict["target"] = handleNumerics(toDict["target"])
         
     return toDict
-
 
 def runAuto(combatantJson, target=""):
     autoDicts = get_nested_item(combatantJson,["arsenal","autoDict"])
@@ -2244,7 +2244,9 @@ def parse_command_dict(argDictToParse):
     if command == "abort":
         return "EXIT"
 
+    say(argDictMain)
     argDictCopy = handleAllAliases(copy.deepcopy(argDictMain))
+    say(argDictMain)
     argDictSingle = copy.deepcopy(argDictCopy)
 
     for time in range(int(times)):
@@ -2259,10 +2261,16 @@ def parse_command_dict(argDictToParse):
                     argDictSingle["advantage"] = geti(argDictCopy["advantage"],number,0)
 
                 if battleTable.get(target) or not has.get("target") or has.get("no-alias") or command == "load" or target == "ambiguous":
+                    does = True
                     if not argDictCopy.get("do"):
                         argDictCopy["do"] = ["none"]
+                        does = False
+
                     for do in argDictCopy["do"]:
                         argDictSingle["do"] = do
+                        if (not (target in battleTable)) and does and (len(argDictCopy["target"]) == 1):
+                            argDictSingle["target"] = geti(argDictCopy["target"],0,argDictSingle["target"])
+
                         command_result += str(funcDict[command](copy.deepcopy(argDictSingle)))
                         removeDown()
                         argDictCopy = handleAllAliases(copy.deepcopy(argDictMain))
