@@ -1057,7 +1057,6 @@ def callUse(a):
         recurSection = "battleInfo"
 
     if doables and not get_nested_item(a,["antiRecursion",recurSection,do]):
-        say(get_nested_item(a,["antiRecursion",recurSection,do]))
         for doableRef in doables:
             doable = copy.deepcopy(doableRef)
 
