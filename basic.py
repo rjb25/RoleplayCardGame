@@ -188,17 +188,34 @@ def dictify(d):
     return d
                 
 def set_nested_item(dataDict, mapList, val):
+    wasDefault = True
+    if isinstance(dataDict, dict):
+        wasDefault = False
+        dataDict = defaultify(dataDict)
+        
     """Set item in nested dictionary"""
     reduce(getitem, mapList[:-1], dataDict)[mapList[-1]] = val
+    if not wasDefault:
+        return dictify(dataDict)
     return dataDict
 
-def get_nested_item(input_dict, nested_key):
-    internal_dict_value = input_dict
+def get_nested_item(dataDict, nested_key):
+    default = False
+    if isinstance(dataDict, defaultdict):
+        default = True
+        dataDict = dictify(dataDict)
+
+    dataDictValue = dataDict
     for k in nested_key:
-        internal_dict_value = geti(internal_dict_value, k, None)
-        if internal_dict_value is None:
+        dataDictValue = geti(dataDictValue, k, None)
+        if dataDictValue is None:
             return None
-    return internal_dict_value
+
+    if default:
+        dataDict = defaultify(dataDict)
+        return dataDictValue
+
+    return dataDictValue
 
 def weedNones(dictionary):
     return {k:v for k,v in dictionary.items() if (v is not None) and v != []}
@@ -334,10 +351,10 @@ def expandStatWord(stat):
 
 def getProf(combatant):
     proficiency = combatant.get("proficiency_bonus")
-    cr = combatant.get("challenge_rating")
     if proficiency:
         return proficiency
-    elif cr:
+    elif "challenge_rating" in combatant:
+        cr = combatant.get("challenge_rating")
         newProficiency = crToProf(cr)
         combatant["proficiency_bonus"] = newProficiency
         return newProficiency
@@ -453,7 +470,7 @@ def statMod(stat):
         return math.floor((stat-10)/2)
 
 def printUse(a):
-    print(a["sender"].upper(), "uses", a["do"], "on", a["target"])
+    print("\n"+a["sender"].upper(), "uses", a["do"], "on", a["target"])
 
 def applyAction(a):
     actionKey = a["do"]
@@ -498,7 +515,7 @@ def applyAction(a):
         else:
             mod = getMod("actionHit",action,senderJson)
             advMod = int(senderJson["advantage"])
-        printUse(a)
+        #printUse(a)
         advNum = advantageIn + advMod
 
         advantage = ""
@@ -630,7 +647,7 @@ def callWeapon(a):
     landFudge = a.get("landFudge")
     weaponFudge = a.get("weaponFudge")
     if attackJson:
-        printUse(a)
+        #printUse(a)
         sender = a["sender"]
         target = a["target"]
         targetJson = battleTable[target]
@@ -721,7 +738,7 @@ def callCast(a):
             threshold = int(targetJson["armor_class"])
             advMod = int(senderJson["advantage"])
         
-        printUse(a)
+        #printUse(a)
 
         damageType = attackJson["damage"]["damage_type"]["index"]
         hurtString = dmgString + "@" + damageType
@@ -770,6 +787,30 @@ def callRequest(a):
     result = dictify(getJson(steps))
     pprint.pprint(dictify(getJson(steps)), sort_dicts=False)
 
+    directory = ""
+    if a.get("directory"):
+        directory = a["directory"]
+    if a.get("file"):
+        for output in a.get("file"):
+            if directory:
+                with open(directory+"/"+output, 'w') as f:
+                    json.dump(dictify(result),f,indent=4)       
+            else:
+                with open(output, 'w') as f:
+                    json.dump(dictify(result),f,indent=4)       
+
+def callDump(a):
+    target = a["target"]
+
+    result = dictify(copy.deepcopy(battleTable.get(target)))
+    pluckKeys = ["current_hp","initiative","disabled","paused","identity","advantage","save_advantage","nick","name","senses","url"]
+
+    for key in pluckKeys:
+        result.pop(key,None)
+
+    result["index"] = a["identity"].lower()
+
+    pprint.pprint(result, sort_dicts=False)
     directory = ""
     if a.get("directory"):
         directory = a["directory"]
@@ -1002,21 +1043,29 @@ def callUse(a):
     senderJson = battleTable[a["sender"]]
     arsenalList = senderJson.get("arsenal")
     doables = False
+
+    printUse(a)
+
+    recurSection = ""
+    if not a.get("antiRecursion"):
+        a["antiRecursion"] = {}
     if arsenalList:
         doables = arsenalList.get(do)
+        recurSection = "arsenal"
     if not doables:
-        doables = get_nested_item(battleInfo,["commands",do])
+        doables = get_nested_item(copy.deepcopy(battleInfo),["commands",do])
+        recurSection = "battleInfo"
 
-
-    if doables:
+    if doables and not get_nested_item(a,["antiRecursion",recurSection,do]):
+        say(get_nested_item(a,["antiRecursion",recurSection,do]))
         for doableRef in doables:
             doable = copy.deepcopy(doableRef)
 
             a["command"] = None
             a["sender"] = [a["sender"]]
             a["target"] = [a["target"]]
+            a = set_nested_item(a,["antiRecursion",recurSection,do],True)
             a["do"] = None
-            
             argDict = weedNones(a)
             doable.update(argDict)
             parse_command_dict(doable)
@@ -1658,7 +1707,7 @@ def callPut(a):
     mode = a["mode"]
     combatant = a["target"]
     combatantJson = battleTable.get(combatant)
-    context = battleInfo
+    context = defaultify(battleInfo)
     startIndex = a["index"]
     if combatantJson:
         context = combatantJson
@@ -1678,25 +1727,31 @@ def callPut(a):
 
     commandDicts = processCommandStrings(a,context,path)
 
-    if mode == "mod":
-        commandDicts = modInfo(path,commandDicts,context,startIndex)
+    if commandDicts:
+        if mode == "mod":
+            commandDicts = modInfo(path,commandDicts,context,startIndex)
 
-    for commandDict in commandDicts:
-        if combatantJson:
-            command = commandDict["command"]
-            has = hasParse(command)
-            if has.get("sender") and ((not commandDict.get("sender")) or (geti(commandDict.get("sender"),0,False) == "none")):
-                commandDict["sender"] = [combatant]
-            if has.get("target") and ((not commandDict.get("target")) or (geti(commandDict.get("target"),0,False) == "none")):
-                commandDict["target"] = [combatant]
-        if mode == "append" or mode == "set":
-            set_nested_item(context,path+[index+startIndex],commandDict)
+        for commandDict in commandDicts:
+            if combatantJson:
+                command = commandDict["command"]
+                has = hasParse(command)
+                if has.get("sender") and ((not commandDict.get("sender")) or (geti(commandDict.get("sender"),0,False) == "none")):
+                    commandDict["sender"] = [combatant]
+                if has.get("target") and ((not commandDict.get("target")) or (geti(commandDict.get("target"),0,False) == "none")):
+                    commandDict["target"] = [combatant]
+            if mode == "append" or mode == "set":
+                set_nested_item(context,path+[index+startIndex],commandDict)
 
 def processCommandStrings(a,context={},path=[]):
     commandDicts = []
     startIndex = geti(a,"index",0)
 
     for index,commandString in enumerate(a["commandString"]):
+        if commandString == "delete":
+            get_nested_item(context,path[:-1]).pop(path[-1])
+            return False
+
+
         if (not (a.get("method") in ["append","a"])):
             commandString = getBaseCommand(startIndex+index, commandString, context, path)
             
@@ -1721,6 +1776,7 @@ def getBaseCommand(index,commandString,context,path):
     return commandString
 
 def resolveCommandAlias(commandString,context,path):
+    context = copy.deepcopy(context)
     args = commandString.split(" ")
     command = args[0]
     entryString = " ".join(args[1:])
@@ -1984,6 +2040,7 @@ funcDict = {
 "add" : addCreature,
 "init" : applyInit,
 "load" : callLoad,
+"dump" : callDump,
 "help" : helpMessage,
 "turn" : callTurn,
 "put" : callPut,
@@ -2015,6 +2072,7 @@ hasDict = {
 "cast": senderList + ["level"],
 "use": senderList + ["level"],
 "request": ["path","file"],
+"dump": ["file","identity","target"],
 "mod": ["path", "target", "change", "times", "target-all","sort"],
 "set": ["path", "target", "change", "target-all","sort"],
 "list": ["path", "target", "target-all", "optionalPath"],

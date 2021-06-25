@@ -1,5 +1,5 @@
 {
-    "index": "fire-snake",
+    "index": "gobbers",
     "size": "Small",
     "type": "humanoid",
     "subtype": "goblinoid",
@@ -76,7 +76,7 @@
     "autoCommand": [
         "skip"
     ],
-    "my_turn": true,
+    "my_turn": false,
     "autoDict": [
         {
             "command": "use",
