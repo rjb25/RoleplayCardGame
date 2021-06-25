@@ -2106,7 +2106,7 @@ def parse_command_string(command_string_to_parse,metaCommand="",verify=True):
         commandDict = battleInfo["commands"].get(command)
         if commandDict:
             if len(args) > 1:
-                baseCommand = resolveCommandAlias(command,battleInfo,["commands",command])
+                baseCommand = resolveCommandAlias(command,battleInfo,["commands"])
                 if baseCommand:
                     if len(commandDict) == 1:
                         entryString = " ".join(args[1:])
@@ -2118,7 +2118,7 @@ def parse_command_string(command_string_to_parse,metaCommand="",verify=True):
                     else:
                         print("Can't fill alias arguments for aliases that map to multiple commands")
                 else:
-                    print("Here would be some arbitrary command handling that does it's best to get args without command context")
+                    print("Here would be some arbitrary command handling that does it's best to get args without command context",commandDict,command,baseCommand)
             else:
                 argDictMains = copy.deepcopy(commandDict)
         else:
