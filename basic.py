@@ -180,7 +180,8 @@ def dd_rec():
 def defaultify(d):
     if not isinstance(d, dict):
         return d
-    return defaultdict(dd_rec, {k: defaultify(v) for k, v in d.items()})
+    d = defaultdict(dd_rec, {k: defaultify(v) for k, v in d.items()})
+    return d
 
 def dictify(d):
     if isinstance(d, defaultdict):
@@ -189,7 +190,7 @@ def dictify(d):
                 
 def set_nested_item(dataDict, mapList, val):
     wasDefault = True
-    if isinstance(dataDict, dict):
+    if not isinstance(dataDict, defaultdict):
         wasDefault = False
         dataDict = defaultify(dataDict)
         
@@ -1659,7 +1660,6 @@ def handleNumerics(combatantList):
     return result
 
 def handleAllAliases(toDict,resolve=True):
-    say(toDict)
     command = toDict["command"]
     has = hasParse(command)
 
@@ -1767,7 +1767,7 @@ def getBaseCommand(index,commandString,context,path):
             subCommand = baseDicts[index]["command"]
             return subCommand +" "+ commandString
         else:
-            print("This is kind of giving up")
+            print("No base command found, using do")
             return "do " + commandString
     else:
         return resolvedCommandString
@@ -1775,11 +1775,11 @@ def getBaseCommand(index,commandString,context,path):
     return commandString
 
 def resolveCommandAlias(commandString,context,path):
-    context = copy.deepcopy(context)
+    contextCopy = copy.deepcopy(context)
     args = commandString.split(" ")
     command = args[0]
     entryString = " ".join(args[1:])
-    resolvedCommand = resolveCommandAliasWorker(command,context,path)
+    resolvedCommand = resolveCommandAliasWorker(command,contextCopy,path)
     if resolvedCommand:
         return resolvedCommand + " " +entryString 
     else:
@@ -2244,9 +2244,7 @@ def parse_command_dict(argDictToParse):
     if command == "abort":
         return "EXIT"
 
-    say(argDictMain)
     argDictCopy = handleAllAliases(copy.deepcopy(argDictMain))
-    say(argDictMain)
     argDictSingle = copy.deepcopy(argDictCopy)
 
     for time in range(int(times)):
@@ -2261,15 +2259,15 @@ def parse_command_dict(argDictToParse):
                     argDictSingle["advantage"] = geti(argDictCopy["advantage"],number,0)
 
                 if battleTable.get(target) or not has.get("target") or has.get("no-alias") or command == "load" or target == "ambiguous":
-                    does = True
+                    #does = True
                     if not argDictCopy.get("do"):
                         argDictCopy["do"] = ["none"]
-                        does = False
+                        #does = False
 
                     for do in argDictCopy["do"]:
                         argDictSingle["do"] = do
-                        if (not (target in battleTable)) and does and (len(argDictCopy["target"]) == 1):
-                            argDictSingle["target"] = geti(argDictCopy["target"],0,argDictSingle["target"])
+                        #if (not (target in battleTable)) and does and (len(argDictCopy["target"]) == 1):
+                        #    argDictSingle["target"] = geti(argDictCopy["target"],0,argDictSingle["target"])
 
                         command_result += str(funcDict[command](copy.deepcopy(argDictSingle)))
                         removeDown()
