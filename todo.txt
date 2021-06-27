@@ -1,3 +1,15 @@
 Allow for numerics when referencing weapons and spells by adding to an arsenal list
 Global log returned for Nathan's code.
 Multiple do's stop if target dies and don't look for a new target
+Maintain above while modifying the `use` command to run similarly to put but the default case calls to weapons or cast or actions
+This is to allow more specific references and to make appending fudges more streamlined. Also allows you to swap out the do section of what you are calling.
+If I wanted to call a blessed and boosted greatsword I would:
+put -p blessed -c "do -l 1d4"
+put -p boosted -c "do -l 1d6"
+use -p blessed -c "-s zanros -t bigbad -d boosted" #Then how does boosted know to call greatsword?
+use -p blessed+boosted+greatsword boosted+javelin -c "-s zanros -t bigbad -d"
+Have a cascading effect like above?
+it would be
+blessed.update(-c)
+boosted.update(blessed)
+greatsword.update(boosted)

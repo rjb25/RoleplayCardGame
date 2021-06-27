@@ -1064,6 +1064,10 @@ def callUse(a):
             a["command"] = None
             a["sender"] = [a["sender"]]
             a["target"] = [a["target"]]
+            if a["landFudge"] and doable["landFudge"]:
+                a["landFudge"] = a["landFudge"] + doable["landFudge"]
+            if a["weaponFudge"] and doable["weaponFudge"]:
+                a["weaponFudge"] = a["weaponFudge"] + doable["weaponFudge"]
             a = set_nested_item(a,["antiRecursion",recurSection,do],True)
             a["do"] = None
             argDict = weedNones(a)
@@ -1123,6 +1127,12 @@ def callDo(a):
     blockMult = a["blockMult"]
     critValues = a["multiCrit"]
     save = bool(a.get("save"))
+
+    if not landStrings:
+        landStrings = ["100"]
+    if not threshold:
+        threshold = "ac"
+
     threshold = handleCheckAliases(threshold,senderJson,targetJson)
 
     if not blockMult:
@@ -1135,8 +1145,6 @@ def callDo(a):
         critValues = []
 
     hitCrit = {"roll":0,"critHit":False}
-    if not landStrings:
-        landStrings = ["100"]
     for landString in landStrings:
         hitCrit = rollFudge(senderJson,targetJson,hitCrit,landString,1,False,critValues,"hit")
     hit = hitCrit["roll"]
@@ -1668,6 +1676,8 @@ def handleAllAliases(toDict,resolve=True):
         toDict["sender"] = handleAliases(toDict["sender"],resolve,True)
 
     if (not has.get("no-alias") and has.get("target")) and toDict.get("target"):
+        if not toDict.get("target-unresolved"):
+            toDict["target-unresolved"] = handleAliases(toDict["target"],False,has.get("target-all"))
         toDict["target"] = handleAliases(toDict["target"],resolve,has.get("target-all"))
 
     if toDict.get("group") and command != "add":
@@ -2005,7 +2015,7 @@ def populateParserArguments(parser,has,metaHas,verify=True):
 
     if has.get("check"):
         parser.add_argument("--blockMult", "-b", help='How much damage remains when blocked?')
-        parser.add_argument("--check", "-c", help='What the threshold is for blocking. To include level of spell simply do spelldc+3. If it is a third level spell', default=-100)
+        parser.add_argument("--check", "-c", help='What the threshold is for blocking. To include level of spell simply do spelldc+3. If it is a third level spell')
         parser.add_argument("--save", "-d", help='Is this a save threshold?', dest='save', action='store_true')
         parser.set_defaults(save=False)
         parser.add_argument("--multiCrit", "-m", help='values which constitute a critical', nargs='+')
@@ -2259,15 +2269,15 @@ def parse_command_dict(argDictToParse):
                     argDictSingle["advantage"] = geti(argDictCopy["advantage"],number,0)
 
                 if battleTable.get(target) or not has.get("target") or has.get("no-alias") or command == "load" or target == "ambiguous":
-                    #does = True
+                    does = True
                     if not argDictCopy.get("do"):
                         argDictCopy["do"] = ["none"]
-                        #does = False
+                        does = False
 
                     for do in argDictCopy["do"]:
                         argDictSingle["do"] = do
-                        #if (not (target in battleTable)) and does and (len(argDictCopy["target"]) == 1):
-                        #    argDictSingle["target"] = geti(argDictCopy["target"],0,argDictSingle["target"])
+                        if (not (target in battleTable)) and does and (len(argDictCopy["target"]) == 0):
+                            argDictSingle["target"] = geti(handleAliases(argDictCopy["target-unresolved"]),0,argDictSingle["target"])
 
                         command_result += str(funcDict[command](copy.deepcopy(argDictSingle)))
                         removeDown()
