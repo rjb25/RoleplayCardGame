@@ -1,134 +1,89 @@
 {
     "index": "fire-snake",
-    "size": "Small",
-    "type": "humanoid",
-    "subtype": "goblinoid",
-    "alignment": "neutral evil",
-    "armor_class": 15,
-    "hit_points": 7,
-    "hit_dice": "2d6",
-    "speed": {
-        "walk": "30 ft."
-    },
-    "strength": 8,
+    "armor_class": 14,
+    "hit_points": 22,
+    "hit_dice": "5d8",
+    "strength": 12,
     "dexterity": 14,
-    "constitution": 10,
-    "intelligence": 10,
-    "wisdom": 8,
+    "constitution": 11,
+    "intelligence": 7,
+    "wisdom": 10,
     "charisma": 8,
-    "proficiencies": [
-        {
-            "value": 6,
-            "proficiency": {
-                "index": "skill-stealth",
-                "name": "Skill: Stealth",
-                "url": "/api/proficiencies/skill-stealth"
-            }
-        }
+    "damage_vulnerabilities": [
+        "cold"
     ],
-    "damage_vulnerabilities": [],
-    "damage_resistances": [],
-    "damage_immunities": [],
-    "condition_immunities": [],
-    "languages": "Common, Goblin",
-    "challenge_rating": 0.25,
-    "xp": 50,
-    "special_abilities": [
-        {
-            "name": "Nimble Escape",
-            "desc": "The goblin can take the Disengage or Hide action as a bonus action on each of its turns."
-        }
+    "damage_resistances": [
+        "bludgeoning",
+        "piercing",
+        "slashing"
     ],
-    "actions": [
-        {
-            "name": "Scimitar",
-            "desc": "Melee Weapon Attack: +4 to hit, reach 5 ft., one target. Hit: 5 (1d6 + 2) slashing damage.",
-            "attack_bonus": 4,
-            "damage": [
-                {
-                    "damage_type": {
-                        "index": "slashing",
-                        "name": "Slashing",
-                        "url": "/api/damage-types/slashing"
-                    },
-                    "damage_dice": "1d6+2"
-                }
-            ]
-        },
-        {
-            "name": "Shortbow",
-            "desc": "Ranged Weapon Attack: +4 to hit, range 80/320 ft., one target. Hit: 5 (1d6 + 2) piercing damage.",
-            "attack_bonus": 4,
-            "damage": [
-                {
-                    "damage_type": {
-                        "index": "piercing",
-                        "name": "Piercing",
-                        "url": "/api/damage-types/piercing"
-                    },
-                    "damage_dice": "1d6+2"
-                }
-            ]
-        }
+    "damage_immunities": [
+        "fire"
     ],
-    "max_hp": 8,
-    "useAuto": true,
-    "autoCommand": [
-        "skip"
-    ],
-    "my_turn": true,
-    "autoDict": [
-        {
-            "command": "use",
-            "landFudge": [],
-            "weaponFudge": [],
-            "do": [
-                "dagger"
-            ],
-            "sender": [
-                "captive-goblin"
-            ],
-            "target": [
-                "captive-goblin"
-            ]
-        }
-    ],
+    "challenge_rating": 0.5,
+    "xp": 100,
+    "max_hp": 24,
+    "incoming_advantage": 0,
     "arsenal": {
-        "greatsword": [
+        "tail": [
             {
-                "landFudge": [],
+                "landFudge": [
+                    ".+4"
+                ],
                 "weaponFudge": [
-                    "1d8@heal"
+                    "1d4+2@bludgeoning",
+                    "1d3@fire"
                 ],
                 "sender": [
-                    "captive-goblin"
+                    "fire-snake"
                 ],
                 "target": [
-                    "captive-goblin"
+                    "fire-snake"
                 ],
                 "blockMult": null,
-                "check": -100,
+                "check": "ac",
                 "save": false,
                 "multiCrit": null,
                 "command": "do"
             }
         ],
-        "greatswordl": [
+        "claws": [
             {
                 "landFudge": [
-                    "10"
+                    ".+3"
                 ],
+                "weaponFudge": [
+                    "1d4@piercing",
+                    "1d3@fire"
+                ],
+                "sender": [
+                    "fire-snake"
+                ],
+                "target": [
+                    "fire-snake"
+                ],
+                "blockMult": null,
+                "check": "ac",
+                "save": false,
+                "multiCrit": null,
+                "command": "do"
+            }
+        ],
+        "multi": [
+            {
+                "landFudge": [],
                 "weaponFudge": [],
                 "times": null,
                 "sender": [
-                    "captive-goblin"
+                    "fire-snake"
                 ],
                 "do": [
-                    "greatsword"
+                    "claws",
+                    "tail"
                 ],
                 "level": null,
                 "target": [
-                    "captive-goblin"
+                    "fire-snake"
                 ],
                 "advantage": null,
                 "command": "use"
@@ -136,9 +91,27 @@
         ],
         "autoDict": [
             {
-                "command": "skip"
+                "landFudge": [],
+                "weaponFudge": [],
+                "times": null,
+                "sender": [
+                    "fire-snake"
+                ],
+                "do": [
+                    "multi"
+                ],
+                "level": null,
+                "target": [
+                    "party!random"
+                ],
+                "advantage": null,
+                "command": "use",
+                "target-unresolved": [
+                    "party!random"
+                ]
             }
         ]
     },
-    "temp_hp": 0
+    "my_turn": false,
+    "proficiency_bonus": 2
 }

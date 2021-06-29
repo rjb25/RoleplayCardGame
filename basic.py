@@ -68,10 +68,6 @@ mod --target sahuagin#2 --path initiative --change -5
 list --target sahuagin#2 --path actions
 ''',
 
-"listkeys" : '''List the keys for an item:
-listkeys --target sahuagin#2 --path actions
-''',
-
 "add" : '''Add a creature:
 add --target sahuagin --times 2 --identity Aqua-Soldier
 ''',
@@ -181,7 +177,17 @@ def dset(context, path, value):
         context = context.setdefault(key, {})
     context[path[-1]] = value
 
-def get(context, path, default=None):
+def dmod(context, path, value):
+    if not isinstance(path,list):
+        path = [path]
+    for key in path[:-1]:
+        context = context.setdefault(key, {})
+    if dget(context,path[-1],None) == None:
+        context[path[-1]] = int(value)
+    else:
+        context[path[-1]] = context[path[-1]] + int(value)
+
+def dget(context, path, default=None):
     if not isinstance(path,list):
         path = [path]
     internal_dict_value = context
@@ -259,7 +265,7 @@ def getJson(steps):
         cache = cacheTable
         
         for i,x in enumerate(steps):
-                cache = get(cache,x)
+                cache = dget(cache,x)
                 if cache == None and i > 0:
                         #print("Not cached, trying api")
                         return getJsonFromApi(steps)
@@ -866,45 +872,25 @@ def callAction(a):
     return True
 
 def followPath(a):
-    steps = a["path"]
+    path = a["path"]
     diff = a.get("change")
     command = a["command"]
     target = a["target"]
-    battle = battleTable
-    
-    finalStep = False
-    if steps:
-        finalStep = geti(steps,len(steps)-1,False)
-
-    if not finalStep:
-        finalStep = target
-    else:
-        battle = battle[target]
-        for i,key in enumerate(steps):
-            if i < len(steps)-1:
-                if key.isnumeric():
-                    battle = battle[int(key)]
-                else:
-                    battle = battle[key]
-
-    if finalStep.isnumeric():
-        finalStep = int(finalStep)
-
-    if command == "mod":
-        battle[finalStep] += int(diff)
-    elif command == "set":
-        battle[finalStep] = diff
-    elif command == "list":
-        pprint.pprint(battle[finalStep], sort_dicts=False)
-    elif command == "listkeys":
-        string = ""
-        if isinstance(battle[finalStep],list):
-            print("Can't list the keys of an list. Try `list` instead of `listkeys`")
+    effect = a["effect"]
+    if effect
+    context = battleTable
+    if target:
+        if path:
+            path = [target]+path
         else:
-            for key, val in battle[finalStep].items():
-                string += key + ","
-            string[:-1]
-            print(string)
+            path = [target]
+    if command == "set":
+        dset(context,path,diff)
+    elif command == "mod":
+        dmod(context,path,diff)
+    elif command == "list":
+        pprint.pprint(dget(context,path,"invalid"), sort_dicts=False)
+
 
 def say(string):
     printJson(string)
@@ -1039,10 +1025,10 @@ def callUse(a):
         doables = arsenalList.get(do)
         recurSection = "arsenal"
     if not doables:
-        doables = get(copy.deepcopy(battleInfo),["commands",do])
+        doables = dget(copy.deepcopy(battleInfo),["commands",do])
         recurSection = "battleInfo"
 
-    if doables and not get(a,["antiRecursion",recurSection,do]):
+    if doables and not dget(a,["antiRecursion",recurSection,do]):
         for doableRef in doables:
             doable = copy.deepcopy(doableRef)
 
@@ -1106,11 +1092,11 @@ def callDo(a):
     sender = a["sender"]
     targetJson = battleTable.get(target)
     senderJson = battleTable.get(sender)
-    threshold = get(a,"check")
-    landStrings = get(a,"landFudge")
-    hurtStrings = get(a,"weaponFudge")
-    blockMult = get(a,"blockMult")
-    critValues = get(a,"multiCrit")
+    threshold = dget(a,"check")
+    landStrings = dget(a,"landFudge")
+    hurtStrings = dget(a,"weaponFudge")
+    blockMult = dget(a,"blockMult")
+    critValues = dget(a,"multiCrit")
     save = bool(a.get("save"))
 
     if not landStrings:
@@ -1178,10 +1164,10 @@ def handleHitModAliases(rollString,senderJson,targetJson, isSave=False):
             else:
                 finesseMod = statMod(int(Json["strength"]))
 
-            if "martial" in get(Json,"weapon_proficiencies",[]):
+            if "martial" in dget(Json,"weapon_proficiencies",[]):
                 martialMod = proficiency
 
-            if "simple" in get(Json,"weapon_proficiencies",[]):
+            if "simple" in dget(Json,"weapon_proficiencies",[]):
                 simpleMod = proficiency
 
             if "spellhit" in rollString:
@@ -1474,7 +1460,7 @@ def validateCommand(commandDict):
     return True
 
 def validateCommands(combatantJson):
-    commands = get(combatantJson, ["arsenal","autoDict"])
+    commands = dget(combatantJson, ["arsenal","autoDict"])
     if commands:
         for commandDict in commands:
             if validateCommand(commandDict.copy()):
@@ -1507,7 +1493,7 @@ def callTurn(a,directCommand=True):
                 turnTo(nickNext)
             else:
                 #"Paused due to no target for auto commands or no commands or you simply marked this creature for pausing"
-                print("Paused --> Needs commands?", not get(combatantJson,["arsenal","autoDict"]), ". Paused set?",combatantJson["paused"], ". No targets or senders?", (not isValidCommand) and bool(get(combatantJson,["arsenal","autoDict"])))
+                print("Paused --> Needs commands?", not dget(combatantJson,["arsenal","autoDict"]), ". Paused set?",combatantJson["paused"], ". No targets or senders?", (not isValidCommand) and bool(get(combatantJson,["arsenal","autoDict"])))
         else:
             print("Bounced an invalid turn attempt trying to callturn on someone who's turn it is not")
     else:
@@ -1681,7 +1667,7 @@ def handleAllAliases(toDict,resolve=True):
     return toDict
 
 def runAuto(combatantJson, target=""):
-    autoDicts = get(combatantJson,["arsenal","autoDict"])
+    autoDicts = dget(combatantJson,["arsenal","autoDict"])
     for commandDict in autoDicts:
         if target:
             commandDict["target"] = [target]
@@ -1742,7 +1728,7 @@ def processCommandStrings(a,context={},path=[]):
 
     for index,commandString in enumerate(a["commandString"]):
         if commandString == "delete":
-            get(context,path[:-1]).pop(path[-1])
+            dget(context,path[:-1]).pop(path[-1])
             return False
 
 
@@ -1755,7 +1741,7 @@ def processCommandStrings(a,context={},path=[]):
     return commandDicts
 
 def getBaseCommand(index,commandString,context,path):
-    baseDicts = get(context,path)
+    baseDicts = dget(context,path)
     resolvedCommandString = resolveCommandAlias(commandString,context,path[:-1])
     if not resolvedCommandString:
         if baseDicts:
@@ -1783,7 +1769,7 @@ def resolveCommandAlias(commandString,context,path):
 def resolveCommandAliasWorker(command,context,path):
     if command in funcDict:
         return command
-    comList = get(context,path+[command])
+    comList = dget(context,path+[command])
     comDict = geti(comList, 0, False)
     com = False
     if comDict:
@@ -1794,11 +1780,11 @@ def resolveCommandAliasWorker(command,context,path):
         return False
 
 def getInfo(path):
-    return get(battleInfo,path)
+    return dget(battleInfo,path)
 
 #add a mode which allows for the use of append_value instead of update so you could bless someone with two different options
 def modInfo(path,modDictionaries,context,startPosition=0):
-    existingDictionaries = get(context,path)
+    existingDictionaries = dget(context,path)
     if existingDictionaries:
         for index, modDictionary in enumerate(modDictionaries):
             existingDictionary = geti(existingDictionaries,index+startPosition,False)
@@ -1809,7 +1795,7 @@ def modInfo(path,modDictionaries,context,startPosition=0):
                 dset(context, path+[index+startPosition], modDictionary)
     else:
         dset(context, path, modDictionaries)
-    return get(context,path)
+    return dget(context,path)
 
 def append_value(dict_obj, key, value):
     if key in dict_obj:
@@ -1823,7 +1809,7 @@ def append_value(dict_obj, key, value):
 def storeInfo(path,value,append,infoDict):
     global battleInfo
     if append:
-        appendTo = get(infoDict,path)
+        appendTo = dget(infoDict,path)
         if appendTo:
             dset(infoDict, path, appendTo + value)
         else:
@@ -1998,6 +1984,10 @@ def populateParserArguments(parser,has,metaHas,verify=True):
         parser.add_argument("--append", "-a", help='Whether this command should replace the existing set or be added on', dest='append', action='store_true')
         parser.set_defaults(append=False)
 
+    if has.get("effect"):
+        parser.add_argument("--effect", "-e", help='Does this change have a reverseable affect you would like to keep track of?', dest='effect', action='store_true')
+        parser.set_defaults(effect=False)
+
     if has.get("check"):
         parser.add_argument("--blockMult", "-b", help='How much damage remains when blocked?')
         parser.add_argument("--check", "-c", help='What the threshold is for blocking. To include level of spell simply do spelldc+3. If it is a third level spell')
@@ -2030,7 +2020,6 @@ funcDict = {
 "set" : followPath,
 "mod" : followPath,
 "list" : followPath,
-"listkeys" : followPath,
 "add" : addCreature,
 "init" : applyInit,
 "load" : callLoad,
@@ -2055,7 +2044,7 @@ funcDict = {
 "abort" : "",
 "addAuto": callAddAuto,
 "delete": callDelete,
-"run": callRun,
+"run": callRun
 }
 
 senderList = ["sender","target","advantage","times","fudge","must-do"]
@@ -2067,10 +2056,9 @@ hasDict = {
 "use": senderList + ["level"],
 "request": ["path","file"],
 "dump": ["file","identity","target"],
-"mod": ["path", "target", "change", "times", "target-all","sort"],
+"mod": ["path", "target", "change", "times", "target-all","sort","effect"],
 "set": ["path", "target", "change", "target-all","sort"],
 "list": ["path", "target", "target-all", "optionalPath"],
-"listkeys": ["path", "target", "target-all"],
 "store": storeList,
 "doable": storeList,
 "arsenal": storeList + ["target","target-all","index"],
