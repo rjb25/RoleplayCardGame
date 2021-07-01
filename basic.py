@@ -170,6 +170,13 @@ def geti(list, index, default_value):
     except:
         return default_value
 
+def ddel(context,path):
+    deep = pathing(path[:-1],context)
+    if isinstance(deep, list):
+        deep.pop(int(path[-1]))
+    else:
+        deep.pop(path[-1],None)
+
 def dset(context, path, value):
     if not isinstance(path,list):
         path = [path]
@@ -283,7 +290,7 @@ def getState():
             if x.get("temp_hp"):
                 temphp = x.get("temp_hp")
 
-            print(i,nick,x["index"],str(x["current_hp"]+temphp)+"/"+str(x["max_hp"])+turn)
+            print(i,nick,x["index"],str(int(x["current_hp"])+int(temphp))+"/"+str(x["max_hp"])+turn)
             state_result.append(str(x["initiative"]) + ' ' + nick + ' ' + str(x["index"]) + ' ' + str(x["current_hp"]) + "/" + str(x["max_hp"]))
         return state_result
 
@@ -358,7 +365,7 @@ def applyDamage(targetJson,damage):
     if damage > 0 or heal:
         if not heal:
             targetJson["temp_hp"] = 0
-        targetJson["current_hp"] -= math.floor(damage)
+        targetJson["current_hp"] =  int(targetJson["current_hp"]) - math.floor(damage)
         targetJson["current_hp"] = max(targetJson["current_hp"],0)
     elif damage < 0:
         targetJson["temp_hp"] = -1*damage
@@ -501,7 +508,7 @@ def applyAction(a):
         else:
             mod = getMod("actionHit",action,senderJson)
             advMod = int(senderJson["advantage"])
-            advMod += int(get(targetJson,"incoming_advantage",0))
+            advMod += int(dget(targetJson,"incoming_advantage",0))
         advNum = advantageIn + advMod
 
         advantage = ""
@@ -642,7 +649,7 @@ def callWeapon(a):
         threshold = int(targetJson["armor_class"])
 
         advMod = int(senderJson["advantage"])
-        advMod += int(get(targetJson,"incoming_advantage",0))
+        advMod += int(dget(targetJson,"incoming_advantage",0))
         advNum = int(a["advantage"]) + advMod
 
         advantage = ""
@@ -724,7 +731,7 @@ def callCast(a):
             mod = getMod("spellHit",attackJson,senderJson)
             threshold = int(targetJson["armor_class"])
             advMod = int(senderJson["advantage"])
-            advMod += int(get(targetJson,"incoming_advantage",0))
+            advMod += int(dget(targetJson,"incoming_advantage",0))
         
         #printUse(a)
 
@@ -757,14 +764,15 @@ def callCast(a):
 
 def removeDown(a=''):
     for nick, combatant in battleTable.copy().items():
-        hp = combatant.get("current_hp")
-        if isinstance(hp, int):
-            if combatant["current_hp"] <= 0:
+        hp = dget(combatant,"current_hp",None)
+        if hp != None:
+            hp = int(hp)
+            if hp <= 0:
                 if not (combatant.get("downable") == "True"):
                     remove({"target": nick})
                 else:
                     combatant["current_hp"] = 0
-            elif combatant["current_hp"] > combatant["max_hp"]:
+            elif hp > int(combatant["max_hp"]):
                 combatant["current_hp"] = combatant["max_hp"]
         else:
             print("Invalid combatant referenced by removeDown", nick)
@@ -871,25 +879,68 @@ def callAction(a):
         return False
     return True
 
-def followPath(a):
+def callSet(a):
     path = a["path"]
     diff = a.get("change")
     command = a["command"]
     target = a["target"]
+    targetJson = battleTable[target]
     effect = a["effect"]
-    if effect
+
     context = battleTable
     if target:
         if path:
             path = [target]+path
         else:
             path = [target]
-    if command == "set":
-        dset(context,path,diff)
-    elif command == "mod":
-        dmod(context,path,diff)
-    elif command == "list":
-        pprint.pprint(dget(context,path,"invalid"), sort_dicts=False)
+    dset(context,path,diff)
+
+
+def callMod(a):
+    path = a["path"]
+    diff = a.get("change")
+    command = a["command"]
+    target = a["target"]
+    effect = a["effect"]
+    targetJson = battleTable[target]
+    context = battleTable
+
+    if effect:
+        dget(context,path)
+        dset(targetJson,["effects",effect],{"path":path,"diff":diff})
+
+    if target:
+        if path:
+            path = [target]+path
+        else:
+            path = [target]
+    dmod(context,path,diff)
+
+def callDispell(a):
+    command = a["command"]
+    target = a["target"]
+    effectName = a["effect"]
+    targetJson = battleTable[target]
+    context = battleTable
+    effect = dget(targetJson,["effects",effectName],None)
+    if effect != None:
+        path = effect["path"]
+        diff = effect["diff"]
+        dmod(targetJson,path,-int(diff))
+        ddel(targetJson,["effects",effectName])
+
+def callList(a):
+    path = a["path"]
+    diff = a.get("change")
+    command = a["command"]
+    target = a["target"]
+    if target:
+        if path:
+            path = [target]+path
+        else:
+            path = [target]
+    context = battleTable
+    pprint.pprint(dget(context,path,"invalid"), sort_dicts=False)
 
 
 def say(string):
@@ -1493,7 +1544,7 @@ def callTurn(a,directCommand=True):
                 turnTo(nickNext)
             else:
                 #"Paused due to no target for auto commands or no commands or you simply marked this creature for pausing"
-                print("Paused --> Needs commands?", not dget(combatantJson,["arsenal","autoDict"]), ". Paused set?",combatantJson["paused"], ". No targets or senders?", (not isValidCommand) and bool(get(combatantJson,["arsenal","autoDict"])))
+                print("Paused --> Needs commands?", not dget(combatantJson,["arsenal","autoDict"]), ". Paused set?",combatantJson["paused"], ". No targets or senders?", (not isValidCommand) and bool(dget(combatantJson,["arsenal","autoDict"])))
         else:
             print("Bounced an invalid turn attempt trying to callturn on someone who's turn it is not")
     else:
@@ -1841,20 +1892,35 @@ def pathing(steps,dictionary):
     return dictionary
 
 def callDelete(a):
+    combatant = a["target"]
+    combatantJson = battleTable.get(combatant)
+    context = battleInfo
+    if combatantJson:
+        context = combatantJson
+
     path = a["path"]
-    deep = pathing(path[:-1],battleInfo)
-    if isinstance(deep, list):
-        deep.pop(int(path[-1]))
+    if path:
+        if combatantJson:
+            path = ["arsenal"] + path
+        else:
+            path = ["commands"] + path
     else:
-        deep.pop(path[-1],None)
+        if combatantJson:
+            path = ["arsenal","autoDict"]
+        else:
+            path = ["commands","genericCommand"]
+            print("failed to enter a path for command. Placing it in genericCommand")
+
+    deep = pathing(path[:-1],battleInfo)
+    ddel(context,path)
 
 def callShortRest(a):
     combatant = a["target"]
     combatantJson = battleTable[combatant]
     if combatantJson.get("rest_dice"):
-        if combatantJson["rest_dice"] > 0 and combatantJson["current_hp"] < combatantJson["max_hp"]:
-            combatantJson["current_hp"] = combatantJson["current_hp"] + roll(hitDieFromClass(combatantJson["class"])+"+"+str(statMod(int(combatantJson["constitution"]))))["roll"]
-            combatantJson["rest_dice"] = combatantJson["rest_dice"] - 1
+        if int(combatantJson["rest_dice"]) > 0 and int(combatantJson["current_hp"]) < int(combatantJson["max_hp"]):
+            combatantJson["current_hp"] = int(combatantJson["current_hp"]) + roll(hitDieFromClass(combatantJson["class"])+"+"+str(statMod(int(combatantJson["constitution"]))))["roll"]
+            combatantJson["rest_dice"] = int(combatantJson["rest_dice"]) - 1
 
 def callLongRest(a):
     combatant = a["target"]
@@ -1985,8 +2051,7 @@ def populateParserArguments(parser,has,metaHas,verify=True):
         parser.set_defaults(append=False)
 
     if has.get("effect"):
-        parser.add_argument("--effect", "-e", help='Does this change have a reverseable affect you would like to keep track of?', dest='effect', action='store_true')
-        parser.set_defaults(effect=False)
+        parser.add_argument("--effect", "-e", help='Name of the effect being applied')
 
     if has.get("check"):
         parser.add_argument("--blockMult", "-b", help='How much damage remains when blocked?')
@@ -2017,9 +2082,10 @@ funcDict = {
 "cast" : callCast,
 "remove" : remove,
 "request" : callRequest,
-"set" : followPath,
-"mod" : followPath,
-"list" : followPath,
+"set" : callSet,
+"mod" : callMod,
+"dispell" : callDispell,
+"list" : callList,
 "add" : addCreature,
 "init" : applyInit,
 "load" : callLoad,
@@ -2057,7 +2123,8 @@ hasDict = {
 "request": ["path","file"],
 "dump": ["file","identity","target"],
 "mod": ["path", "target", "change", "times", "target-all","sort","effect"],
-"set": ["path", "target", "change", "target-all","sort"],
+"set": ["path", "target", "change", "target-all","sort","effect"],
+"dispell": ["target", "target-all","sort","effect"],
 "list": ["path", "target", "target-all", "optionalPath"],
 "store": storeList,
 "doable": storeList,
@@ -2080,7 +2147,7 @@ hasDict = {
 "info": ["info"],
 "jump": ["target-single-optional"],
 "addAuto": ["target", "identity", "sort", "times", "no-alias", "target-all","do","party","method"],
-"delete": ["path"],
+"delete": ["target", "optionalTarget","path","optionalPath"],
 "run": ["arbitraryString"],
 "do": ["target", "fudge", "check","sender","optionalSenderAndTarget"],
 }
