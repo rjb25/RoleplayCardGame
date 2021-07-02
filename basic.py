@@ -1271,13 +1271,13 @@ def handleDmgModAliases(rollString,senderJson):
         if "finesse" in rollString:
             rollString = rollString.replace("finesse",str(0))
     else:
-        rollString = rollString.replace("str",0)
-        rollString = rollString.replace("dex",0)
-        rollString = rollString.replace("con",0)
-        rollString = rollString.replace("int",0)
-        rollString = rollString.replace("wis",0)
-        rollString = rollString.replace("cha",0)
-        rollString = rollString.replace("normal",0)
+        rollString = rollString.replace("str","0")
+        rollString = rollString.replace("dex","0")
+        rollString = rollString.replace("con","0")
+        rollString = rollString.replace("int","0")
+        rollString = rollString.replace("wis","0")
+        rollString = rollString.replace("cha","0")
+        rollString = rollString.replace("normal","0")
         proficiency = 0
         rollString = rollString.replace("any",str(proficiency))
         rollString = rollString.replace("proficiency",str(proficiency))
@@ -1631,6 +1631,13 @@ def handleStar(starString):
             combatantList.append(combatant)
     return combatantList
 
+def getHps(combatantList,ascending=True):
+    hps = [] 
+    for combatant in combatantList:
+        hps.append([combatant,int(battleTable[combatant]["current_hp"])])
+        hps = sorted(hps, key=lambda x: int(x[1]), reverse=(not ascending))
+    return hps
+
 def handleAliases(combatantLists,resolve=True,doAll=False):
     result = []
     for combatantListAliased in combatantLists:
@@ -1673,6 +1680,21 @@ def handleAliases(combatantLists,resolve=True,doAll=False):
                     randomCombatant = combatantList[math.floor(livingCount*random.random())]
                     result.append(randomCombatant)
                 elif method == "simultaneous" or method == "s":
+                    result = result + combatantList
+                elif "hpup" in method or "hu" in method:
+                    hps = getHps(combatantList,True)
+                    affected = []
+                    remainingHp = roll(method.replace("hpup","").replace("hu",""))["roll"]
+                    for hpPair in hps:
+                        combatantHp = hpPair[1]
+                        if combatantHp <= remainingHp:
+                            remainingHp = remainingHp - combatantHp
+                            affected.append(hpPair[0])
+                        else:
+                            break;
+
+                    result = result + affected
+                elif method == "hpdown" or method == "hd":
                     result = result + combatantList
                 else:
                    print("Invalid method for targetting") 
