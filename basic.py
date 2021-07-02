@@ -17,6 +17,7 @@ import re
 import shlex
 import copy
 from itertools import takewhile
+import xdice
 
 command_descriptions_dict = {
 "do" : '''Run a custom attack this can be used for environmental factors or items that have yet to be added.
@@ -1153,7 +1154,10 @@ def callDo(a):
     if not landStrings:
         landStrings = ["100"]
     if not threshold:
-        threshold = "ac"
+        if target and target != "ambiguous":
+            threshold = "ac"
+        else:
+            threshold = "-100"
 
     threshold = handleCheckAliases(threshold,senderJson,targetJson)
 
@@ -1177,7 +1181,7 @@ def callDo(a):
     if critHit:
         hasDamage = 1
         success = True
-    elif not ((hit >= threshold) == save):
+    elif not ((hit >= int(threshold)) == save):
         hasDamage = 1
         success = True
     elif blockMult:
@@ -1194,36 +1198,39 @@ def callDo(a):
             applyDamage(targetJson,damage["roll"])
 
 def handleHitModAliases(rollString,senderJson,targetJson, isSave=False):
+    proficiency = 0
+    saveProficiency = 0
+    finesseMod = 0
+    martialMod = 0
+    simpleMod = 0
+    spellHit = 0
+    Json = {}
     if (senderJson and not isSave) or (targetJson and isSave):
-        proficiency = 0
-        saveProficiency = 0
-        finesseMod = 0
-        martialMod = 0
-        simpleMod = 0
-        spellHit = 0
         if isSave:
-            Json = targetJson
-            proficiency = getProf(Json)
-            saveProficiencies = geti(classSavesDict,Json.get("class"),[])
-            if saveType in saveProficiencies:
-                saveProficiency = proficiency
+            if targetJson:
+                Json = targetJson
+                proficiency = getProf(Json)
+                saveProficiencies = geti(classSavesDict,Json.get("class"),[])
+                if saveType in saveProficiencies:
+                    saveProficiency = proficiency
         else:
-            Json = senderJson
-            proficiency = getProf(Json)
-            if "finesse" in rollString:
-                finesseMod = max(statMod(int(Json["strength"])),statMod(int(Json["dexterity"])))
-            else:
-                finesseMod = statMod(int(Json["strength"]))
+            if senderJson:
+                Json = senderJson
+                proficiency = getProf(Json)
+                if "finesse" in rollString:
+                    finesseMod = max(statMod(int(Json["strength"])),statMod(int(Json["dexterity"])))
+                else:
+                    finesseMod = statMod(int(Json["strength"]))
 
-            if "martial" in dget(Json,"weapon_proficiencies",[]):
-                martialMod = proficiency
+                if "martial" in dget(Json,"weapon_proficiencies",[]):
+                    martialMod = proficiency
 
-            if "simple" in dget(Json,"weapon_proficiencies",[]):
-                simpleMod = proficiency
+                if "simple" in dget(Json,"weapon_proficiencies",[]):
+                    simpleMod = proficiency
 
-            if "spellhit" in rollString:
-                spellcasting = canCast(Json)
-                spellHit = statMod(Json[expandStatWord(spellcasting["ability"]["index"])]) + getProf(Json)
+                if "spellhit" in rollString:
+                    spellcasting = canCast(Json)
+                    spellHit = statMod(Json[expandStatWord(spellcasting["ability"]["index"])]) + getProf(Json)
         
         if not isSave:
             rollString = rollString.replace("normal",str(statMod(int(Json["strength"]))))
@@ -1232,19 +1239,19 @@ def handleHitModAliases(rollString,senderJson,targetJson, isSave=False):
             rollString = rollString.replace("martial",str(martialMod))
             rollString = rollString.replace("simple",str(simpleMod))
 
-        rollString = rollString.replace("any",str(proficiency))
-        rollString = rollString.replace("proficiency",str(proficiency))
-        rollString = rollString.replace("prof",str(proficiency))
+    rollString = rollString.replace("any",str(proficiency))
+    rollString = rollString.replace("proficiency",str(proficiency))
+    rollString = rollString.replace("prof",str(proficiency))
 
-        rollString = rollString.replace("spellhit",str(statMod(int(Json["charisma"]+saveProficiency))))
-        rollString = rollString.replace("str",str(statMod(int(Json["strength"]+saveProficiency))))
-        rollString = rollString.replace("dex",str(statMod(int(Json["dexterity"]+saveProficiency))))
-        rollString = rollString.replace("con",str(statMod(int(Json["constitution"]+saveProficiency))))
-        rollString = rollString.replace("int",str(statMod(int(Json["intelligence"]+saveProficiency))))
-        rollString = rollString.replace("wis",str(statMod(int(Json["wisdom"]+saveProficiency))))
-        rollString = rollString.replace("cha",str(statMod(int(Json["charisma"]+saveProficiency))))
-        rollString = rollString.replace("spellhit",str(spellHit))
-        rollString = rollString.replace(".","1d20")
+    rollString = rollString.replace("spellhit",str(statMod(int(dget(Json,"charisma",10))+saveProficiency)))
+    rollString = rollString.replace("str",str(statMod(int(dget(Json,"strength",10))+saveProficiency)))
+    rollString = rollString.replace("dex",str(statMod(int(dget(Json,"dexterity",10))+saveProficiency)))
+    rollString = rollString.replace("con",str(statMod(int(dget(Json,"constitution",10))+saveProficiency)))
+    rollString = rollString.replace("int",str(statMod(int(dget(Json,"intelligence",10))+saveProficiency)))
+    rollString = rollString.replace("wis",str(statMod(int(dget(Json,"wisdom",10))+saveProficiency)))
+    rollString = rollString.replace("cha",str(statMod(int(dget(Json,"charisma",10))+saveProficiency)))
+    rollString = rollString.replace("spellhit",str(spellHit))
+    rollString = rollString.replace(".","1d20")
 
     return rollString
 
@@ -1261,9 +1268,22 @@ def handleDmgModAliases(rollString,senderJson):
         rollString = rollString.replace("any",str(proficiency))
         rollString = rollString.replace("proficiency",str(proficiency))
         rollString = rollString.replace("prof",str(proficiency))
+        if "finesse" in rollString:
+            rollString = rollString.replace("finesse",str(0))
+    else:
+        rollString = rollString.replace("str",0)
+        rollString = rollString.replace("dex",0)
+        rollString = rollString.replace("con",0)
+        rollString = rollString.replace("int",0)
+        rollString = rollString.replace("wis",0)
+        rollString = rollString.replace("cha",0)
+        rollString = rollString.replace("normal",0)
+        proficiency = 0
+        rollString = rollString.replace("any",str(proficiency))
+        rollString = rollString.replace("proficiency",str(proficiency))
+        rollString = rollString.replace("prof",str(proficiency))
         finesseMod = 0
         if "finesse" in rollString:
-            finesseMod = max(statMod(int(senderJson["strength"])),statMod(int(senderJson["dexterity"])))
             rollString = rollString.replace("finesse",str(0))
 
     return rollString
@@ -1277,7 +1297,7 @@ def handleCheckAliases(checkString,senderJson,targetJson):
         spellcasting = canCast(senderJson)
         threshold = 8 + statMod(senderJson[expandStatWord(spellcasting["ability"]["index"])]) + getProf(senderJson)
         checkString = checkString.replace("spelldc",str(threshold))
-    return int(checkString)
+    return checkString
 
 def getModAlt(modType, attackJson, combatantJson, additional = 0):
         modSum = 0
@@ -1421,41 +1441,34 @@ def roll(dice_strings,critDmg=False,affinityMod=1,saveMult=1,critValues=[]):
     Return: Integer returned, representing the dice roll result
     Side Effects/State: None
     '''
-    diceStrings = dice_strings.split(",")
+    #diceStrings = dice_strings.split(",")
     total = 0
     critHit = False
 
-    for dice_string in diceStrings: 
-        dsplit = dice_string.split("d")
-        usesDice = len(dsplit)>1
-        diceMod = 0
-        if usesDice:
-            remaining = dsplit[1]
-            if "+" in dice_string:
-                remaining = dsplit[1].split("+")
-                diceMod = float(remaining[1])
-                remaining = remaining[0]
-            elif "-" in dice_string:
-                remaining = dsplit[1].split("-")
-                diceMod = -1*float(remaining[1])
-                remaining = remaining[0]
-            
-            diceCount = int(dsplit[0])
+    diceStrings = re.split('(\+|\-)',dice_strings)
+    if diceStrings[0] != "-":
+        diceStrings = ["+"] + diceStrings
+    first = True
+    for operator, value in zip(diceStrings[::2],diceStrings[1::2]): 
+        rolledValue = value
+        if "d" in value:
+            dsplit = value.split("d")
+            dCount = int(dsplit[0])
+            dType = int(dsplit[1])
 
             if critDmg:
-                diceCount = diceCount*2
+                dCount = dCount*2
 
-            diceType = int(remaining)
-            for x in range(diceCount):
-                rolled = math.ceil(diceType*random.random())
-                total += rolled
-                if (diceCount == 1) and (str(rolled) in critValues):
+            for x in range(dCount):
+                rolled = math.ceil(dType*random.random())
+                if dType == 20 and (str(rolled) in critValues):
                     critHit = True
-            total += diceMod
+                total += int(operator + str(rolled))
         else:
-            total += int(dice_string)
+            total += int(operator + str(value))
+        first = False
 
-    total = math.floor(total * affinityMod * float(saveMult))
+    total = math.floor(int(total) * affinityMod * float(saveMult))
 
     message = dice_strings.replace(","," + ")
     if critDmg:
