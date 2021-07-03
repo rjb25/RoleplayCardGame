@@ -45,7 +45,7 @@ def index(request):
     template = template.replace('{{ content }}', content)
 
     # Update the Battle State
-    battle_state_list = basic.getState()
+    battle_state_list = basic.getCommandOut()
     LOGGER.info(battle_state_list)
 
     # Make the list that we'll be pushing in later and replacing
@@ -108,7 +108,7 @@ def append_update_cmd(request):
     # 3. Parse the command text
     # Get the first word
     LOGGER.info("Command List is as follows: " + str(new_update_cmd))
-    basic.parse_command(new_update_cmd)
+    basic.parseWrapper(new_update_cmd)
 
     # For a single-page application like this, we should
     # usually re-route back to the main index page, typically at "/".

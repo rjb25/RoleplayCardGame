@@ -1,4 +1,36 @@
 {
-    "updates": [],
-    "rolls": []
+    "updates": [
+        "remove -t 22",
+        "remove -t 22",
+        "remove -t 22",
+        "remove -t 22",
+        "remove -t 22",
+        "list -t 21",
+        "list -t 0",
+        "list -t 0",
+        "---",
+        "list -t 0",
+        "list -t 0",
+        "---",
+        "---",
+        "---",
+        "---",
+        "list -t 0",
+        "list -t 0",
+        "list -t 0",
+        "list -t 0",
+        "use -d 0 -s 1 -t 1",
+        "use -d 0 -s 1 -t 1",
+        "list -t 0",
+        "list -t 0",
+        "remove -t 22",
+        "remove -t 22",
+        "use -s 0 -t 21 -d 0"
+    ],
+    "rolls": [
+        {
+            "roll": 2,
+            "critHit": false
+        }
+    ]
 }

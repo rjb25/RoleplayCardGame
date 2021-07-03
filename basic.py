@@ -17,7 +17,6 @@ import re
 import shlex
 import copy
 from itertools import takewhile
-import xdice
 
 command_descriptions_dict = {
 "do" : '''Run a custom attack this can be used for environmental factors or items that have yet to be added.
@@ -223,12 +222,13 @@ def callLoad(a):
         if hasCategory:
             cacheTable[a["category"]][creatureJson["index"]] = creatureJson
         else:
-            print("Invalid category to load into")
+            printw("Invalid category to load into")
  
 cacheTable = load({"file":"data.json"})
 battleTable = load({"file":"battle.json"})
 battleInfo = load({"file":"battle_info.json"})
 battleOrder = []
+command_out = []
 
 def getJsonFromApi(steps,save=True):
         api_base = "https://www.dnd5eapi.co/api/"
@@ -237,11 +237,11 @@ def getJsonFromApi(steps,save=True):
         try:
             package = requests.get(api_base)
         except:
-            print("Api not reachable",api_base)
+            printw("Api not reachable",api_base)
             return False
         response = package.json()
         if response.get("error"):
-            #print("Content not in api nor cache", steps)
+            #printw("Content not in api nor cache", steps)
             return False
 
         if save:
@@ -262,11 +262,10 @@ def saveBattle():
         with open('data.json', 'w') as f:
             json.dump(cacheTable,f)
 
-def printJson(json):
-    pprint.pprint(json, sort_dicts=False)
+
 
 def printBattleKeys():
-    print(battleTable.keys())
+    printw(battleTable.keys())
                 
 def getJson(steps):
         global cacheTable
@@ -275,12 +274,12 @@ def getJson(steps):
         for i,x in enumerate(steps):
                 cache = dget(cache,x)
                 if cache == None and i > 0:
-                        #print("Not cached, trying api")
+                        #printw("Not cached, trying api")
                         return getJsonFromApi(steps)
         return cache.copy()
-        
+
 def getState():
-        print("index name type hp/max_hp")
+        printw("index name type hp/max_hp")
         state_result = []
         for i, nick in enumerate(battleOrder):
             x = battleTable[nick]
@@ -290,10 +289,15 @@ def getState():
             temphp = 0
             if x.get("temp_hp"):
                 temphp = x.get("temp_hp")
-
-            print(i,nick,x["index"],str(int(x["current_hp"])+int(temphp))+"/"+str(x["max_hp"])+turn)
-            state_result.append(str(x["initiative"]) + ' ' + nick + ' ' + str(x["index"]) + ' ' + str(x["current_hp"]) + "/" + str(x["max_hp"]))
+            string = printToString(i,nick,x["index"],str(int(x["current_hp"])+int(temphp))+"/"+str(x["max_hp"])+turn)
+            printw(string)
+            state_result.append(string)
         return state_result
+
+
+def getCommandOut():
+    global command_out
+    return command_out
 
 def rollString(a):
     for dice in a["dice"]:
@@ -318,7 +322,7 @@ def crToProf(cr):
     elif cr < 31:
         return 9
     else:
-        print("Hmm is a monster really this high level? Proficiency issue")
+        printw("Hmm is a monster really this high level? Proficiency issue")
         return 10
 
 def expandStatWord(stat):
@@ -464,7 +468,7 @@ def printUse(a):
         senderJson = battleTable[sender]
         actions = senderJson.get("actions")
         runAction = geti(actions,int(a["do"]),False)["name"]
-    print("\n"+a["sender"].upper(), "uses", runAction, "on", a["target"])
+    printw("\n"+a["sender"].upper(), "uses", runAction, "on", a["target"])
 
 def applyAction(a):
     actionKey = a["do"]
@@ -499,7 +503,7 @@ def applyAction(a):
         if dc:
             threshold = int(dc.get("dc_value"))
             if not threshold:
-                print("Has a dc for this action but no dc_value. Defaulting to 10")
+                printw("Has a dc for this action but no dc_value. Defaulting to 10")
                 threshold = 10
 
             if dc.get("dc_success") == "half" or dc.get("success_type") == "half":
@@ -535,7 +539,7 @@ def applyAction(a):
                             landFudge = []
                         if not weaponFudge:
                             weaponFudge = []
-                        a.update({"save" : save, "blockMult" : blockMult, "weaponFudge" : [hurtString]+weaponFudge, "landFudge" : [landString]+landFudge, "check" : threshold, "multiCrit" : ["20"]})
+                        a.update({"save" : save, "blockMult" : blockMult, "weaponFudge" : [hurtString]+weaponFudge, "landFudge" : [landString]+landFudge, "defense" : threshold, "multiCrit" : ["20"]})
                         callDo(a)
 
                 else:   
@@ -551,10 +555,10 @@ def applyAction(a):
                         landFudge = []
                     if not weaponFudge:
                         weaponFudge = []
-                    a.update({"save" : save, "blockMult" : blockMult, "weaponFudge" : [hurtString]+weaponFudge, "landFudge" : [landString]+landFudge, "check" : threshold, "multiCrit" : ["20"]})
+                    a.update({"save" : save, "blockMult" : blockMult, "weaponFudge" : [hurtString]+weaponFudge, "landFudge" : [landString]+landFudge, "defense" : threshold, "multiCrit" : ["20"]})
                     callDo(a)
     else:
-        print('Invalid action for this combatant')
+        printw('Invalid action for this combatant')
         action_result = 'Invalid action for this combatant'
 
     action_result = '' # This will be returned at the end
@@ -562,7 +566,7 @@ def applyAction(a):
 
 def command_parse(input_command_string):
     if input_command_string == "vomit":
-        print ("ewwwww")
+        printw ("ewwwww")
         
 def applyInit(participant):
     who = participant["target"]
@@ -570,7 +574,7 @@ def applyInit(participant):
     if combatant:
         combatant["initiative"] = roll("1d20+" + str(statMod(combatant["dexterity"])))["roll"]
     else:
-        print("I'm sorry I couldn't find that combatant to apply init to.")
+        printw("I'm sorry I couldn't find that combatant to apply init to.")
 
 def setBattleOrder():
     initiativeOrder = sorted(battleTable.items(), key=lambda x: int(x[1]["initiative"]), reverse=True)
@@ -672,7 +676,7 @@ def callWeapon(a):
             landFudge = []
         if not weaponFudge:
             weaponFudge = []
-        a.update({"save" : save, "blockMult" : blockMult, "weaponFudge" : [hurtString]+weaponFudge, "landFudge" : [landString]+landFudge, "check" : threshold, "multiCrit" : ["20"]})
+        a.update({"save" : save, "blockMult" : blockMult, "weaponFudge" : [hurtString]+weaponFudge, "landFudge" : [landString]+landFudge, "defense" : threshold, "multiCrit" : ["20"]})
         callDo(a)
     else:
         return False
@@ -691,7 +695,7 @@ def callCast(a):
         targetJson = battleTable.get(target)
         senderJson = battleTable.get(sender)
         if not targetJson or not senderJson:
-            print("target or sender no longer exists")
+            printw("target or sender no longer exists")
             return
 
         dmgAtKey = spellType(attackJson)
@@ -711,7 +715,7 @@ def callCast(a):
                 dmgString = attackJson["damage"][dmgAtKey][levelKey]
         if dmgString == "":
             dmgString = attackJson["damage"][dmgAtKey][lowestLevel]
-            print("Defaulting cast to lowest level",lowestLevel)
+            printw("Defaulting cast to lowest level",lowestLevel)
 
         blockMult = 0
         mod = 0;
@@ -757,7 +761,7 @@ def callCast(a):
             landFudge = []
         if not weaponFudge:
             weaponFudge = []
-        a.update({"save" : save, "blockMult" : blockMult, "weaponFudge" : [hurtString]+weaponFudge, "landFudge" : [landString]+landFudge, "check" : threshold, "multiCrit" : ["20"]})
+        a.update({"save" : save, "blockMult" : blockMult, "weaponFudge" : [hurtString]+weaponFudge, "landFudge" : [landString]+landFudge, "defense" : threshold, "multiCrit" : ["20"]})
         callDo(a)
     else:
         return False
@@ -776,13 +780,13 @@ def removeDown(a=''):
             elif hp > int(combatant["max_hp"]):
                 combatant["current_hp"] = combatant["max_hp"]
         else:
-            print("Invalid combatant referenced by removeDown", nick)
+            printw("Invalid combatant referenced by removeDown", nick)
             printJson(combatant)
 
 def callRequest(a):
     steps = a["path"]
     result = getJson(steps)
-    pprint.pprint(getJson(steps), sort_dicts=False)
+    printJson(getJson(steps))
 
     directory = ""
     if a.get("directory"):
@@ -810,7 +814,7 @@ def callDump(a):
 
     result["index"] = a["identity"].lower()
 
-    pprint.pprint(result, sort_dicts=False)
+    printJson(result)
     directory = ""
     if a.get("directory"):
         directory = a["directory"]
@@ -838,7 +842,7 @@ def remove(a):
 
         for group in list(groups):
             if len(battleInfo["groups"][group]) == 0:
-                callDelete({"path":["groups",group]})
+                ddel(battleInfo,["groups",group])
 
         if myTurn and nickNext and len(battleOrder)>0:
             callJump({"target":nickNext})
@@ -872,7 +876,7 @@ def callAction(a):
                     a["do"] = action["name"]
                     applyAction(a)
             else:
-                print("This combatant cannot multiattack")
+                printw("This combatant cannot multiattack")
                 action_result = 'This combatant cannot use ' + actionKey
         else:
             applyAction(a)
@@ -941,11 +945,32 @@ def callList(a):
         else:
             path = [target]
     context = battleTable
-    pprint.pprint(dget(context,path,"invalid"), sort_dicts=False)
+    printJson(dget(context,path,"invalid"))
 
+def printJson(json):
+    prettyString = pprint.pformat(json, sort_dicts=False)
+    printw(prettyString)
+
+def printw(*args):
+    out = printToString(*args)
+    print(out)
+    global command_out
+    command_out.append(out)
 
 def say(string):
     printJson(string)
+
+def printToString(*args):
+    string = ""
+    first = True
+    for arg in args:
+        space = " "
+        if first:
+            space = ""
+        string = string + space + str(arg)
+        first = False
+    return string
+        
 
 #This is a pretty meta command that simply speeds up functionality
 def callAddAuto(a):
@@ -958,7 +983,7 @@ def callAddAuto(a):
     if not method:
         method = "random"
 
-    if not do or do == "none":
+    if do == None:
         do = "0"
 
     opponent = ""
@@ -1104,8 +1129,8 @@ def callUse(a):
         return True
     if callCast(a):
         return True
-    print("Trying to use/do something that is not a weapon nor a spell nor an action. It also does not exist as a global function nor an arsenal entry for this sender")
-    print(a)
+    printw("Trying to use/do something that is not a weapon nor a spell nor an action. It also does not exist as a global function nor an arsenal entry for this sender")
+    printw(a)
 
 
 def handleFudgeInput(fudge):
@@ -1142,9 +1167,10 @@ def handleThreshold(a):
 def callDo(a):
     target = a["target"]
     sender = a["sender"]
+    commandStrings = dget(a,"commandString",None)
     targetJson = battleTable.get(target)
     senderJson = battleTable.get(sender)
-    threshold = dget(a,"check")
+    threshold = dget(a,"defense")
     landStrings = dget(a,"landFudge")
     hurtStrings = dget(a,"weaponFudge")
     blockMult = dget(a,"blockMult")
@@ -1154,7 +1180,7 @@ def callDo(a):
     if not landStrings:
         landStrings = ["100"]
     if not threshold:
-        if target and target != "ambiguous":
+        if target:
             threshold = "ac"
         else:
             threshold = "-100"
@@ -1188,7 +1214,7 @@ def callDo(a):
         success = False
         hasDamage = blockMult
 
-    print("Hit or failed save?", str(success)+".", " Is", hit, ">=",threshold, "Crit?",critHit)
+    printw("Hit or failed save?", str(success)+".", " Is", hit, ">=",threshold, "Crit?",critHit)
 
     if hasDamage:
         damage = {"roll":0,"critHit":False} #This may show critHit false but we pass into the critDmg variable below so it's ok.
@@ -1196,6 +1222,12 @@ def callDo(a):
             damage = rollFudge(senderJson,targetJson,damage,hurtString,hasDamage,critHit,[], "dmg")
         if targetJson:
             applyDamage(targetJson,damage["roll"])
+        if commandStrings:
+            for commandString in commandStrings:
+                commandDict = parse_command_string(commandString,"do",False)
+                commandDict["target"] = [target]
+                commandDict["sender"] = [sender]
+                parse_command_dict(commandDict)
 
 def handleHitModAliases(rollString,senderJson,targetJson, isSave=False):
     proficiency = 0
@@ -1372,8 +1404,12 @@ def handleFudge(fudgeString,method,currentDict,affinityMult=1,successLevelMult=1
     temphp = affinityMult == "temphp"
     if temphp:
         affinityMult = 1
+    fudgeCrit = {}
+    if fudgeString == 100 or fudgeString == "100":
+        fudgeCrit = {"roll":100,"critHit":False}
+    else:
+        fudgeCrit = roll(fudgeString,critDmg,affinityMult,successLevelMult,critValues)
 
-    fudgeCrit = roll(fudgeString,critDmg,affinityMult,successLevelMult,critValues)
     fudge = fudgeCrit["roll"]
     critHit = fudgeCrit["critHit"]
 
@@ -1478,14 +1514,14 @@ def roll(dice_strings,critDmg=False,affinityMod=1,saveMult=1,critValues=[]):
     if saveMult != 1:
         message = "SAVE! " + str(saveMult) +"*("+ message +")"
 
-    print("roll",message,"=",total)
+    printw("roll",message,"=",total)
     
     return {"roll":int(total), "critHit":critHit}
 
 def helpMessage(a):
     for key, value in a["commandDescriptions"].items():
-        print(key, ":", value)
-    print("For more detailed help on a given *commandName* run:\n commandName --help")
+        printw(key, ":", value)
+    printw("For more detailed help on a given *commandName* run:\n commandName --help")
 
 def whoTurn():
     for i, nick in enumerate(battleOrder):
@@ -1557,11 +1593,11 @@ def callTurn(a,directCommand=True):
                 turnTo(nickNext)
             else:
                 #"Paused due to no target for auto commands or no commands or you simply marked this creature for pausing"
-                print("Paused --> Needs commands?", not dget(combatantJson,["arsenal","autoDict"]), ". Paused set?",combatantJson["paused"], ". No targets or senders?", (not isValidCommand) and bool(dget(combatantJson,["arsenal","autoDict"])))
+                printw("Paused --> Needs commands?", not dget(combatantJson,["arsenal","autoDict"]), ". Paused set?",combatantJson["paused"], ". No targets or senders?", (not isValidCommand) and bool(dget(combatantJson,["arsenal","autoDict"])))
         else:
-            print("Bounced an invalid turn attempt trying to callturn on someone who's turn it is not")
+            printw("Bounced an invalid turn attempt trying to callturn on someone who's turn it is not")
     else:
-        print("Hmm, nobodies home to do a turn")
+        printw("Hmm, nobodies home to do a turn")
 
 def callJump(a):
     nickCurrent = whoTurn()
@@ -1591,10 +1627,10 @@ def callDisable(a):
 
 class ArgumentParser(argparse.ArgumentParser):
     def error(self, message):
-        print(self.format_help())
+        printw(self.format_help())
         self.exit(2, '%s: error: %s\n' % (self.prog,message))
     def print_help(self, file=None):
-        print(self.format_help())
+        printw(self.format_help())
 
 def hasParse(command):
     attributeDict = {}
@@ -1613,7 +1649,7 @@ def hasAttribute(attribute,command):
 def onlyAlive(combatants):
     aliveCombatants = []
     for combatant in combatants:
-        if battleTable.get(combatant) or combatant == "?" or combatant == "ambiguous":
+        if battleTable.get(combatant) or combatant == "?" or combatant == None:
             aliveCombatants.append(combatant)
         elif battleInfo.get("groups").get(combatant):
             aliveCombatants = aliveCombatants + battleInfo.get("groups").get(combatant)
@@ -1697,7 +1733,7 @@ def handleAliases(combatantLists,resolve=True,doAll=False):
                 elif method == "hpdown" or method == "hd":
                     result = result + combatantList
                 else:
-                   print("Invalid method for targetting") 
+                   printw("Invalid method for targetting") 
         else:
             resultString = ""
             for i ,combatant in enumerate(combatantList):
@@ -1729,13 +1765,15 @@ def handleAllAliases(toDict,resolve=True):
     has = hasParse(command)
 
     #sender is optional some times
-    if (not has.get("no-alias") and has.get("sender")) and toDict.get("sender"):
+    if (not has.get("no-alias")) and (toDict.get("sender") != [None]):
         toDict["sender"] = handleAliases(toDict["sender"],resolve,True)
 
-    if (not has.get("no-alias") and has.get("target")) and toDict.get("target"):
+    if (not has.get("no-alias")) and (toDict.get("target") != [None]):
         if not toDict.get("target-unresolved"):
             toDict["target-unresolved"] = handleAliases(toDict["target"],False,has.get("target-all"))
-        toDict["target"] = handleAliases(toDict["target"],resolve,has.get("target-all"))
+            toDict["target"] = handleAliases(toDict["target"],resolve,has.get("target-all"))
+        else:
+            toDict["target"] = handleAliases(toDict["target-unresolved"],resolve,has.get("target-all"))
 
     if toDict.get("group") and command != "add":
         toDict["member"] = handleAliases(toDict["member"],resolve,True)
@@ -1765,10 +1803,6 @@ def callAuto(a):
     senderJson = battleTable[sender]
     runAuto(senderJson,target)
 
-def callRun(a):
-    for string in a["string"]:
-        parseAndRun(string)
-
 def callPut(a):
     mode = a["mode"]
     combatant = a["target"]
@@ -1789,7 +1823,7 @@ def callPut(a):
             path = ["arsenal","autoDict"]
         else:
             path = ["commands","genericCommand"]
-            print("failed to enter a path for command. Placing it in genericCommand")
+            printw("failed to enter a path for command. Placing it in genericCommand")
 
     commandDicts = processCommandStrings(a,context,path)
 
@@ -1801,9 +1835,9 @@ def callPut(a):
             if combatantJson:
                 command = commandDict["command"]
                 has = hasParse(command)
-                if has.get("sender") and ((not commandDict.get("sender")) or (geti(commandDict.get("sender"),0,False) == "none")):
+                if dget(commandDict,"sender",None) == None:
                     commandDict["sender"] = [combatant]
-                if has.get("target") and ((not commandDict.get("target")) or (geti(commandDict.get("target"),0,False) == "none")):
+                if dget(commandDict,"target",None) == None:
                     commandDict["target"] = [combatant]
             if mode == "append" or mode == "set":
                 dset(context,path+[index+startIndex],commandDict)
@@ -1817,13 +1851,11 @@ def processCommandStrings(a,context={},path=[]):
             dget(context,path[:-1]).pop(path[-1])
             return False
 
-
         if (not (a.get("method") in ["append","a"])):
             commandString = getBaseCommand(startIndex+index, commandString, context, path)
             
-        argDictTemps = parse_command_string(commandString,a.get("command"),a.get("verify"))
-        for argDictTemp in argDictTemps:
-            commandDicts.append(handleAllAliases(argDictTemp,a["resolve"]))
+        argDictTemp = parse_command_string(commandString,a.get("command"),a.get("verify"))
+        commandDicts.append(handleAllAliases(argDictTemp,a["resolve"]))
     return commandDicts
 
 def getBaseCommand(index,commandString,context,path):
@@ -1834,7 +1866,7 @@ def getBaseCommand(index,commandString,context,path):
             subCommand = baseDicts[index]["command"]
             return subCommand +" "+ commandString
         else:
-            print("No base command found, using do")
+            printw("No base command found, using do")
             return "do " + commandString
     else:
         return resolvedCommandString
@@ -1927,7 +1959,7 @@ def pathing(steps,dictionary):
     return dictionary
 
 def callDelete(a):
-    combatant = a["target"]
+    combatant = dget(a,"target",None)
     combatantJson = battleTable.get(combatant)
     context = battleInfo
     if combatantJson:
@@ -1944,7 +1976,7 @@ def callDelete(a):
             path = ["arsenal","autoDict"]
         else:
             path = ["commands","genericCommand"]
-            print("failed to enter a path for command. Placing it in genericCommand")
+            printw("failed to enter a path for command. Placing it in genericCommand")
 
     deep = pathing(path[:-1],battleInfo)
     ddel(context,path)
@@ -2051,7 +2083,7 @@ def populateParserArguments(parser,has,metaHas,verify=True):
         parser.add_argument("--category", "-c", choices=['monsters','equipment','spells'], help='A category for content',required=True and verify)
 
     if has.get("commandString"):
-        parser.add_argument("--commandString", "-c", help='A command string to be run', nargs='+',required=True and verify)
+        parser.add_argument("--commandString", "-c", help='A command string to be run', nargs='+',required=True and verify and (not has.get("optionalCommand")))
         parser.add_argument("--resolve", "-r", help='Whether or not to resolve aliases inside command string. party -> guy1 guy2 girl', dest='resolve', action='store_true')
         parser.set_defaults(resolve=False)
 
@@ -2088,10 +2120,10 @@ def populateParserArguments(parser,has,metaHas,verify=True):
     if has.get("effect"):
         parser.add_argument("--effect", "-e", help='Name of the effect being applied')
 
-    if has.get("check"):
+    if has.get("defense"):
         parser.add_argument("--blockMult", "-b", help='How much damage remains when blocked?')
-        parser.add_argument("--check", "-c", help='What the threshold is for blocking. To include level of spell simply do spelldc+3. If it is a third level spell')
-        parser.add_argument("--save", "-d", help='Is this a save threshold?', dest='save', action='store_true')
+        parser.add_argument("--defense", "-d", help='What the threshold is for blocking. To include level of spell simply do spelldc+3. If it is a third level spell')
+        parser.add_argument("--save", help='Is this a save threshold?', dest='save', action='store_true')
         parser.set_defaults(save=False)
         parser.add_argument("--multiCrit", "-m", help='values which constitute a critical', nargs='+')
 
@@ -2145,7 +2177,6 @@ funcDict = {
 "abort" : "",
 "addAuto": callAddAuto,
 "delete": callDelete,
-"run": callRun
 }
 
 senderList = ["sender","target","advantage","times","fudge","must-do"]
@@ -2183,8 +2214,7 @@ hasDict = {
 "jump": ["target-single-optional"],
 "addAuto": ["target", "identity", "sort", "times", "no-alias", "target-all","do","party","method"],
 "delete": ["target", "optionalTarget","path","optionalPath"],
-"run": ["arbitraryString"],
-"do": ["target", "fudge", "check","sender","optionalSenderAndTarget"],
+"do": ["target", "fudge", "defense","sender","optionalSenderAndTarget","commandString","optionalCommand"],
 }
 
 def parseOnly(command_string_to_parse,metaCommand="",verify=True):
@@ -2242,7 +2272,7 @@ def parseQuestions(a):
 def parse_command_string(command_string_to_parse,metaCommand="",verify=True):
     args = command_string_to_parse.split(" ")
     command = args[0]
-    argDictMains = []
+    argDictMain = {} 
 
     if not(command in funcDict):
         commandDict = battleInfo["commands"].get(command)
@@ -2255,33 +2285,44 @@ def parse_command_string(command_string_to_parse,metaCommand="",verify=True):
                         aliasDict = weedNones(aliasDict)
                         copyDict = copy.deepcopy(commandDict[0])
                         copyDict.update(aliasDict)
-                        argDictMains.append(copyDict)
+                        argDictMain = copyDict
                     else:
-                        print("Can't fill alias arguments for aliases that map to multiple commands")
+                        printw("Can't fill alias arguments for aliases that map to multiple commands")
                 else:
-                    print("Here would be some arbitrary command handling that does it's best to get args without command context", command_string_to_parse)
+                    printw("Here would be some arbitrary command handling that does it's best to get args without command context", command_string_to_parse)
             else:
-                argDictMains = copy.deepcopy(commandDict)
+                argDictMain = copy.deepcopy(commandDict)
         else:
-            print("Invalid command. None specified or not an alias nor built in command", commandDict, command)
+            printw("Invalid command. None specified or not an alias nor built in command", commandDict, command)
     else:
-        argDictMains.append(parseOnly(command_string_to_parse,metaCommand,verify))
+        argDictMain = parseOnly(command_string_to_parse,metaCommand,verify)
 
     if "?" in command_string_to_parse:
-        print("Evaluating manual input for:\n"+command_string_to_parse)
-        for argDictMain in argDictMains:
-            parseQuestions(argDictMain)
+        printw("Evaluating manual input for:\n"+command_string_to_parse)
+        parseQuestions(argDictMain)
 
-    return argDictMains
+    return argDictMain
+
+def parseWrapper(command_string_to_run):
+    global command_out
+    command_out = []
+    result = parseAndRun(command_string_to_run)
+    getState()
+    return result
 
 def parseAndRun(command_string_to_run):
     command_string_to_run = command_string_to_run.replace("\"-","\" -")#Ugh arg parse can't handle: auto -t guy -c "-t guy"
     command_string_to_run = command_string_to_run.replace("\'-","\' -")#Ugh arg parse can't handle: auto -t guy -c '-t guy'
-    #But it can handle: auto -t guy -c " -t guy" 
-    returns = []
-    for dictionary in parse_command_string(command_string_to_run):
-        returns.append(parse_command_dict(dictionary))
-    return returns
+    if command_string_to_run == "---":
+        return "No Command"
+    else:
+        return parse_command_dict(parse_command_string(command_string_to_run))
+
+def mustIterate(a,keys):
+    for key in keys:
+        val = dget(a,key,None)
+        if val == None:
+            a[key] = [None]
 
 def parse_command_dict(argDictToParse):
     argDictMain = copy.deepcopy(argDictToParse)
@@ -2294,26 +2335,10 @@ def parse_command_dict(argDictToParse):
     if not times:
         times = "1";
 
+    mustIterate(argDictMain,["sender","target","do"])
+
     if command == "help":
         argDictMain["commandDescriptions"] = command_descriptions_dict
-
-    if not has.get("sender"):
-        argDictMain["sender"] = ["none"]
-
-    if not has.get("target") and not has.get("target-single-optional"):
-        argDictMain["target"] = ["none"]
-
-    if has.get("target") and argDictMain["target"] == None and has.get("optionalSenderAndTarget"):
-        argDictMain["target"] = ["ambiguous"]
-
-    if has.get("sender") and argDictMain["sender"] == None and has.get("optionalSenderAndTarget"):
-        argDictMain["sender"] = ["ambiguous"]
-
-    if command == "do":
-        if argDictMain["target"] == None:
-            argDictMain["target"] = ["ambiguous"]
-        if argDictMain["sender"] == None:
-            argDictMain["sender"] = ["ambiguous"]
 
     if argDictMain.get("roll"):
         argDictMain["change"] = roll(argDictMain["change"])["roll"]
@@ -2329,56 +2354,42 @@ def parse_command_dict(argDictToParse):
     if command == "abort":
         return "EXIT"
 
-    argDictCopy = handleAllAliases(copy.deepcopy(argDictMain))
-    argDictSingle = copy.deepcopy(argDictCopy)
-
     for time in range(int(times)):
-        for sender in argDictCopy["sender"]:
-            argDictSingle["sender"] = sender
-            for number,target in enumerate(argDictCopy["target"]):
-                argDictSingle["target"] = target
+        for do in argDictMain["do"]:
+            argDictCopy = handleAllAliases(copy.deepcopy(argDictMain))
+            argDictSingle = copy.deepcopy(argDictCopy)
+            argDictSingle["do"] = do
+            for sender in argDictCopy["sender"]:
+                argDictSingle["sender"] = sender
+                for number,target in enumerate(argDictCopy["target"]):
+                    argDictSingle["target"] = target
+                    if has.get("identity"):
+                        argDictSingle["identity"] = geti(argDictCopy["identity"],number,target)
+                    if has.get("advantage"):
+                        argDictSingle["advantage"] = geti(argDictCopy["advantage"],number,0)
 
-                if has.get("identity"):
-                    argDictSingle["identity"] = geti(argDictCopy["identity"],number,target)
-                if has.get("advantage"):
-                    argDictSingle["advantage"] = geti(argDictCopy["advantage"],number,0)
+                    command_result += str(funcDict[command](copy.deepcopy(argDictSingle)))
+                    removeDown()
 
-                if battleTable.get(target) or not has.get("target") or has.get("no-alias") or command == "load" or target == "ambiguous":
-                    does = True
-                    if not argDictCopy.get("do"):
-                        argDictCopy["do"] = ["none"]
-                        does = False
-
-                    for do in argDictCopy["do"]:
-                        argDictSingle["do"] = do
-                        if (not (target in battleTable)) and does and (len(argDictCopy["target"]) == 0):
-                            argDictSingle["target"] = geti(handleAliases(argDictCopy["target-unresolved"]),0,argDictSingle["target"])
-
-                        command_result += str(funcDict[command](copy.deepcopy(argDictSingle)))
-                        removeDown()
-                        argDictCopy = handleAllAliases(copy.deepcopy(argDictMain))
-                else:
-                    command_result += "ignored an invalid target"
-                    print('ignored an invalid target',target)
     if has.get("sort"):
         setBattleOrder()
 
     return command_result
 
 def run_assistant():
-    results = []
+    result = "" 
     error_count = 0 # Detect error spam
     setBattleOrder()
-    while not("EXIT" in results):
+    getState()
+    while not("EXIT" == result):
         try:
-            getState()
             command_input_string = input("Command?")
-            results = parseAndRun(command_input_string)
+            result = parseWrapper(command_input_string)
         except SystemExit:
-            print("")#This catches argParses attempts to exit.
+            printw("")#This catches argParses attempts to exit.
 
         except Exception:
-            print("ERROR, enter the 'exit' command to exit.")
+            printw("ERROR, enter the 'exit' command to exit.")
             traceback.print_exc()
 
             # Error Spam Prevention #
@@ -2386,7 +2397,7 @@ def run_assistant():
             if error_count >= 10:
                 error_spam_prompt = input('Error count has reached 10. \n Program will now exit. \n But you can enter "continue" if you still \n want to keep this up? ->')
                 if error_spam_prompt.lower() != 'continue':
-                    results = ["EXIT"] # Brute force error spam prevention
+                    result = "EXIT" # Brute force error spam prevention
                     sys.exit('Exit due to error Spam')
                 else:
                     error_count = 0
