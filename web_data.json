@@ -25,7 +25,8 @@
         "list -t 0",
         "remove -t 22",
         "remove -t 22",
-        "use -s 0 -t 21 -d 0"
+        "use -s 0 -t 21 -d 0",
+        "skip"
     ],
     "rolls": [
         {

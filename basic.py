@@ -229,6 +229,7 @@ battleTable = load({"file":"battle.json"})
 battleInfo = load({"file":"battle_info.json"})
 battleOrder = []
 command_out = []
+getState()
 
 def getJsonFromApi(steps,save=True):
         api_base = "https://www.dnd5eapi.co/api/"
@@ -2380,7 +2381,6 @@ def run_assistant():
     result = "" 
     error_count = 0 # Detect error spam
     setBattleOrder()
-    getState()
     while not("EXIT" == result):
         try:
             command_input_string = input("Command?")
