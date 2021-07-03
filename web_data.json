@@ -26,9 +26,23 @@
         "remove -t 22",
         "remove -t 22",
         "use -s 0 -t 21 -d 0",
-        "skip"
+        "skip",
+        "list -t 0",
+        "list -t 0",
+        "---",
+        "---",
+        "remove -t 0",
+        "remove -t 0"
     ],
     "rolls": [
+        {
+            "roll": 2,
+            "critHit": false
+        },
+        {
+            "roll": 4,
+            "critHit": false
+        },
         {
             "roll": 2,
             "critHit": false

@@ -19,39 +19,6 @@
         <header>
             <h1>DM Assistant</h1>
         </header>
-        <header>
-            <h3>Update History:</h3>
-        </header>
-
-        <content>
-            <ul>
-                <!--
-                    We'll manually search/replace this out with string formatting.
-                    This is where a real template language would come in handy.
-                -->
-                {{ content }}
-            </ul>
-
-
-        <header>
-            <h3>Last Output:</h3>
-        </header>
-
-        <content>
-            <ul>
-                <!--
-                   This will get replaced and a list with some kind of formatting
-		   will, as in the previous list, get stuck in here by replacing
-		   the battle_state_content that is in {{}}. 
-                -->
-                {{ battle_state_content }}
-            </ul>
-	    <p>
-
-        <header>
-            <h3>Last Roll:</h3>
-        </header>
-
         <content>
             <ul>
                 <!--
@@ -79,6 +46,40 @@
             </p>
 
         </content>
+
+
+        <header>
+            <h3>Last Output:</h3>
+        </header>
+
+        <content>
+            <ul>
+                <!--
+                   This will get replaced and a list with some kind of formatting
+		   will, as in the previous list, get stuck in here by replacing
+		   the battle_state_content that is in {{}}. 
+                -->
+                {{ battle_state_content }}
+            </ul>
+	    <p>
+
+        <header>
+            <h3>Last Roll:</h3>
+        </header>
+
+        <header>
+            <h3>Update History:</h3>
+        </header>
+
+        <content>
+            <ul>
+                <!--
+                    We'll manually search/replace this out with string formatting.
+                    This is where a real template language would come in handy.
+                -->
+                {{ content }}
+            </ul>
+
 
         <content>
                 Some code for all you lazy fucks out there that <a href="https://youtu.be/wd8SmUVqVZs?t=38">Warnta TERkmuh JURhb!</a>: https://github.com/v6/5e-dm-assistant/tree/develop-nathan

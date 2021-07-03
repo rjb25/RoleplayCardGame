@@ -229,6 +229,7 @@ battleTable = load({"file":"battle.json"})
 battleInfo = load({"file":"battle_info.json"})
 battleOrder = []
 command_out = []
+firstCommand = True
 
 def getJsonFromApi(steps,save=True):
         api_base = "https://www.dnd5eapi.co/api/"
@@ -261,8 +262,6 @@ def saveBattle():
             json.dump(battleInfo,f)
         with open('data.json', 'w') as f:
             json.dump(cacheTable,f)
-
-
 
 def printBattleKeys():
     printw(battleTable.keys())
@@ -297,6 +296,10 @@ def getState():
 
 def getCommandOut():
     global command_out
+    global firstCommand
+    if firstCommand:
+        getState()
+        firstCommand = False
     return command_out
 
 def rollString(a):
