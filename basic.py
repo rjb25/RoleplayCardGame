@@ -195,14 +195,20 @@ def dmod(context, path, value):
         context[path[-1]] = context[path[-1]] + int(value)
 
 def dget(context, path, default=None):
-    if not isinstance(path,list):
-        path = [path]
-    internal_dict_value = context
-    for k in path:
-        internal_dict_value = internal_dict_value.get(k, default)
-        if internal_dict_value is default:
-            return default
-    return internal_dict_value
+    try:
+        if not isinstance(path,list):
+            path = [path]
+        internal_dict_value = context
+        for k in path:
+            if isinstance(internal_dict_value,list):
+                internal_dict_value = geti(context, int(k), default)
+            else:
+                internal_dict_value = internal_dict_value.get(k, default)
+            if internal_dict_value is default:
+                return default
+        return internal_dict_value
+    except:
+        return default
 
 def weedNones(dictionary):
     return {k:v for k,v in dictionary.items() if (v is not None) and v != []}
@@ -470,7 +476,7 @@ def printUse(a):
         sender = a["sender"]
         senderJson = battleTable[sender]
         actions = senderJson.get("actions")
-        runAction = geti(actions,int(a["do"]),False)["name"]
+        runAction = dget(actions,[int(a["do"]),"name"],False)
     printw("\n"+a["sender"].upper(), "uses", runAction, "on", a["target"])
 
 def applyAction(a):
@@ -1504,7 +1510,8 @@ def roll(dice_strings,critDmg=False,affinityMod=1,saveMult=1,critValues=[]):
                     critHit = True
                 total += int(operator + str(rolled))
         else:
-            total += int(operator + str(value))
+            if value:
+                total += int(operator + str(value))
         first = False
 
     total = math.floor(int(total) * affinityMod * float(saveMult))
@@ -1755,7 +1762,7 @@ def handleAliases(combatantLists,resolve=True,doAll=False):
 def handleNumerics(combatantList):
     result = []
     for combatant in combatantList:
-        if combatant.isnumeric():
+        if combatant != None and combatant.isnumeric():
             comb = geti(battleOrder,int(combatant),False)
             if comb:
                 result.append(comb)
@@ -1768,10 +1775,10 @@ def handleAllAliases(toDict,resolve=True):
     has = hasParse(command)
 
     #sender is optional some times
-    if (not has.get("no-alias")) and (toDict.get("sender") != [None]):
+    if (not has.get("no-alias")) and (dget(toDict,"sender",[None]) != [None]):
         toDict["sender"] = handleAliases(toDict["sender"],resolve,True)
 
-    if (not has.get("no-alias")) and (toDict.get("target") != [None]):
+    if (not has.get("no-alias")) and (dget(toDict,"target",[None]) != [None]):
         if not toDict.get("target-unresolved"):
             toDict["target-unresolved"] = handleAliases(toDict["target"],False,has.get("target-all"))
             toDict["target"] = handleAliases(toDict["target"],resolve,has.get("target-all"))
@@ -1782,13 +1789,11 @@ def handleAllAliases(toDict,resolve=True):
         toDict["member"] = handleAliases(toDict["member"],resolve,True)
 
     if has.get("target-single-optional") and resolve:
-        if (not toDict.get("target")):
+        if dget(toDict,"target",[None]) == [None]:
             if command == "turn":
                 toDict["target"] = [whoTurn()]
             else:
                 toDict["target"] = [whoTurnNext()]
-        else:
-            toDict["target"] = [toDict["target"]]
         toDict["target"] = handleNumerics(toDict["target"])
         
     return toDict
