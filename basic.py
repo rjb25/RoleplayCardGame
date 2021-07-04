@@ -211,7 +211,7 @@ def dget(context, path, default=None):
         return default
 
 def weedNones(dictionary):
-    return {k:v for k,v in dictionary.items() if (v is not None) and v != []}
+    return {k:v for k,v in dictionary.items() if ((v is not None) and (v != [None])) and v != []}
                 
 def load(a):
     with open(a["file"]) as f:
@@ -899,7 +899,6 @@ def callSet(a):
     command = a["command"]
     target = a["target"]
     targetJson = battleTable[target]
-    effect = a["effect"]
 
     context = battleTable
     if target:
@@ -1234,8 +1233,8 @@ def callDo(a):
         if commandStrings:
             for commandString in commandStrings:
                 commandDict = parse_command_string(commandString,"do",False)
-                commandDict["target"] = [target]
-                commandDict["sender"] = [sender]
+                dset(commandDict,"target", target)
+                dset(commandDict,"sender", sender)
                 parse_command_dict(commandDict)
 
 def handleHitModAliases(rollString,senderJson,targetJson, isSave=False):
@@ -1771,6 +1770,7 @@ def handleNumerics(combatantList):
     return result
 
 def handleAllAliases(toDict,resolve=True):
+    mustIterate(toDict,["sender","target","do"])
     command = toDict["command"]
     has = hasParse(command)
 
@@ -2074,7 +2074,7 @@ def populateParserArguments(parser,has,metaHas,verify=True):
         if (has.get("identity") or has.get("file")):
             parser.add_argument("--target", "-t", required=True and verify, help='Target/s creature types to fetch from the cache the api or a file', nargs='+')
         else:
-            parser.add_argument("--target", "-t", required=((not metaHas.get("optionalSenderAndTarget")) and verify and (not has.get("optionalSenderAndTarget"))), help='Target/s for command', nargs='+')
+            parser.add_argument("--target", "-t", required=((not metaHas.get("optionalSenderAndTarget")) and (not has.get("optionalTarget")) and verify and (not has.get("optionalSenderAndTarget"))), help='Target/s for command', nargs='+')
 
     if has.get("target-single-optional"):
         parser.add_argument("--target", "-t", help='Target for command')
@@ -2193,7 +2193,7 @@ hasDict = {
 "action": senderList,
 "weapon": senderList,
 "cast": senderList + ["level"],
-"use": senderList + ["level"],
+"use": senderList + ["level","optionalTarget"],
 "request": ["path","file"],
 "dump": ["file","identity","target"],
 "mod": ["path", "target", "change", "times", "target-all","sort","effect"],
@@ -2299,7 +2299,7 @@ def parse_command_string(command_string_to_parse,metaCommand="",verify=True):
                 else:
                     printw("Here would be some arbitrary command handling that does it's best to get args without command context", command_string_to_parse)
             else:
-                argDictMain = copy.deepcopy(commandDict)
+                argDictMain = copy.deepcopy(commandDict[0])
         else:
             printw("Invalid command. None specified or not an alias nor built in command", commandDict, command)
     else:
@@ -2331,6 +2331,8 @@ def mustIterate(a,keys):
         val = dget(a,key,None)
         if val == None:
             a[key] = [None]
+        elif not isinstance(val, list):
+            a[key] = [val]
 
 def parse_command_dict(argDictToParse):
     argDictMain = copy.deepcopy(argDictToParse)

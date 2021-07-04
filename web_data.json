@@ -36,7 +36,11 @@
         "help",
         "list -h",
         "remove -t 16",
-        "turn"
+        "turn",
+        "list -t 0",
+        "list -t 0",
+        "remove -t 0",
+        "list -t 0"
     ],
     "rolls": [
         {
