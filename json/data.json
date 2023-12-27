@@ -1,0 +1,5 @@
+{
+"Brandon":{"actions":["attack","defend","target"]},
+"Jason":{ "actions":["attack","defend"]},
+"Nathaniel": {"actions":["attack", "defend"]}
+}

@@ -1,0 +1,6 @@
+{
+"Brandon":{"actions":["attack","defend","target"], "max_hp":30, "hp":30},
+"Jason":{ "actions":["attack","defend"], "max_hp":30, "hp":30},
+"Nathaniel": {"actions":["attack", "defend"], "max_hp":30, "hp":30},
+"bear": {"actions":["attack"],"max_hp":45, "hp":45}
+}
