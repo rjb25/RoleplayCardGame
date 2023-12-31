@@ -5,10 +5,16 @@
         <title>Websocket chat</title>
     </head>
     <body>
-        <div id="message_container" style="border: 2px solid black"></div>
+        <div id="messages_container" style="border: 2px solid black"></div>
+        <div id="situations_container" style="border: 4px solid red"></div>
+        <div id="plans_container" style="border: 4px solid green"></div>
+        <div id="victories_container" style="border: 4px solid yellow"></div>
         <div>
-            <input type="text" name="message_input">
-            <input type="button" name="send_message_button" value="Send message">
+            <input type="button" name="card1" value="Card 1">
+            <input type="button" name="card2" value="Card 2">
+            <input type="button" name="card3" value="Card 3">
+            <input type="button" name="card4" value="Card 4">
+            <input type="button" name="card5" value="Card 5">
         </div>
         <script type="application/javascript" src="websocket_client.js"></script>
     </body>

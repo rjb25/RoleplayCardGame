@@ -1,0 +1,7 @@
+{
+    "caution":{"time":2,"force":2,"info":2,"sneak":2},
+    "attack":{"force":8},
+    "hide":{"sneak":8},
+    "wait":{"time":8},
+    "investigate":{"info":8}
+}

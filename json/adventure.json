@@ -1,0 +1,4 @@
+{
+    "intro":{"type":"deck", "situation":{}, "message":"You are under attack once upon a time", "next":"intro"},
+    "shop1":{"type":"decisions_parallel", "message":"A shopkeeper shows you their wares:", "options":[{"pay":2}], "next":"ambush"}
+}
