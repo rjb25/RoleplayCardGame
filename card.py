@@ -191,10 +191,10 @@ async def new_client_connected(client_socket, path):
             cards_played.clear()
             state_table["victory"] += run_situation(state_table["situations"],state_table["plans"])
             if state_table["victory"] > 4:
-                await send_message({"text":"You win!"})
+                await send_message(str({"text":"You win!"}))
                 reset_state()
             if state_table["victory"] < -4:
-                await send_message({"text":"You lose! Neener!"})
+                await send_message(str({"text":"You lose! Neener!"}))
                 reset_state()
             add_situation()
             await send_message(str({"state":state_table,"hand":hand,"text":"Turn executed!"}))
