@@ -76,6 +76,7 @@ state_table = load({"file":"json/state.json"})
 adventure_table = load({"file":"json/adventure.json"})
 cards_table = load({"file":"json/cards.json"})
 situations_table = load({"file":"json/situations.json"})
+players_table = load({"file":"json/players.json"})
 
 def saveBattle():
         with open('json/state.json', 'w') as f:
@@ -148,6 +149,9 @@ def reset_state():
     state_table["plans"] = []
     state_table["victory"] = 0
  
+async def update_hands():
+    for player, data in players_table.items():
+        await data["socket"].send(str({"hand":data["hand"]}))
 
 async def send_message(message: str):
     for client in all_clients:
@@ -166,8 +170,12 @@ async def new_client_connected(client_socket, path):
     hand = deck[:5]
     deck = deck[5:]
     discard = []
+    players_table[username] = {"socket":client_socket, "hand":hand, "deck":deck, "discard":discard}
+    hand = players_table[username]["hand"]
+    deck = players_table[username]["deck"]
+    discard = players_table[username]["discard"]
 
-    await send_message(str({"state":state_table,"hand":hand,"text":"Welcome!"}))
+    await client_socket.send(str({"state":state_table,"hand":hand,"text":"Welcome!"}))
     while True:
         message = await client_socket.recv()
         print("Client sent:", message)
@@ -197,7 +205,8 @@ async def new_client_connected(client_socket, path):
                 await send_message(str({"text":"You lose! Neener!"}))
                 reset_state()
             add_situation()
-            await send_message(str({"state":state_table,"hand":hand,"text":"Turn executed!"}))
+            await update_hands()
+            await send_message(str({"state":state_table,"text":"Turn executed!"}))
 
 async def start_server():
     print("Server started!")
