@@ -1309,12 +1309,12 @@ setlocal nowinfixwidth
 setlocal wrap
 setlocal wrapmargin=0
 silent! normal! zE
-let s:l = 165 - ((24 * winheight(0) + 38) / 76)
+let s:l = 21 - ((20 * winheight(0) + 38) / 76)
 if s:l < 1 | let s:l = 1 | endif
 exe s:l
 normal! zt
-165
-normal! 0
+21
+normal! 011|
 lcd ~/RoleplayCardGame
 wincmd w
 2wincmd w
@@ -1460,12 +1460,12 @@ setlocal nowinfixwidth
 setlocal wrap
 setlocal wrapmargin=0
 silent! normal! zE
-let s:l = 12 - ((11 * winheight(0) + 38) / 76)
+let s:l = 8 - ((7 * winheight(0) + 38) / 76)
 if s:l < 1 | let s:l = 1 | endif
 exe s:l
 normal! zt
-12
-normal! 09|
+8
+normal! 032|
 lcd ~/RoleplayCardGame
 wincmd w
 argglobal
@@ -1594,12 +1594,12 @@ setlocal nowinfixwidth
 setlocal wrap
 setlocal wrapmargin=0
 silent! normal! zE
-let s:l = 1 - ((0 * winheight(0) + 38) / 76)
+let s:l = 84 - ((75 * winheight(0) + 38) / 76)
 if s:l < 1 | let s:l = 1 | endif
 exe s:l
 normal! zt
-1
-normal! 017|
+84
+normal! 0
 lcd ~/RoleplayCardGame
 wincmd w
 exe 'vert 1resize ' . ((&columns * 140 + 140) / 281)
@@ -1748,6 +1748,7 @@ lcd ~/RoleplayCardGame
 tabnext 2
 set stal=1
 badd +1 ~/RoleplayCardGame/json/decks.json
+badd +0 ~/RoleplayCardGame
 badd +1 ~/RoleplayCardGame/test.py
 badd +1 ~/RoleplayCardGame/index.html
 badd +1499 ~/RoleplayCardGame/old/basic.py
@@ -1759,7 +1760,7 @@ badd +1 ~/RoleplayCardGame/json/state.json
 badd +1 ~/RoleplayCardGame/json/adventure.json
 badd +0 ~/RoleplayCardGame/card.py
 badd +1 ~/RoleplayCardGame/websocket_client.js
-badd +0 ~/RoleplayCardGame/.websocket_client.js.swp
+badd +1 ~/RoleplayCardGame/.websocket_client.js.swp
 if exists('s:wipebuf') && len(win_findbuf(s:wipebuf)) == 0
   silent exe 'bwipe ' . s:wipebuf
 endif

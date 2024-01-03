@@ -18,6 +18,7 @@ import argparse
 import re
 import shlex
 import copy
+import time
 from itertools import takewhile
 
 
@@ -115,6 +116,7 @@ cards_played = []
 adventure = "intro"
 current_id = -1 
 deal_to_next = 0
+running = False
 def get_unique_id():
     global current_id
     current_id += 1
@@ -162,7 +164,9 @@ def load_deck(username):
     players_table[username]["hand"] = []
 
 #TODO
-#handle reminding where you just send their current hand for refresh
+#Timer
+#Draw +2 card
+#functions that can access the main data but are in another file/class
 async def deal_cards(count, player = ""):
     players = list(players_table.values())
     usernames = list(players_table.keys())
@@ -206,10 +210,12 @@ async def send_message(message,username = ""):
             await player_data["socket"].send(str(message))
 
 async def play_card(username,choice):
+    players_table[username]["hand"].remove(choice)
     card = players_table[username]["deck_dict"][choice]["base"]
     discard = players_table[username]["discard"]
     discard.append(choice)
     cards_played.append(card)
+
     if len(cards_played) == 3:
         plan = add_dicts(cards_played)
         state_table["plans"].append(plan)
@@ -227,20 +233,27 @@ async def play_card(username,choice):
 
 async def new_client_connected(client_socket, path):
     username = path[1:]
-    #TODO make it so refreshing isn't an issue
     if not(username in players_table.keys()):
         print("New client connected!")
         print("User: "+username)
         players_table[username] = {"socket":client_socket}
         load_deck(username)
         await send_message({"state":state_table, "text":"Welcome!"},username)
-        await deal_cards(10,username)
+        await deal_cards(6,username)
     else:
         players_table[username]["socket"] = client_socket
+        hand = players_table[username]["hand"]
+        cards = []
+        for card in hand:
+            cards.append({"id":card, "card":players_table[username]["deck_dict"][card]})
+        await send_message({"cards":cards,"text":"Welcome back!", "state":state_table},username)
 
     while True:
         card_id = await client_socket.recv()
         print("Client sent:", card_id)
+        global running
+        running = True
+        
         choice = int(card_id)
         await play_card(username,choice)
 
@@ -254,3 +267,17 @@ if __name__ == '__main__':
     event_loop = asyncio.get_event_loop()
     event_loop.run_until_complete(start_server())
     event_loop.run_forever()
+#TODO
+#IDEAS
+#situation queue
+#Card that adds values based on plan, so for each time it gives another second, for each 3 force it adds 1 value to other categories for each 3 info it adds another card drawn for each stealth it increases the cards played for the next situation.
+#Rogue Something like, defeat this situation, but it's effects get pushed to the next situation
+#Rogue "end it", +1 card play blank plans for the rest of the plan. (if you cannot handle it and don't want to waste)
+#Wizard Something like, return played cards to hands to restart a plan, see all players cards, redistribute cards, get cards for each info etc
+#stealth targets future situations Rogue
+#info targets more cards and team transparency Wizard
+#time targets the timer Royalty
+#force targets raw values for this turn Barbarian
+#have it be time and need to handle all situations. Situations go back into the deck if they pass through. They also inflict a penalty when they pass
+#Preparations phase where you can play 1 card each that adds a perk like seeing an extra situation ahead, drawing an extra card, relic type things, but only one
+#let there be blood force x2

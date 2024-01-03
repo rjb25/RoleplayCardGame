@@ -1,6 +1,6 @@
 document.addEventListener('DOMContentLoaded', function(){
     //socketname = prompt("WebSocketURL no http://")
-    socketname = "50c3-108-31-158-123.ngrok-free.app"
+    socketname = "d33a-108-31-158-123.ngrok-free.app"
     username = prompt("Username:")
     //username = "jason"
     const websocketClient = new WebSocket("wss://"+socketname+"/"+username);
@@ -10,31 +10,31 @@ document.addEventListener('DOMContentLoaded', function(){
     const plansContainer = document.querySelector("#plans_container");
     const victoriesContainer = document.querySelector("#victories_container");
     const cardsContainer = document.querySelector("#cards_container");
-    const card1 = document.querySelector("[name=card1]");
-    const card2 = document.querySelector("[name=card2]");
-    const card3 = document.querySelector("[name=card3]");
-    const card4 = document.querySelector("[name=card4]");
-    const card5 = document.querySelector("[name=card5]");
-    cardButtons = [card1,card2,card3,card4,card5];
+    const timerContainer = document.querySelector("#timer_container");
     websocketClient.onopen = function(){
         console.log("Client connected!");
 
         websocketClient.onmessage = function(message){
             messageJson = JSON.parse(message.data.replace(/'/g, '"'));
             console.log(messageJson);
-            messageText = messageJson["text"];
-            state = messageJson["state"];
-            cards = messageJson["cards"];
-
-            const messageDiv = document.createElement("div");
-            messageDiv.innerHTML = messageText;
+            var time = 5;
+            var timer = setInterval(function(){
+                timerContainer.innerHTML = time;
+                time = Math.max(time - 1,0);
+                if(time<0)
+            }, 1000);
+            if("time" in messageJson){
 
             if("text" in messageJson){
+                messageText = messageJson["text"];
+                const messageDiv = document.createElement("div");
+                messageDiv.innerHTML = messageText;
                 messagesContainer.innerHTML = "";
                 messagesContainer.appendChild(messageDiv);
             }
 
             if("state" in messageJson){
+                state = messageJson["state"];
                 if("victory" in state){
                     victories = state["victory"];
                     victoriesContainer.innerHTML = "";
@@ -67,6 +67,7 @@ document.addEventListener('DOMContentLoaded', function(){
             }
 
             if("cards" in messageJson){
+                cards = messageJson["cards"];
                 cards.forEach((card) => {
                     console.log(card);
                     cardButton = document.createElement("button");
