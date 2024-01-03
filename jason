@@ -90,11 +90,11 @@ set winminheight=0
 set winheight=1
 set winminwidth=0
 set winwidth=1
-exe 'vert 1resize ' . ((&columns * 39 + 140) / 281)
+exe 'vert 1resize ' . ((&columns * 40 + 140) / 281)
 exe 'vert 2resize ' . ((&columns * 39 + 140) / 281)
 exe 'vert 3resize ' . ((&columns * 39 + 140) / 281)
 exe 'vert 4resize ' . ((&columns * 39 + 140) / 281)
-exe 'vert 5resize ' . ((&columns * 40 + 140) / 281)
+exe 'vert 5resize ' . ((&columns * 39 + 140) / 281)
 exe 'vert 6resize ' . ((&columns * 40 + 140) / 281)
 exe 'vert 7resize ' . ((&columns * 39 + 140) / 281)
 argglobal
@@ -487,12 +487,12 @@ setlocal nowinfixwidth
 setlocal wrap
 setlocal wrapmargin=0
 silent! normal! zE
-let s:l = 2 - ((1 * winheight(0) + 38) / 76)
+let s:l = 6 - ((5 * winheight(0) + 38) / 76)
 if s:l < 1 | let s:l = 1 | endif
 exe s:l
 normal! zt
-2
-normal! 016|
+6
+normal! 033|
 lcd ~/RoleplayCardGame
 wincmd w
 argglobal
@@ -1027,11 +1027,11 @@ normal! zt
 normal! 0
 lcd ~/RoleplayCardGame
 wincmd w
-exe 'vert 1resize ' . ((&columns * 39 + 140) / 281)
+exe 'vert 1resize ' . ((&columns * 40 + 140) / 281)
 exe 'vert 2resize ' . ((&columns * 39 + 140) / 281)
 exe 'vert 3resize ' . ((&columns * 39 + 140) / 281)
 exe 'vert 4resize ' . ((&columns * 39 + 140) / 281)
-exe 'vert 5resize ' . ((&columns * 40 + 140) / 281)
+exe 'vert 5resize ' . ((&columns * 39 + 140) / 281)
 exe 'vert 6resize ' . ((&columns * 40 + 140) / 281)
 exe 'vert 7resize ' . ((&columns * 39 + 140) / 281)
 tabnext
@@ -1309,12 +1309,12 @@ setlocal nowinfixwidth
 setlocal wrap
 setlocal wrapmargin=0
 silent! normal! zE
-let s:l = 170 - ((40 * winheight(0) + 38) / 76)
+let s:l = 165 - ((24 * winheight(0) + 38) / 76)
 if s:l < 1 | let s:l = 1 | endif
 exe s:l
 normal! zt
-170
-normal! 046|
+165
+normal! 0
 lcd ~/RoleplayCardGame
 wincmd w
 2wincmd w
@@ -1460,11 +1460,11 @@ setlocal nowinfixwidth
 setlocal wrap
 setlocal wrapmargin=0
 silent! normal! zE
-let s:l = 14 - ((13 * winheight(0) + 38) / 76)
+let s:l = 12 - ((11 * winheight(0) + 38) / 76)
 if s:l < 1 | let s:l = 1 | endif
 exe s:l
 normal! zt
-14
+12
 normal! 09|
 lcd ~/RoleplayCardGame
 wincmd w
@@ -1594,12 +1594,12 @@ setlocal nowinfixwidth
 setlocal wrap
 setlocal wrapmargin=0
 silent! normal! zE
-let s:l = 20 - ((19 * winheight(0) + 38) / 76)
+let s:l = 1 - ((0 * winheight(0) + 38) / 76)
 if s:l < 1 | let s:l = 1 | endif
 exe s:l
 normal! zt
-20
-normal! 035|
+1
+normal! 017|
 lcd ~/RoleplayCardGame
 wincmd w
 exe 'vert 1resize ' . ((&columns * 140 + 140) / 281)
@@ -1738,17 +1738,16 @@ setlocal nowinfixwidth
 setlocal wrap
 setlocal wrapmargin=0
 silent! normal! zE
-let s:l = 12 - ((11 * winheight(0) + 38) / 76)
+let s:l = 216 - ((70 * winheight(0) + 38) / 76)
 if s:l < 1 | let s:l = 1 | endif
 exe s:l
 normal! zt
-12
-normal! 025|
+216
+normal! 012|
 lcd ~/RoleplayCardGame
 tabnext 2
 set stal=1
 badd +1 ~/RoleplayCardGame/json/decks.json
-badd +1 ~/RoleplayCardGame
 badd +1 ~/RoleplayCardGame/test.py
 badd +1 ~/RoleplayCardGame/index.html
 badd +1499 ~/RoleplayCardGame/old/basic.py
@@ -1760,6 +1759,7 @@ badd +1 ~/RoleplayCardGame/json/state.json
 badd +1 ~/RoleplayCardGame/json/adventure.json
 badd +0 ~/RoleplayCardGame/card.py
 badd +1 ~/RoleplayCardGame/websocket_client.js
+badd +0 ~/RoleplayCardGame/.websocket_client.js.swp
 if exists('s:wipebuf') && len(win_findbuf(s:wipebuf)) == 0
   silent exe 'bwipe ' . s:wipebuf
 endif

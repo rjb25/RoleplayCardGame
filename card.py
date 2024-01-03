@@ -114,7 +114,7 @@ def situation_handled(situation):
 cards_played = []
 adventure = "intro"
 current_id = -1 
-deal_to_first = 0
+deal_to_next = 0
 def get_unique_id():
     global current_id
     current_id += 1
@@ -159,20 +159,29 @@ def load_deck(username):
     players_table[username]["deck"] = deck
     players_table[username]["deck_dict"] = deck_dict
     players_table[username]["discard"] = []
-    #TODO hand or not to hand
-    #players_table[username]["hand"] = []
+    players_table[username]["hand"] = []
 
+#TODO
+#handle reminding where you just send their current hand for refresh
 async def deal_cards(count, player = ""):
     players = list(players_table.values())
     usernames = list(players_table.keys())
     message_result = {}
+    global deal_to_next
     for i in range(count):
-        index = i % len(players)
+        #Handles spreading cards for non divisble amounts fairly
+        if player:
+            index = usernames.index(player)
+        else:
+            index = (i + deal_to_next) % len(players)
+            if i == count -1:
+                deal_to_next = (index + 1) % len(players)
         player_data = players[index]
         username = usernames[index]
         deck = player_data["deck"]
         deck_dict = player_data["deck_dict"]
         discard = player_data["discard"]
+        hand = player_data["hand"]
         if len(deck) <= 0:
             #Lesson learned here is that 'dict[mylist] = list' works, and 'name = dict[mylist]; name.func(args)' works.
             #'name = newlist' fails
@@ -182,8 +191,7 @@ async def deal_cards(count, player = ""):
         if len(deck) > 0:
             card_id = deck.pop(0)
             card = deck_dict[card_id]
-            #hand.append(card_id)
-            #TODO Update title appropriately
+            hand.append(card_id)
             if not(username in message_result.keys()):
                 message_result[username] = []
             message_result[username].append({"id":card_id, "card":card})
@@ -198,7 +206,6 @@ async def send_message(message,username = ""):
             await player_data["socket"].send(str(message))
 
 async def play_card(username,choice):
-    #card = hand.pop(choice)
     card = players_table[username]["deck_dict"][choice]["base"]
     discard = players_table[username]["discard"]
     discard.append(choice)
@@ -216,10 +223,9 @@ async def play_card(username,choice):
             reset_state()
         add_situation()
         await deal_cards(3)
-        await send_message({"state":state_table},username)
+        await send_message({"state":state_table})
 
 async def new_client_connected(client_socket, path):
-    #if messages = allclients.length: globals()["situation_name"]()
     username = path[1:]
     #TODO make it so refreshing isn't an issue
     if not(username in players_table.keys()):
@@ -227,13 +233,11 @@ async def new_client_connected(client_socket, path):
         print("User: "+username)
         players_table[username] = {"socket":client_socket}
         load_deck(username)
+        await send_message({"state":state_table, "text":"Welcome!"},username)
+        await deal_cards(10,username)
     else:
         players_table[username]["socket"] = client_socket
 
-    #Card management
-    #Should just be loadDeck() then later deal cards at the right point and handle card 
-    await send_message({"state":state_table, "text":"Welcome!"},username)
-    await deal_cards(10)
     while True:
         card_id = await client_socket.recv()
         print("Client sent:", card_id)
