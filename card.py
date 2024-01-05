@@ -21,6 +21,8 @@ import copy
 import time
 from itertools import takewhile
 
+def deep_merge(base_dict,update_dict):
+    base_dict.update(update_dict)
 
 def geti(list, index, default_value):
     try:
@@ -116,7 +118,10 @@ cards_played = []
 adventure = "intro"
 current_id = -1 
 deal_to_next = 0
+default_time = 120
+time = default_time
 running = False
+message_queue = {}
 def get_unique_id():
     global current_id
     current_id += 1
@@ -144,9 +149,22 @@ def run_situation(situations, plans):
     return -1
 
 def reset_state():
+    cards_played = []
     state_table["situations"] = []
     state_table["plans"] = []
     state_table["victory"] = 0
+    global default_time
+    #LAST TODO race condition here need to consolidate messages
+    queue_message({"time": default_time, "reset": 1, "running":0})
+    for username in list(players_table.keys()):
+        players_table[username]["discard"] = []
+        players_table[username]["hand"] = []
+        players_table[username]["deck"] = list(players_table[username]["deck_dict"])
+        deal_cards(6,username)
+    global time
+    time = default_time
+    global running
+    running = False
 
 def load_deck(username):
     loaded_deck = {} 
@@ -163,11 +181,7 @@ def load_deck(username):
     players_table[username]["discard"] = []
     players_table[username]["hand"] = []
 
-#TODO
-#Timer
-#Draw +2 card
-#functions that can access the main data but are in another file/class
-async def deal_cards(count, player = ""):
+def deal_cards(count, player = ""):
     players = list(players_table.values())
     usernames = list(players_table.keys())
     message_result = {}
@@ -200,7 +214,7 @@ async def deal_cards(count, player = ""):
                 message_result[username] = []
             message_result[username].append({"id":card_id, "card":card})
     for username, cards in message_result.items():
-        await send_message({"cards":cards},username)
+        queue_message({"cards":cards},username)
 
 async def send_message(message,username = ""):
     if username:
@@ -209,7 +223,32 @@ async def send_message(message,username = ""):
         for player, player_data in players_table.items():
             await player_data["socket"].send(str(message))
 
-async def play_card(username,choice):
+async def release_message():
+    global message_queue
+    for username in list(message_queue.keys()):
+        await players_table[username]["socket"].send(str(message_queue[username]))
+    message_queue = {}
+
+def queue_message(message,username = ""):
+    global message_queue
+    if username:
+        message_queue.setdefault(username,{})
+        deep_merge(message_queue[username], message)
+    else:
+        for username in list(players_table.keys()):
+            message_queue.setdefault(username,{})
+            deep_merge(message_queue[username], message)
+def game_finished():
+    if state_table["victory"] > 4:
+        queue_message({"text":"You win!"})
+        reset_state()
+        return True
+    if state_table["victory"] < -4:
+        queue_message({"text":"You lose! Neener!"})
+        reset_state()
+        return True
+
+def play_card(username,choice):
     players_table[username]["hand"].remove(choice)
     card = players_table[username]["deck_dict"][choice]["base"]
     discard = players_table[username]["discard"]
@@ -221,32 +260,52 @@ async def play_card(username,choice):
         state_table["plans"].append(plan)
         cards_played.clear()
         state_table["victory"] += run_situation(state_table["situations"],state_table["plans"])
-        if state_table["victory"] > 4:
-            await send_message(str({"text":"You win!"}))
-            reset_state()
-        if state_table["victory"] < -4:
-            await send_message(str({"text":"You lose! Neener!"}))
-            reset_state()
+        if not(game_finished()):
+            deal_cards(3)
         add_situation()
-        await deal_cards(3)
-        await send_message({"state":state_table})
+        queue_message({"state":state_table})
 
+def initalize_time():
+    timer = asyncio.create_task(tick())
+    
+async def time_up():
+    print("times up")
+    queue_message({"text":"You lose! Neener!"})
+    reset_state()
+    add_situation()
+    queue_message({"state":state_table})
+    await release_message()
+
+async def tick():
+    await asyncio.sleep(1)
+    print("tick")
+    global running
+    if running:
+        global time
+        time = max(time-1, 0)
+        if time <=0:
+            await time_up()
+    await tick()
+
+#LAST TODO reset state needs to be more thorough and reset hand as well as cards played
 async def new_client_connected(client_socket, path):
     username = path[1:]
+    global time
     if not(username in players_table.keys()):
         print("New client connected!")
         print("User: "+username)
         players_table[username] = {"socket":client_socket}
         load_deck(username)
-        await send_message({"state":state_table, "text":"Welcome!"},username)
-        await deal_cards(6,username)
+        queue_message({"time":time,"state":state_table, "text":"Welcome!"},username)
+        deal_cards(6,username)
     else:
         players_table[username]["socket"] = client_socket
         hand = players_table[username]["hand"]
         cards = []
         for card in hand:
             cards.append({"id":card, "card":players_table[username]["deck_dict"][card]})
-        await send_message({"cards":cards,"text":"Welcome back!", "state":state_table},username)
+        queue_message({"time": time,"cards":cards,"text":"Welcome back!", "state":state_table},username)
+    await release_message()
 
     while True:
         card_id = await client_socket.recv()
@@ -255,11 +314,13 @@ async def new_client_connected(client_socket, path):
         running = True
         
         choice = int(card_id)
-        await play_card(username,choice)
+        play_card(username,choice)
+        await release_message()
 
 
 async def start_server():
     print("Server started!")
+    initalize_time()
     add_situation()
     await websockets.serve(new_client_connected, "localhost", 12345)
 
@@ -268,6 +329,10 @@ if __name__ == '__main__':
     event_loop.run_until_complete(start_server())
     event_loop.run_forever()
 #TODO
+#discard cards
+#Draw +2 card
+#functions that can access the main data but are in another file/class
+#aggragate messages and have anything that sends messages return as they add to make one message
 #IDEAS
 #situation queue
 #Card that adds values based on plan, so for each time it gives another second, for each 3 force it adds 1 value to other categories for each 3 info it adds another card drawn for each stealth it increases the cards played for the next situation.

@@ -1175,12 +1175,12 @@ setlocal nowinfixwidth
 setlocal wrap
 setlocal wrapmargin=0
 silent! normal! zE
-let s:l = 25 - ((24 * winheight(0) + 38) / 76)
+let s:l = 10 - ((9 * winheight(0) + 38) / 76)
 if s:l < 1 | let s:l = 1 | endif
 exe s:l
 normal! zt
-25
-normal! 011|
+10
+normal! 024|
 lcd ~/RoleplayCardGame
 wincmd w
 argglobal
@@ -1309,12 +1309,12 @@ setlocal nowinfixwidth
 setlocal wrap
 setlocal wrapmargin=0
 silent! normal! zE
-let s:l = 21 - ((20 * winheight(0) + 38) / 76)
+let s:l = 121 - ((37 * winheight(0) + 38) / 76)
 if s:l < 1 | let s:l = 1 | endif
 exe s:l
 normal! zt
-21
-normal! 011|
+121
+normal! 017|
 lcd ~/RoleplayCardGame
 wincmd w
 2wincmd w
@@ -1460,12 +1460,12 @@ setlocal nowinfixwidth
 setlocal wrap
 setlocal wrapmargin=0
 silent! normal! zE
-let s:l = 8 - ((7 * winheight(0) + 38) / 76)
+let s:l = 17 - ((16 * winheight(0) + 38) / 76)
 if s:l < 1 | let s:l = 1 | endif
 exe s:l
 normal! zt
-8
-normal! 032|
+17
+normal! 0
 lcd ~/RoleplayCardGame
 wincmd w
 argglobal
@@ -1594,11 +1594,11 @@ setlocal nowinfixwidth
 setlocal wrap
 setlocal wrapmargin=0
 silent! normal! zE
-let s:l = 84 - ((75 * winheight(0) + 38) / 76)
+let s:l = 1 - ((0 * winheight(0) + 38) / 76)
 if s:l < 1 | let s:l = 1 | endif
 exe s:l
 normal! zt
-84
+1
 normal! 0
 lcd ~/RoleplayCardGame
 wincmd w
@@ -1738,17 +1738,17 @@ setlocal nowinfixwidth
 setlocal wrap
 setlocal wrapmargin=0
 silent! normal! zE
-let s:l = 216 - ((70 * winheight(0) + 38) / 76)
+let s:l = 1921 - ((70 * winheight(0) + 38) / 76)
 if s:l < 1 | let s:l = 1 | endif
 exe s:l
 normal! zt
-216
-normal! 012|
+1921
+normal! 017|
 lcd ~/RoleplayCardGame
 tabnext 2
 set stal=1
 badd +1 ~/RoleplayCardGame/json/decks.json
-badd +0 ~/RoleplayCardGame
+badd +1 ~/RoleplayCardGame
 badd +1 ~/RoleplayCardGame/test.py
 badd +1 ~/RoleplayCardGame/index.html
 badd +1499 ~/RoleplayCardGame/old/basic.py

@@ -1,6 +1,6 @@
 document.addEventListener('DOMContentLoaded', function(){
     //socketname = prompt("WebSocketURL no http://")
-    socketname = "d33a-108-31-158-123.ngrok-free.app"
+    socketname = "67cb-108-31-158-123.ngrok-free.app"
     username = prompt("Username:")
     //username = "jason"
     const websocketClient = new WebSocket("wss://"+socketname+"/"+username);
@@ -11,19 +11,38 @@ document.addEventListener('DOMContentLoaded', function(){
     const victoriesContainer = document.querySelector("#victories_container");
     const cardsContainer = document.querySelector("#cards_container");
     const timerContainer = document.querySelector("#timer_container");
+    var time = 0;
+    var running = false;
+    var timer = setInterval(function(){
+        timerContainer.innerHTML = time;
+        if(running){
+            time = Math.max(time - 1,0);
+        }
+    }, 1000);
+    function removeAllChildNodes(parent) {
+        while (parent.firstChild) {
+            parent.removeChild(parent.firstChild);
+        }
+    }
     websocketClient.onopen = function(){
         console.log("Client connected!");
 
         websocketClient.onmessage = function(message){
             messageJson = JSON.parse(message.data.replace(/'/g, '"'));
-            console.log(messageJson);
-            var time = 5;
-            var timer = setInterval(function(){
-                timerContainer.innerHTML = time;
-                time = Math.max(time - 1,0);
-                if(time<0)
-            }, 1000);
+            console.log(JSON.stringify(messageJson));
+            if("reset" in messageJson){
+                reset = messageJson["reset"];
+                if (reset){
+                    removeAllChildNodes(cardsContainer);
+                }
+            }
+
             if("time" in messageJson){
+                time = messageJson["time"];
+            }
+            if("running" in messageJson){
+                running = messageJson["running"];
+            }
 
             if("text" in messageJson){
                 messageText = messageJson["text"];
@@ -69,12 +88,12 @@ document.addEventListener('DOMContentLoaded', function(){
             if("cards" in messageJson){
                 cards = messageJson["cards"];
                 cards.forEach((card) => {
-                    console.log(card);
                     cardButton = document.createElement("button");
                     cardButton.textContent = card["card"]["title"];
                     cardButton.onclick = function(){
                         websocketClient.send(card["id"]);
                         this.parentNode.removeChild(this);
+                        running = true;
                     };
                     cardsContainer.appendChild(cardButton);
                 });
