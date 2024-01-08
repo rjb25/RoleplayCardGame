@@ -1,6 +1,6 @@
 document.addEventListener('DOMContentLoaded', function(){
     //socketname = prompt("WebSocketURL no http://")
-    socketname = "67cb-108-31-158-123.ngrok-free.app"
+    socketname = "c8d2-108-31-158-123.ngrok-free.app"
     username = prompt("Username:")
     //username = "jason"
     const websocketClient = new WebSocket("wss://"+socketname+"/"+username);
@@ -90,6 +90,7 @@ document.addEventListener('DOMContentLoaded', function(){
                 cards.forEach((card) => {
                     cardButton = document.createElement("button");
                     cardButton.textContent = card["card"]["title"];
+                    cardButton.classList.add("card");
                     cardButton.onclick = function(){
                         websocketClient.send(card["id"]);
                         this.parentNode.removeChild(this);

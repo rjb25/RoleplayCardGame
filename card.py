@@ -154,7 +154,6 @@ def reset_state():
     state_table["plans"] = []
     state_table["victory"] = 0
     global default_time
-    #LAST TODO race condition here need to consolidate messages
     queue_message({"time": default_time, "reset": 1, "running":0})
     for username in list(players_table.keys()):
         players_table[username]["discard"] = []
@@ -287,7 +286,6 @@ async def tick():
             await time_up()
     await tick()
 
-#LAST TODO reset state needs to be more thorough and reset hand as well as cards played
 async def new_client_connected(client_socket, path):
     username = path[1:]
     global time
@@ -312,6 +310,8 @@ async def new_client_connected(client_socket, path):
         print("Client sent:", card_id)
         global running
         running = True
+        queue_message({"running":1})
+        queue_message({"text":"Playing!"})
         
         choice = int(card_id)
         play_card(username,choice)
