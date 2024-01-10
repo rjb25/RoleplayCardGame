@@ -1,0 +1,4 @@
+{
+"evil" :{"limit":3,"time":120, "victory":0,"running":0,"cards_played":[], "deal_to_next":0, "plans":[], "planned":0, "text":"Welcome!"},
+"good" :{"limit":3,"time":120, "victory":0,"running":0,"cards_played":[], "deal_to_next":0, "plans":[], "planned":0, "text":"Welcome!"}
+}
