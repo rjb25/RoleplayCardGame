@@ -1,1 +1,6 @@
-{}
+{
+    "deck_dict":{},
+    "deck":[],
+    "discard":[],
+    "hand":[]
+}

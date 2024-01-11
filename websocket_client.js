@@ -2,8 +2,14 @@ document.addEventListener('DOMContentLoaded', function(){
     //socketname = prompt("WebSocketURL no http://")
     socketname = "fda0-108-45-153-120.ngrok-free.app"
     username = prompt("Username:")
+    team = "evil"
+    enemy_team = "good"
+    if(confirm("Join good team? Otherwise join evil.")){
+        team = "good"
+        enemy_team = "evil"
+    }
     //username = "jason"
-    const websocketClient = new WebSocket("wss://"+socketname+"/"+username);
+    const websocketClient = new WebSocket("wss://"+socketname+"/"+username+"/"+team);
     //const websocketClient = new WebSocket("ws://localhost:12345/");
     const messagesContainer = document.querySelector("#messages_container");
     const situationsContainer = document.querySelector("#situations_container");
@@ -63,19 +69,20 @@ document.addEventListener('DOMContentLoaded', function(){
                 });
             }
 
-            if("enemy_plans" in messageJson){
-                situations = messageJson["enemy_plans"];
-                situationsContainer.innerHTML = "";
-                situations.forEach((situation) => {
-                    const situationDiv = document.createElement("div");
-                    situationDiv.innerHTML = JSON.stringify(situation);
-                    situationsContainer.appendChild(situationDiv);
 
-                });
-            }
-
-            if("team_state" in messageJson){
-                team_state = messageJson["team_state"];
+            if("teams_table" in messageJson){
+                team_state = messageJson["teams_table"][team];
+                enemy_state = messageJson["teams_table"][enemy_team];
+                
+                if("plans" in enemy_state){
+                    situations = enemy_state["plans"];
+                    situationsContainer.innerHTML = "";
+                    situations.forEach((situation) => {
+                        const situationDiv = document.createElement("div");
+                        situationDiv.innerHTML = JSON.stringify(situation);
+                        situationsContainer.appendChild(situationDiv);
+                    });
+                }
                 if("text" in team_state){
                     messageText = team_state["text"];
                     const messageDiv = document.createElement("div");

@@ -24,52 +24,6 @@ from itertools import takewhile
 def deep_merge(base_dict,update_dict):
     base_dict.update(update_dict)
 
-def geti(list, index, default_value):
-    try:
-        return list[index]
-    except:
-        return default_value
-#ddel(battleInfo,["groups",group])
-def ddel(context,path):
-    deep = pathing(path[:-1],context)
-    if isinstance(deep, list):
-        deep.pop(int(path[-1]))
-    else:
-        deep.pop(path[-1],None)
-
-def dset(context, path, value):
-    if not isinstance(path,list):
-        path = [path]
-    for key in path[:-1]:
-        context = context.setdefault(key, {})
-    context[path[-1]] = value
-
-def dmod(context, path, value):
-    if not isinstance(path,list):
-        path = [path]
-    for key in path[:-1]:
-        context = context.setdefault(key, {})
-    if dget(context,path[-1],None) == None:
-        context[path[-1]] = int(value)
-    else:
-        context[path[-1]] = context[path[-1]] + int(value)
-
-def dget(context, path, default=None):
-    try:
-        if not isinstance(path,list):
-            path = [path]
-        internal_dict_value = context
-        for k in path:
-            if isinstance(internal_dict_value,list):
-                internal_dict_value = geti(context, int(k), default)
-            else:
-                internal_dict_value = internal_dict_value.get(k, default)
-            if internal_dict_value is default:
-                return default
-        return internal_dict_value
-    except:
-        return default
-                
 def load(a):
     with open(a["file"]) as f:
             return json.load(f)
@@ -77,102 +31,48 @@ def load(a):
 #adventure_table = load({"file":"json/adventure.json"})
 decks_table = load({"file":"json/decks.json"})
 cards_table = load({"file":"json/cards.json"})
-players_table = load({"file":"json/players.json"})
-teams_table = load({"file":"json/teams.json"})
+players_default = load({"file":"json/players.json"})
+team_default = load({"file":"json/teams.json"})
+teams_table = {"evil":{},"good":{}}
+players_table = {}
 #COMMUNICATIONS
 #adventure = "intro"
 current_id = -1 
 default_time = 120
 message_queue = {}
-executing_team = "evil"
 
 def saveBattle():
         with open('json/decks.json', 'w') as f:
             json.dump(decks_table,f)
 
-def add_dicts2(di1,di2):
-    return {i: di1.get(i, 0) + di2.get(i, 0)for i in set(di1).union(di2)}
+def all_ready():
+    ready_count = 0
+    for team, team_data in teams_table.items():
+        ready_count += team_data["planned"]
+    return (ready_count == len(teams_table.items()))
 
-def add_dicts(dicts):
-    return functools.reduce(add_dicts2, dicts)
+def end_round():
+    for team, team_data in teams_table.items():
+        cards_played = team_data["cards_played"]
+        team_data["plans"].append(copy.deepcopy(cards_played))
+        cards_played.clear()
+        team_data["planned"] = 0
+        deal_cards(3,team)
+    update_state()
 
-def sub_dicts2(di1,di2):
-    return {i: di1.get(i, 0) - di2.get(i, 0)for i in set(di1).union(di2)}
+#The references are the same here
+def initialize_teams():
+    for team in list(teams_table.keys()):
+        teams_table[team].update(copy.deepcopy(team_default))
 
-def sub_dicts(dicts):
-    return functools.reduce(sub_dicts2, dicts)
-
-def remaining_execution(plan):
-    for element,value in plan.items():
-        if value < 0:
-            plan[element] = value*-1;
-        if value > 0:
-            plan[element] = 0;
-    return plan
-
-def execution_handled(execution):
-    for element,value in execution.items():
-        if value < 0:
-            return False
-    return True
-
-def execute():
-    global executing_team
-    reacting_team = get_enemy_team(executing_team)
-    if teams_table[executing_team]["planned"] + teams_table[reacting_team]["planned"] == 2:
-
-        execute_cards_played = teams_table[executing_team]["cards_played"]
-        execute_plan = add_dicts(execute_cards_played)
-        executions = teams_table[executing_team]["plans"]
-        executions.append(execute_plan)
-        teams_table[executing_team]["cards_played"].clear()
-        teams_table[executing_team]["planned"] = 0
-
-        react_cards_played = teams_table[reacting_team]["cards_played"]
-        react_plan = add_dicts(react_cards_played)
-        reactions = teams_table[reacting_team]["plans"]
-        reactions.append(react_plan)
-        teams_table[reacting_team]["cards_played"].clear()
-        teams_table[reacting_team]["planned"] = 0
-
-        execution = executions.pop(0)
-        success = 1
-        result = None
-        while reactions:
-            reaction = reactions.pop(0)
-            result = sub_dicts([reaction,execution])
-            handled = execution_handled(result)
-            if handled:
-                reactions.insert(0,result)
-                success = 0
-            else:
-                execution = remaining_execution(result)
-        executions.append(execution)
-        teams_table[executing_team]["victory"] += success
-
-        if not(game_finished()):
-            deal_cards(3,executing_team)
-            deal_cards(3,reacting_team)
-        executing_team = reacting_team
-        update_state()
-
-#LAST TODO teams_table now replaces state_table
-#How to have a bot player connect?
 def reset_state():
     global default_time
-    for team, data in teams_table.items():
-        data["situations"] = []
-        data["plans"] = []
-        data["victory"] = 0
-        data["deal_to_next"] = 0
-        data["planned"] = 0
-        data["running"] = 0
-        data["time"] = default_time
+    initialize_teams()
     for username in list(players_table.keys()):
-        players_table[username]["discard"] = []
-        players_table[username]["hand"] = []
-        players_table[username]["deck"] = list(players_table[username]["deck_dict"])
+        load_deck(username)
         deal_cards(6,username)
+    global current_id
+    current_id = 0
 
     update_state();
     queue_message({"reset": 1})
@@ -192,10 +92,9 @@ def load_deck(username):
             cards_table[card]["title"] = card
         deck_dict[get_unique_id()] = cards_table[card]
     deck = list(deck_dict)
+    players_table[username].update(copy.deepcopy(players_default))
     players_table[username]["deck"] = deck
     players_table[username]["deck_dict"] = deck_dict
-    players_table[username]["discard"] = []
-    players_table[username]["hand"] = []
 
 def get_targets(target = ""):
     target_list = []
@@ -296,24 +195,25 @@ def game_finished():
 
 def play_card(username,choice):
     team = get_team(username)
+    print(team)
     card = players_table[username]["deck_dict"][choice]["base"]
     discard = players_table[username]["discard"]
     cards_played = teams_table[team]["cards_played"]
     #send a message saying "valid move if < their limit and they are allowed to play. This would then tell the client to remove the card.
-
     if not teams_table[team]["planned"]:
         discard.append(choice)
         players_table[username]["hand"].remove(choice)
+        print("call")
         cards_played.append(card)
         queue_message({"played":choice},username)
 
     if len(cards_played) == 3:
         teams_table[team]["planned"] = 1
-    
-    execute()
 
+    if all_ready():
+        end_round()
 
-def initalize_time():
+def initialize_time():
     timer = asyncio.create_task(tick())
     
 async def time_up(team):
@@ -323,8 +223,7 @@ async def time_up(team):
     queue_message({"text":"You lose! Neener!"},losing_team)
     queue_message({"text":"You win! Yay!"},winning_team)
     reset_state()
-    queue_message({"team_state":teams_table[winning_team]},winning_team)
-    queue_message({"team_state":teams_table[losing_team]},losing_team)
+    update_state()
     await release_message()
 
 async def tick():
@@ -337,16 +236,13 @@ async def tick():
                 await time_up(team)
     await tick()
 
-def update_state(users = ""):
-    targets = get_targets(users)
-    for target in targets:
-        team = get_team(target)
-        enemy_team = get_enemy_team(get_team(target))
-        queue_message({"team_state":teams_table[team], "enemy_plans":teams_table[enemy_team]["plans"]},target)
+def update_state(targets = ""):
+    queue_message({"teams_table":teams_table},targets)
 
 async def new_client_connected(client_socket, path):
-    username = path[1:]
-    team = ""
+    paths = path.split('/')
+    username = paths[1]
+    team = paths[2]
     if not(username in players_table.keys()):
         print("New client connected!")
         print("User: "+username)
@@ -354,7 +250,6 @@ async def new_client_connected(client_socket, path):
 
         #odd is good even is evil. Starting count at odd for first
         team_index = len(players_table.items())%2
-        team = "good" if team_index else "evil"
         players_table[username]["team"] = team
         enemy_team = get_enemy_team(team)
 
@@ -380,12 +275,13 @@ async def new_client_connected(client_socket, path):
         
         choice = int(card_id)
         play_card(username,choice)
+        print(teams_table)
         await release_message()
-
 
 async def start_server():
     print("Server started!")
-    initalize_time()
+    initialize_teams()
+    initialize_time()
     await websockets.serve(new_client_connected, "localhost", 12345)
 
 if __name__ == '__main__':
@@ -393,21 +289,6 @@ if __name__ == '__main__':
     event_loop.run_until_complete(start_server())
     event_loop.run_forever()
 #TODO
-#
-#discard cards
-#Draw +2 card
-#functions that can access the main data but are in another file/class
-#aggragate messages and have anything that sends messages return as they add to make one message
+#Make a queue of plans with a size limit
+#Add a 
 #IDEAS
-#situation queue
-#Card that adds values based on plan, so for each time it gives another second, for each 3 force it adds 1 value to other categories for each 3 info it adds another card drawn for each stealth it increases the cards played for the next situation.
-#Rogue Something like, defeat this situation, but it's effects get pushed to the next situation
-#Rogue "end it", +1 card play blank plans for the rest of the plan. (if you cannot handle it and don't want to waste)
-#Wizard Something like, return played cards to hands to restart a plan, see all players cards, redistribute cards, get cards for each info etc
-#stealth targets future situations Rogue
-#info targets more cards and team transparency Wizard
-#time targets the timer Royalty
-#force targets raw values for this turn Barbarian
-#have it be time and need to handle all situations. Situations go back into the deck if they pass through. They also inflict a penalty when they pass
-#Preparations phase where you can play 1 card each that adds a perk like seeing an extra situation ahead, drawing an extra card, relic type things, but only one
-#let there be blood force x2
