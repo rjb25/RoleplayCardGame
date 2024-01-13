@@ -1,6 +1,6 @@
 {
     "attack":{"stability":6,
-        "cost":1,
+        "cost":3,
         "enter":[
             {"function":"destabilize","target":"random","amount":3}
         ],
@@ -8,10 +8,10 @@
             {"function":"destabilize","target":"random","amount":1}
         ],
         "exit":[
-            {"function":"destabilize","target":"enemy_team","amount":5}
+            {"function":"destabilize","target":"random","amount":5}
         ]},
     "investigate":{"stability":3,
-        "cost":1,
+        "cost":3,
         "enter":[
             {"function":"draw","target":"self","amount":3}
         ],
@@ -59,14 +59,25 @@
     "uhh":{"stability":1,
         "cost":0,
         "enter":[
-            {"function":"draw","target":"team", "amount":1},
+            {"function":"draw","target":"team", "amount":1}
+        ],
+        "progress":[
+            {"function":"money","target":"team","amount":0}
+        ],
+        "exit":[
+            {"function":"money","target":"team","amount":0}
+        ]
+    },
+    "umm":{"stability":1,
+        "cost":0,
+        "enter":[
             {"function":"money","target":"team", "amount":1}
         ],
         "progress":[
-            {"function":"money","target":"team","amount":1}
+            {"function":"money","target":"team","amount":0}
         ],
         "exit":[
-            {"function":"money","target":"enemy_team","amount":-4}
+            {"function":"money","target":"team","amount":0}
         ]
     }
 }

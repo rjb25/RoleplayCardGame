@@ -130,8 +130,6 @@ def end_round():
         if plan_i < len(plans):
             for card in plans[plan_i]:
                 for action in card["progress"]:
-                    print("Progressing")
-                    print(action)
                     action["owner"] = card["owner"]
                     call_function(action["function"]+"_effect",action)
                     #TODO need the ability to test exit which means I need the ability to play sham
@@ -318,7 +316,13 @@ def play_card(username,card,choice=-1):
             discard.append(choice)
             players_table[username]["hand"].remove(choice)
             queue_message({"played":choice},username)
-        cards_played.append(card)
+        #Handle negative gold to avoid a bug here where it doesn't auto play if in debt because despite cost 0 it's more than negative
+        if players_table[username]["gold"] >= card["cost"]:
+            players_table[username]["gold"] -= card["cost"]
+            cards_played.append(card)
+        else:
+            baby_card = initialize_card("umm",username)
+            cards_played.append(baby_card)
 
     if len(cards_played) == limit:
         teams_table[team]["planned"] = 1
