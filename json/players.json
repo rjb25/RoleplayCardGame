@@ -2,5 +2,6 @@
     "deck_dict":{},
     "deck":[],
     "discard":[],
-    "hand":[]
+    "hand":[],
+    "gold":0
 }

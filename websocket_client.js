@@ -1,6 +1,6 @@
 document.addEventListener('DOMContentLoaded', function(){
     //socketname = prompt("WebSocketURL no http://")
-    socketname = "fda0-108-45-153-120.ngrok-free.app"
+    socketname = "9490-108-45-153-120.ngrok-free.app"
     username = prompt("Username:")
     team = "evil"
     enemy_team = "good"
@@ -14,7 +14,7 @@ document.addEventListener('DOMContentLoaded', function(){
     const messagesContainer = document.querySelector("#messages_container");
     const situationsContainer = document.querySelector("#situations_container");
     const plansContainer = document.querySelector("#plans_container");
-    const victoriesContainer = document.querySelector("#victories_container");
+    const goldContainer = document.querySelector("#gold_container");
     const cardsContainer = document.querySelector("#cards_container");
     const timerContainer = document.querySelector("#timer_container");
     cardButtons = {};
@@ -30,6 +30,23 @@ document.addEventListener('DOMContentLoaded', function(){
         while (parent.firstChild) {
             parent.removeChild(parent.firstChild);
         }
+    }
+    function generateCard(card){
+        cardButton = document.createElement("div");
+        cardButton.classList.add("card");
+        cardTitle = document.createElement("div");
+        cardTitle.innerHTML =  card["title"]
+        cardBase = document.createElement("div");
+        enter_effect = card["enter"][0];
+        enter_text = enter_effect["function"] + " " + enter_effect["target"] + " " + enter_effect["amount"];
+        progress_effect = card["progress"][0];
+        progress_text = progress_effect["function"] + " " + progress_effect["target"] + " " + progress_effect["amount"];
+        exit_effect = card["exit"][0];
+        exit_text = exit_effect["function"] + " " + exit_effect["target"] + " " + exit_effect["amount"];
+        cardBase.innerHTML = enter_text + "<br>" + progress_text + "<br>" + exit_text;
+        cardButton.appendChild(cardTitle);
+        cardButton.appendChild(cardBase);
+        return cardButton;
     }
     websocketClient.onopen = function(){
         console.log("Client connected!");
@@ -49,70 +66,94 @@ document.addEventListener('DOMContentLoaded', function(){
                 if (played in cardButtons){
                     button = cardButtons[played];
                     button.parentNode.removeChild(button);
+                    delete cardButtons[played];
                 }
             }
 
-            if("cards" in messageJson){
-                cards = messageJson["cards"];
-                cards.forEach((card) => {
-                    cardButton = document.createElement("div");
-                    cardButton.classList.add("card");
-                    cardButton.onclick = function(){
-                        websocketClient.send(card["id"]);
-                    };
-                    cardTitle = document.createTextNode(card["card"]["title"]);
-                    cardBase = document.createTextNode(JSON.stringify(card["card"]["base"]));
-                    cardButton.appendChild(cardTitle);
-                    cardButton.appendChild(cardBase);
-                    cardsContainer.appendChild(cardButton);
-                    cardButtons[card["id"]] = cardButton;
-                });
+
+            if("gold" in messageJson){
+                gold = messageJson["gold"];
+                goldContainer.innerHTML = "";
+                const goldDiv = document.createElement("div");
+                goldDiv.innerHTML = gold;
+                goldContainer.appendChild(goldDiv);
             }
 
+            if("player_table" in messageJson){
+                //Myself
+                playerState = messageJson["player_table"]
+                if ("gold" in playerState){
+                    gold = playerState["gold"];
+                    goldContainer.innerHTML = "";
+                    const goldDiv = document.createElement("div");
+                    goldDiv.innerHTML = gold;
+                    goldContainer.appendChild(goldDiv);
+                }
+                if("hand" in playerState){
+                    hand = playerState["hand"];
+                    newCards = [];
+                    hand.forEach((card) => {
+                        if (!(card["id"] in cardButtons)){
+                            newCards.push(card);
+                        }
+                    });
+                    console.log(newCards)
 
-            if("teams_table" in messageJson){
-                team_state = messageJson["teams_table"][team];
-                enemy_state = messageJson["teams_table"][enemy_team];
-                
-                if("plans" in enemy_state){
-                    situations = enemy_state["plans"];
-                    situationsContainer.innerHTML = "";
-                    situations.forEach((situation) => {
-                        const situationDiv = document.createElement("div");
-                        situationDiv.innerHTML = JSON.stringify(situation);
-                        situationsContainer.appendChild(situationDiv);
+                    newCards.forEach((card) => {
+                        cardButton = generateCard(card)
+                        cardButton.onclick = function(){
+                            websocketClient.send(card["id"]);
+                        };
+                        cardsContainer.appendChild(cardButton);
+                        cardButtons[card["id"]] = cardButton;
                     });
                 }
-                if("text" in team_state){
-                    messageText = team_state["text"];
+            }
+
+            if("teams_table" in messageJson){
+                teamState = messageJson["teams_table"][team];
+                enemyState = messageJson["teams_table"][enemy_team];
+                
+                //Enemy
+                if("plans" in enemyState){
+                    plans = enemyState["plans"];
+                    situationsContainer.innerHTML = "";
+                    plans.forEach((plan) => {
+                        planDiv = document.createElement("div");
+                        plan.forEach((card) => {
+                        cardBox = generateCard(card);
+                        planDiv.appendChild(cardBox);
+                        });
+                        situationsContainer.appendChild(planDiv);
+                    });
+                }
+
+                //My team
+                if("text" in teamState){
+                    messageText = teamState["text"];
                     const messageDiv = document.createElement("div");
                     messageDiv.innerHTML = messageText;
                     messagesContainer.innerHTML = "";
                     messagesContainer.appendChild(messageDiv);
                 }
-                if("time" in team_state){
-                    time = team_state["time"];
+                if("time" in teamState){
+                    time = teamState["time"];
                 }
-                if("running" in team_state){
-                    running = team_state["running"];
-                }
-                if("victory" in team_state){
-                    victories = team_state["victory"];
-                    victoriesContainer.innerHTML = "";
-                    const victoryDiv = document.createElement("div");
-                    victoryDiv.innerHTML = victories;
-                    victoriesContainer.appendChild(victoryDiv);
+                if("running" in teamState){
+                    running = teamState["running"];
                 }
 
 
-                if("plans" in team_state){
-                    plans = team_state["plans"];
+                if("plans" in teamState){
+                    plans = teamState["plans"];
                     plansContainer.innerHTML = "";
                     plans.forEach((plan) => {
-                        const planDiv = document.createElement("div");
-                        planDiv.innerHTML = JSON.stringify(plan);
+                        planDiv = document.createElement("div");
+                        plan.forEach((card) => {
+                        cardBox = generateCard(card);
+                        planDiv.appendChild(cardBox);
+                        });
                         plansContainer.appendChild(planDiv);
-
                     });
                 }
             }
