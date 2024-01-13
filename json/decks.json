@@ -1,5 +1,5 @@
 {
-    "jason":["investigate","wait","attack","caution","hide","caution","attack","attack","attack","hide"],
-    "nathan":["attack","wait","wait","wait","attack","caution","investigate","attack","caution","investigate"],
+    "jason":["investigate","investigate","investigate","attack","attack","attack","hide","hide","hide","wait","wait","wait"],
+    "nathan":["investigate","investigate","investigate","attack","attack","attack","hide","hide","hide","wait","wait","wait"],
     "intro":["caution","attack","hide","wait","investigate"]
 }

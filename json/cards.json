@@ -1,6 +1,6 @@
 {
     "attack":{"stability":6,
-        "cost":3,
+        "cost":5,
         "enter":[
             {"function":"destabilize","target":"random","amount":3}
         ],
@@ -8,12 +8,12 @@
             {"function":"destabilize","target":"random","amount":1}
         ],
         "exit":[
-            {"function":"destabilize","target":"random","amount":5}
+            {"function":"damage","target":"enemy_team","amount":3}
         ]},
     "investigate":{"stability":3,
-        "cost":3,
+        "cost":5,
         "enter":[
-            {"function":"draw","target":"self","amount":3}
+            {"function":"draw","target":"self","amount":2}
         ],
         "progress":[
             {"function":"draw","target":"team","amount":1}
@@ -22,7 +22,7 @@
             {"function":"draw","target":"enemy_team", "amount":-3}
         ]},
     "wait":{"stability":3,
-        "cost":1,
+        "cost":5,
         "enter":[
             {"function":"time","target":"team","amount":10}
         ],
@@ -33,9 +33,9 @@
             {"function":"time","target":"enemy_team","amount":-10}
         ]},
     "hide":{"stability":3,
-        "cost":1,
+        "cost":5,
         "enter":[
-            {"function":"money","target":"self","amount":4}
+            {"function":"money","target":"self","amount":2}
         ],
         "progress":[
             {"function":"money","target":"team","amount":1}

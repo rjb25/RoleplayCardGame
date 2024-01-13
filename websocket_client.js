@@ -17,6 +17,7 @@ document.addEventListener('DOMContentLoaded', function(){
     const goldContainer = document.querySelector("#gold_container");
     const cardsContainer = document.querySelector("#cards_container");
     const timerContainer = document.querySelector("#timer_container");
+    const healthContainer = document.querySelector("#health_container");
     cardButtons = {};
     var time = 0;
     var running = false;
@@ -35,7 +36,7 @@ document.addEventListener('DOMContentLoaded', function(){
         cardButton = document.createElement("div");
         cardButton.classList.add("card");
         cardTitle = document.createElement("div");
-        cardTitle.innerHTML =  card["title"]
+        cardTitle.innerHTML =  card["title"] + " $" +card["cost"];
         cardBase = document.createElement("div");
         enter_effect = card["enter"][0];
         enter_text = enter_effect["function"] + " " + enter_effect["target"] + " " + enter_effect["amount"];
@@ -138,6 +139,13 @@ document.addEventListener('DOMContentLoaded', function(){
                 }
                 if("time" in teamState){
                     time = teamState["time"];
+                }
+                if("health" in teamState){
+                    messageText = teamState["health"];
+                    const messageDiv = document.createElement("div");
+                    messageDiv.innerHTML = messageText;
+                    healthContainer.innerHTML = "";
+                    healthContainer.appendChild(messageDiv);
                 }
                 if("running" in teamState){
                     running = teamState["running"];

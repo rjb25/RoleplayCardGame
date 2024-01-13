@@ -42,7 +42,6 @@ def destabilize_effect(action):
 def money_effect(action):
     target = action["target"]
     amount = action["amount"]
-    #Need a function to discard gold
     print("amount" + str(amount))
     deal_gold(amount,target)
 
@@ -58,10 +57,10 @@ def time_effect(action):
     teams_table[target]["time"] += amount
     #Handle negative TODO
 
-def health_effect(action):
+def damage_effect(action):
     target = action["target"]
     amount = action["amount"]
-    teams_table[target]["health"] += amount
+    apply_damage(target,amount)
 
 #JSON
 def load(a):
@@ -207,6 +206,7 @@ def is_team(target = ""):
         return True
 
 def share(count,team,category):
+    abs(count)
     targets = get_targets(team)
     length = len(targets)
     share_dict = {}
@@ -236,10 +236,19 @@ def share(count,team,category):
 
     return share_dict
 
+def get_sign(number):
+    if number < 0:
+        return -1
+    return 1
+
 def deal_gold(count, target):
+    sign = get_sign(count)
     share_dict = share(count,target,"pay")
     for username, amount in share_dict.items():
-        players_table[username]["gold"] += amount
+        players_table[username]["gold"] += amount * sign
+        if players_table[username]["gold"] < 0:
+            apply_damage(get_team(username), abs(players_table[username]["gold"]))
+            players_table[username]["gold"] = 0
 
 def deal(username):
     player_data = players_table[username]
@@ -256,13 +265,33 @@ def deal(username):
         card = deck_dict[card_id]
         hand.append(card_id)
 
+def discard(username):
+    player_data = players_table[username]
+    discard = player_data["discard"]
+    hand = player_data["hand"]
+    if len(hand) > 0:
+        card_id = hand.pop()
+        discard.append(card_id)
+    else:
+        apply_damage(get_team(username), 1)
+
+def apply_damage(team, damage):
+    teams_table[team]["health"] -= damage
+    if teams_table[team]["health"] <= 0:
+        teams_table[team]["text"] = "Victory!"
+        teams_table[get_enemy_team(team)]["text"] = "Defeat..."
+        reset_state()
+
 def deal_cards(count, target):
     usernames = get_targets(target)
     message_result = {}
     share_dict = share(count,target,"deal")
     for username, amount in share_dict.items():
         for i in range(amount):
-            deal(username)
+            if count < 0:
+                discard(username)
+            else:
+                deal(username)
 
 async def release_message():
     global message_queue
@@ -336,11 +365,8 @@ def initialize_time():
     
 async def time_up(team):
     #health function
-    losing_team = team
-    winning_team = get_enemy_team(team)
-    teams_table[losing_team]["text"] = "You lose! Neener!"
-    teams_table[winning_team]["text"] = "You win! Yay!"
-    reset_state()
+    teams_table[team]["time"] += 60
+    apply_damage(team,10)
     update_state()
     await release_message()
 
@@ -386,7 +412,6 @@ async def new_client_connected(client_socket, path):
         players_table[username] = {"team":team}
         load_deck(username)
         deal_cards(6,username)
-        deal_gold(6,username)
     else:
         local_players_table[username]["socket"] = client_socket
         #This is just numbers. Needs content. Why does deck dict exist again?
