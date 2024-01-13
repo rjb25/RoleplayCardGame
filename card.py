@@ -23,6 +23,7 @@ import time
 from itertools import takewhile
 
 #EFFECTS
+#Removing instantly messes with iteration
 def destabilize_effect(action):
     team = get_team(action["owner"])
     target = action["target"]
@@ -34,15 +35,10 @@ def destabilize_effect(action):
             plan = random.choice(plans)
             card = random.choice(plan)
             card["stability"] -= amount
-            if card["stability"] < 0:
-                plan.remove(card)
-                if len(plan) == 0:
-                    plans.remove(plan)
 
 def money_effect(action):
     target = action["target"]
     amount = action["amount"]
-    print("amount" + str(amount))
     deal_gold(amount,target)
 
 def draw_effect(action):
@@ -104,6 +100,12 @@ def call_function(function, args):
         args["target"] = get_enemy_team(get_team(owner))
     globals()[function](args)
 
+def remove_broken_plans(team_data):
+    plans = team_data["plans"]
+    for plan in plans:
+        plan[:] = [card for card in plan if card["stability"] > 0]
+    plans[:] = [plan for plan in plans if len(plan) > 0]
+
 def end_round():
     #Enter
     for team, team_data in teams_table.items():
@@ -128,22 +130,25 @@ def end_round():
         plans = teams_table[team]["plans"]
         if plan_i < len(plans):
             for card in plans[plan_i]:
-                for action in card["progress"]:
-                    action["owner"] = card["owner"]
-                    call_function(action["function"]+"_effect",action)
-                    #TODO need the ability to test exit which means I need the ability to play sham
+                if(card["stability"]>0):
+                    for action in card["progress"]:
+                        action["owner"] = card["owner"]
+                        call_function(action["function"]+"_effect",action)
     #Exit
     for team, team_data in teams_table.items():
         if len(team_data["plans"]) > team_data["queue_length"]:
             exit_plan = team_data["plans"].pop()
             for card in exit_plan:
-                for action in card["exit"]:
-                    action["owner"] = card["owner"]
-                    call_function(action["function"]+"_effect",action)
+                if(card["stability"]>0):
+                    for action in card["exit"]:
+                        action["owner"] = card["owner"]
+                        call_function(action["function"]+"_effect",action)
 
     #Cleanup
     for team, team_data in teams_table.items():
         teams_table[team]["running"] = 1
+        #Need to remove cards lacking stability
+        remove_broken_plans(team_data)
 
 #The references are the same here
 def initialize_teams():
@@ -205,8 +210,8 @@ def is_team(target = ""):
     if target in list(teams_table.keys()):
         return True
 
-def share(count,team,category):
-    abs(count)
+def share(cnt,team,category):
+    count = abs(cnt)
     targets = get_targets(team)
     length = len(targets)
     share_dict = {}
@@ -272,14 +277,15 @@ def discard(username):
     if len(hand) > 0:
         card_id = hand.pop()
         discard.append(card_id)
+        queue_message({"played":[card_id]},username,Strategy.ADDITIVE)
     else:
         apply_damage(get_team(username), 1)
 
 def apply_damage(team, damage):
     teams_table[team]["health"] -= damage
     if teams_table[team]["health"] <= 0:
-        teams_table[team]["text"] = "Victory!"
-        teams_table[get_enemy_team(team)]["text"] = "Defeat..."
+        teams_table[team]["text"] = "Defeat..."
+        teams_table[get_enemy_team(team)]["text"] = "Victory!"
         reset_state()
 
 def deal_cards(count, target):
@@ -317,6 +323,7 @@ def get_enemy_team(team):
         return "evil"
 
 def check_no_cards():
+    found_no_cards = 0
     for team, team_data in teams_table.items():
         if not team_data["planned"]:
             cards_left = 0
@@ -326,12 +333,14 @@ def check_no_cards():
                     cards_left += len(player_data["hand"])
                     a_player = player
             if not cards_left and a_player:
+                found_no_cards += 1
                 limit = team_data["limit"]
                 count_played = len(team_data["cards_played"])
                 remaining = limit - count_played
                 for i in range(remaining):
                     baby_card = initialize_card("uhh",a_player)
                     play_card(a_player,baby_card)
+    return found_no_cards
 
 def play_card(username,card,choice=-1):
     team = get_team(username)
@@ -344,7 +353,7 @@ def play_card(username,card,choice=-1):
             teams_table[team]["running"] = 1
             discard.append(choice)
             players_table[username]["hand"].remove(choice)
-            queue_message({"played":choice},username)
+            queue_message({"played":[choice]},username,Strategy.ADDITIVE)
         #Handle negative gold to avoid a bug here where it doesn't auto play if in debt because despite cost 0 it's more than negative
         if players_table[username]["gold"] >= card["cost"]:
             players_table[username]["gold"] -= card["cost"]
@@ -430,8 +439,9 @@ async def new_client_connected(client_socket, path):
         choice = int(card_id)
         card = players_table[username]["deck_dict"][choice]
         play_card(username,card,choice)
-        #This shouldn't need to be here. I'm missing something
-        check_no_cards()
+        #I see timer problems I'm concerned it's not running
+        while check_no_cards():
+            print("NONE!")
         update_state()
         await release_message()
 

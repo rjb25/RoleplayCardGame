@@ -1,6 +1,6 @@
 document.addEventListener('DOMContentLoaded', function(){
     //socketname = prompt("WebSocketURL no http://")
-    socketname = "9490-108-45-153-120.ngrok-free.app"
+    socketname = "e6d6-108-45-153-120.ngrok-free.app"
     username = prompt("Username:")
     team = "evil"
     enemy_team = "good"
@@ -36,7 +36,7 @@ document.addEventListener('DOMContentLoaded', function(){
         cardButton = document.createElement("div");
         cardButton.classList.add("card");
         cardTitle = document.createElement("div");
-        cardTitle.innerHTML =  card["title"] + " $" +card["cost"];
+        cardTitle.innerHTML =  card["title"] + " $" + card["cost"] + " ST" + card["stability"];
         cardBase = document.createElement("div");
         enter_effect = card["enter"][0];
         enter_text = enter_effect["function"] + " " + enter_effect["target"] + " " + enter_effect["amount"];
@@ -63,12 +63,13 @@ document.addEventListener('DOMContentLoaded', function(){
             }
             if("played" in messageJson){
                 played = messageJson["played"];
-                console.log(played);
-                if (played in cardButtons){
-                    button = cardButtons[played];
-                    button.parentNode.removeChild(button);
-                    delete cardButtons[played];
-                }
+                played.forEach((card) => {
+                    if (card in cardButtons){
+                        button = cardButtons[card];
+                        button.parentNode.removeChild(button);
+                        delete cardButtons[card];
+                    }
+                });
             }
 
 

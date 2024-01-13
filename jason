@@ -80,8 +80,8 @@ set winminheight=0
 set winheight=1
 set winminwidth=0
 set winwidth=1
-exe 'vert 1resize ' . ((&columns * 69 + 140) / 281)
-exe 'vert 2resize ' . ((&columns * 70 + 140) / 281)
+exe 'vert 1resize ' . ((&columns * 70 + 140) / 281)
+exe 'vert 2resize ' . ((&columns * 69 + 140) / 281)
 exe 'vert 3resize ' . ((&columns * 70 + 140) / 281)
 exe 'vert 4resize ' . ((&columns * 69 + 140) / 281)
 argglobal
@@ -213,7 +213,7 @@ if s:l < 1 | let s:l = 1 | endif
 exe s:l
 normal! zt
 2
-normal! 0125|
+normal! 0
 lcd ~/RoleplayCardGame
 wincmd w
 argglobal
@@ -341,12 +341,12 @@ setlocal nowinfixwidth
 setlocal wrap
 setlocal wrapmargin=0
 silent! normal! zE
-let s:l = 16 - ((15 * winheight(0) + 38) / 76)
+let s:l = 8 - ((7 * winheight(0) + 38) / 76)
 if s:l < 1 | let s:l = 1 | endif
 exe s:l
 normal! zt
-16
-normal! 057|
+8
+normal! 064|
 lcd ~/RoleplayCardGame
 wincmd w
 argglobal
@@ -479,7 +479,7 @@ if s:l < 1 | let s:l = 1 | endif
 exe s:l
 normal! zt
 6
-normal! 012|
+normal! 0
 lcd ~/RoleplayCardGame
 wincmd w
 argglobal
@@ -615,9 +615,8 @@ normal! zt
 normal! 0144|
 lcd ~/RoleplayCardGame
 wincmd w
-3wincmd w
-exe 'vert 1resize ' . ((&columns * 69 + 140) / 281)
-exe 'vert 2resize ' . ((&columns * 70 + 140) / 281)
+exe 'vert 1resize ' . ((&columns * 70 + 140) / 281)
+exe 'vert 2resize ' . ((&columns * 69 + 140) / 281)
 exe 'vert 3resize ' . ((&columns * 70 + 140) / 281)
 exe 'vert 4resize ' . ((&columns * 69 + 140) / 281)
 tabnext
@@ -895,14 +894,15 @@ setlocal nowinfixwidth
 setlocal wrap
 setlocal wrapmargin=0
 silent! normal! zE
-let s:l = 415 - ((37 * winheight(0) + 38) / 76)
+let s:l = 287 - ((37 * winheight(0) + 38) / 76)
 if s:l < 1 | let s:l = 1 | endif
 exe s:l
 normal! zt
-415
-normal! 05|
+287
+normal! 046|
 lcd ~/RoleplayCardGame
 wincmd w
+2wincmd w
 exe 'vert 1resize ' . ((&columns * 140 + 140) / 281)
 exe 'vert 2resize ' . ((&columns * 140 + 140) / 281)
 tabnext
@@ -1316,27 +1316,27 @@ setlocal nowinfixwidth
 setlocal wrap
 setlocal wrapmargin=0
 silent! normal! zE
-let s:l = 39 - ((38 * winheight(0) + 38) / 76)
+let s:l = 67 - ((25 * winheight(0) + 38) / 76)
 if s:l < 1 | let s:l = 1 | endif
 exe s:l
 normal! zt
-39
-normal! 053|
+67
+normal! 021|
 lcd ~/RoleplayCardGame
 wincmd w
 exe 'vert 1resize ' . ((&columns * 78 + 140) / 281)
 exe 'vert 2resize ' . ((&columns * 78 + 140) / 281)
 exe 'vert 3resize ' . ((&columns * 123 + 140) / 281)
-tabnext 1
+tabnext 2
 set stal=1
 badd +1 ~/RoleplayCardGame/json/decks.json
 badd +1 ~/RoleplayCardGame
 badd +1 ~/RoleplayCardGame/test.py
 badd +1 ~/RoleplayCardGame/style.css
-badd +1 ~/RoleplayCardGame/json/cards.json
+badd +0 ~/RoleplayCardGame/json/cards.json
 badd +1 ~/RoleplayCardGame/json/players.json
 badd +1 ~/RoleplayCardGame/json/teams.json
-badd +0 ~/RoleplayCardGame/card.py
+badd +1 ~/RoleplayCardGame/card.py
 badd +1 ~/RoleplayCardGame/index.html
 badd +1 ~/RoleplayCardGame/websocket_client.js
 badd +2308 ~/RoleplayCardGame/old/basic.py

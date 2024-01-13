@@ -1,6 +1,17 @@
 {
-    "attack":{"stability":6,
-        "cost":5,
+    "aggression":{"stability":3,
+        "cost":15,
+        "enter":[
+            {"function":"draw","target":"enemy_team","amount":-2}
+        ],
+        "progress":[
+            {"function":"money","target":"enemy_team","amount":-1}
+        ],
+        "exit":[
+            {"function":"damage","target":"enemy_team","amount":10}
+        ]},
+    "attack":{"stability":3,
+        "cost":4,
         "enter":[
             {"function":"destabilize","target":"random","amount":3}
         ],
@@ -10,8 +21,8 @@
         "exit":[
             {"function":"damage","target":"enemy_team","amount":3}
         ]},
-    "investigate":{"stability":3,
-        "cost":5,
+    "draw":{"stability":3,
+        "cost":4,
         "enter":[
             {"function":"draw","target":"self","amount":2}
         ],
@@ -21,27 +32,27 @@
         "exit":[
             {"function":"draw","target":"enemy_team", "amount":-3}
         ]},
-    "wait":{"stability":3,
-        "cost":5,
+    "wait":{"stability":7,
+        "cost":4,
         "enter":[
-            {"function":"time","target":"team","amount":10}
+            {"function":"time","target":"team","amount":20}
         ],
         "progress":[
-            {"function":"time","target":"team","amount":1}
+            {"function":"time","target":"team","amount":5}
         ],
         "exit":[
-            {"function":"time","target":"enemy_team","amount":-10}
+            {"function":"time","target":"enemy_team","amount":-30}
         ]},
-    "hide":{"stability":3,
-        "cost":5,
+    "loot":{"stability":3,
+        "cost":4,
         "enter":[
-            {"function":"money","target":"self","amount":2}
+            {"function":"money","target":"self","amount":3}
         ],
         "progress":[
-            {"function":"money","target":"team","amount":1}
+            {"function":"money","target":"team","amount":2}
         ],
         "exit":[
-            {"function":"money","target":"enemy_team","amount":-4}
+            {"function":"money","target":"enemy_team","amount":-5}
         ]
     },
     "caution":{"stability":1,
