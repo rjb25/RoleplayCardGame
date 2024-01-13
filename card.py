@@ -169,17 +169,22 @@ def get_unique_id():
     current_id += 1
     return current_id
 
+def initialize_card(card_name,username):
+    baby_card = copy.deepcopy(cards_table[card_name])
+    if not("title" in baby_card.keys()):
+        baby_card["title"] = card_name
+    baby_card["owner"] = username
+    baby_card["id"] = get_unique_id()
+    return baby_card
+
+
 def load_deck(username):
     loaded_deck = {} 
     deck_to_load = decks_table[username]
     random.shuffle(deck_to_load)
     deck_dict = {}
-    for card in deck_to_load:
-        baby_card = copy.deepcopy(cards_table[card])
-        if not("title" in baby_card.keys()):
-            baby_card["title"] = card
-        baby_card["owner"] = username
-        baby_card["id"] = get_unique_id()
+    for card_name in deck_to_load:
+        baby_card = initialize_card(card_name, username)
         deck_dict[baby_card["id"]] = baby_card
     deck = list(deck_dict)
     players_table[username].update(copy.deepcopy(players_default))
@@ -284,37 +289,43 @@ def get_enemy_team(team):
     else: 
         return "evil"
 
-#def game_finished():
-#    for team, team_data in teams_table.items():
-#        if team_data["victory"] > 4:
-#            queue_message({"text":"You win!"},team)
-#            reset_state()
-#            return True
-#    return False
+def check_no_cards():
+    for team, team_data in teams_table.items():
+        if not team_data["planned"]:
+            cards_left = 0
+            a_player = ""
+            for player, player_data in players_table.items():
+                if team == player_data["team"]:
+                    cards_left += len(player_data["hand"])
+                    a_player = player
+            if not cards_left and a_player:
+                limit = team_data["limit"]
+                count_played = len(team_data["cards_played"])
+                remaining = limit - count_played
+                for i in range(remaining):
+                    baby_card = initialize_card("uhh",a_player)
+                    play_card(a_player,baby_card)
 
-def play_card(username,choice):
+def play_card(username,card,choice=-1):
     team = get_team(username)
-    card = players_table[username]["deck_dict"][choice]
     discard = players_table[username]["discard"]
     cards_played = teams_table[team]["cards_played"]
-    #send a message saying "valid move if < their limit and they are allowed to play. This would then tell the client to remove the card.
+    limit = teams_table[team]["limit"]
     if not teams_table[team]["planned"]:
-        teams_table[team]["running"] = 1
-        discard.append(choice)
-        players_table[username]["hand"].remove(choice)
+        #if choice is not -1
+        if choice + 1:
+            teams_table[team]["running"] = 1
+            discard.append(choice)
+            players_table[username]["hand"].remove(choice)
+            queue_message({"played":choice},username)
         cards_played.append(card)
-        #cards_left
-        #if len players_table
-        queue_message({"played":choice},username)
 
-    if len(cards_played) == 3:
+    if len(cards_played) == limit:
         teams_table[team]["planned"] = 1
         teams_table[team]["running"] = 0
 
     if all_ready():
         end_round()
-
-#Add _card to all the card functions so card strings don't clash
 
 def initialize_time():
     timer = asyncio.create_task(tick())
@@ -388,8 +399,10 @@ async def new_client_connected(client_socket, path):
         print("Client sent:", card_id)
         
         choice = int(card_id)
-        play_card(username,choice)
+        card = players_table[username]["deck_dict"][choice]
+        play_card(username,card,choice)
         #This shouldn't need to be here. I'm missing something
+        check_no_cards()
         update_state()
         await release_message()
 
