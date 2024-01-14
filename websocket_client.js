@@ -59,8 +59,10 @@ document.addEventListener('DOMContentLoaded', function(){
                 reset = messageJson["reset"];
                 if (reset){
                     removeAllChildNodes(cardsContainer);
+                    cardButtons = {}
                 }
             }
+
             if("played" in messageJson){
                 played = messageJson["played"];
                 played.forEach((card) => {
@@ -71,7 +73,6 @@ document.addEventListener('DOMContentLoaded', function(){
                     }
                 });
             }
-
 
             if("gold" in messageJson){
                 gold = messageJson["gold"];
@@ -99,7 +100,6 @@ document.addEventListener('DOMContentLoaded', function(){
                             newCards.push(card);
                         }
                     });
-                    console.log(newCards)
 
                     newCards.forEach((card) => {
                         cardButton = generateCard(card)

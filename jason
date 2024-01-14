@@ -208,11 +208,11 @@ setlocal nowinfixwidth
 setlocal wrap
 setlocal wrapmargin=0
 silent! normal! zE
-let s:l = 2 - ((1 * winheight(0) + 38) / 76)
+let s:l = 1 - ((0 * winheight(0) + 38) / 76)
 if s:l < 1 | let s:l = 1 | endif
 exe s:l
 normal! zt
-2
+1
 normal! 0
 lcd ~/RoleplayCardGame
 wincmd w
@@ -341,12 +341,12 @@ setlocal nowinfixwidth
 setlocal wrap
 setlocal wrapmargin=0
 silent! normal! zE
-let s:l = 8 - ((7 * winheight(0) + 38) / 76)
+let s:l = 3 - ((2 * winheight(0) + 38) / 76)
 if s:l < 1 | let s:l = 1 | endif
 exe s:l
 normal! zt
-8
-normal! 064|
+3
+normal! 018|
 lcd ~/RoleplayCardGame
 wincmd w
 argglobal
@@ -612,9 +612,10 @@ if s:l < 1 | let s:l = 1 | endif
 exe s:l
 normal! zt
 1
-normal! 0144|
+normal! 082|
 lcd ~/RoleplayCardGame
 wincmd w
+2wincmd w
 exe 'vert 1resize ' . ((&columns * 70 + 140) / 281)
 exe 'vert 2resize ' . ((&columns * 69 + 140) / 281)
 exe 'vert 3resize ' . ((&columns * 70 + 140) / 281)
@@ -894,15 +895,14 @@ setlocal nowinfixwidth
 setlocal wrap
 setlocal wrapmargin=0
 silent! normal! zE
-let s:l = 287 - ((37 * winheight(0) + 38) / 76)
+let s:l = 16 - ((15 * winheight(0) + 38) / 76)
 if s:l < 1 | let s:l = 1 | endif
 exe s:l
 normal! zt
-287
-normal! 046|
+16
+normal! 09|
 lcd ~/RoleplayCardGame
 wincmd w
-2wincmd w
 exe 'vert 1resize ' . ((&columns * 140 + 140) / 281)
 exe 'vert 2resize ' . ((&columns * 140 + 140) / 281)
 tabnext
@@ -1049,11 +1049,11 @@ setlocal nowinfixwidth
 setlocal wrap
 setlocal wrapmargin=0
 silent! normal! zE
-let s:l = 10 - ((9 * winheight(0) + 38) / 76)
+let s:l = 4 - ((3 * winheight(0) + 38) / 76)
 if s:l < 1 | let s:l = 1 | endif
 exe s:l
 normal! zt
-10
+4
 normal! 011|
 lcd ~/RoleplayCardGame
 wincmd w
@@ -1316,27 +1316,27 @@ setlocal nowinfixwidth
 setlocal wrap
 setlocal wrapmargin=0
 silent! normal! zE
-let s:l = 67 - ((25 * winheight(0) + 38) / 76)
+let s:l = 53 - ((19 * winheight(0) + 38) / 76)
 if s:l < 1 | let s:l = 1 | endif
 exe s:l
 normal! zt
-67
-normal! 021|
+53
+normal! 09|
 lcd ~/RoleplayCardGame
 wincmd w
 exe 'vert 1resize ' . ((&columns * 78 + 140) / 281)
 exe 'vert 2resize ' . ((&columns * 78 + 140) / 281)
 exe 'vert 3resize ' . ((&columns * 123 + 140) / 281)
-tabnext 2
+tabnext 1
 set stal=1
 badd +1 ~/RoleplayCardGame/json/decks.json
 badd +1 ~/RoleplayCardGame
 badd +1 ~/RoleplayCardGame/test.py
 badd +1 ~/RoleplayCardGame/style.css
-badd +0 ~/RoleplayCardGame/json/cards.json
+badd +1 ~/RoleplayCardGame/json/cards.json
 badd +1 ~/RoleplayCardGame/json/players.json
 badd +1 ~/RoleplayCardGame/json/teams.json
-badd +1 ~/RoleplayCardGame/card.py
+badd +0 ~/RoleplayCardGame/card.py
 badd +1 ~/RoleplayCardGame/index.html
 badd +1 ~/RoleplayCardGame/websocket_client.js
 badd +2308 ~/RoleplayCardGame/old/basic.py

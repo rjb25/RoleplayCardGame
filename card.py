@@ -23,7 +23,6 @@ import time
 from itertools import takewhile
 
 #EFFECTS
-#Removing instantly messes with iteration
 def destabilize_effect(action):
     team = get_team(action["owner"])
     target = action["target"]
@@ -44,14 +43,12 @@ def money_effect(action):
 def draw_effect(action):
     target = action["target"]
     amount = action["amount"]
-    #Need a function for discard TODO will need to handle negative
     deal_cards(amount,target)
 
 def time_effect(action):
     target = action["target"]
     amount = action["amount"]
     teams_table[target]["time"] += amount
-    #Handle negative TODO
 
 def damage_effect(action):
     target = action["target"]
@@ -76,6 +73,7 @@ local_players_table = {}
 current_id = -1 
 default_time = 120
 message_queue = {}
+loser = ""
 
 def saveBattle():
         with open('json/decks.json', 'w') as f:
@@ -89,7 +87,7 @@ def all_ready():
     return (ready_count == len(teams_table.items()))
 
 def call_function(function, args):
-    #handle target interpretation here
+    #handles target interpretation 
     owner = args["owner"]
     target = args["target"]
     if target == "self":
@@ -147,16 +145,16 @@ def end_round():
     #Cleanup
     for team, team_data in teams_table.items():
         teams_table[team]["running"] = 1
-        #Need to remove cards lacking stability
+        #Removes cards lacking stability
         remove_broken_plans(team_data)
 
-#The references are the same here
 def initialize_teams():
     for team in list(teams_table.keys()):
-        teams_table[team].update(copy.deepcopy(team_default))
+        teams_table[team] = copy.deepcopy(team_default)
 
 def reset_state():
     global default_time
+    global loser
     initialize_teams()
     for username in list(players_table.keys()):
         load_deck(username)
@@ -164,7 +162,13 @@ def reset_state():
     global current_id
     current_id = 0
 
+    teams_table[loser]["text"] = "Defeat..."
+    teams_table[get_enemy_team(loser)]["text"] = "Victory!"
+
+    loser = ""
     queue_message({"reset": 1})
+    #Don't need to remove cards anymore
+    queue_message({"played":[]})
 
 def get_unique_id():
     global current_id
@@ -283,10 +287,9 @@ def discard(username):
 
 def apply_damage(team, damage):
     teams_table[team]["health"] -= damage
-    if teams_table[team]["health"] <= 0:
-        teams_table[team]["text"] = "Defeat..."
-        teams_table[get_enemy_team(team)]["text"] = "Victory!"
-        reset_state()
+    global loser
+    if teams_table[team]["health"] <= 0 and (not loser):
+        loser = team
 
 def deal_cards(count, target):
     usernames = get_targets(target)
@@ -353,8 +356,8 @@ def play_card(username,card,choice=-1):
             teams_table[team]["running"] = 1
             discard.append(choice)
             players_table[username]["hand"].remove(choice)
+            #Don't send message if the game is over
             queue_message({"played":[choice]},username,Strategy.ADDITIVE)
-        #Handle negative gold to avoid a bug here where it doesn't auto play if in debt because despite cost 0 it's more than negative
         if players_table[username]["gold"] >= card["cost"]:
             players_table[username]["gold"] -= card["cost"]
             cards_played.append(card)
@@ -393,6 +396,10 @@ def update_state(targets = ""):
     #strip_team_keys = [""]
     #copied_teams_table = copy.deepcopy(teams_table)
     #for key in strip_teams_keys:
+    global loser
+    if loser:
+        reset_state()
+
     queue_message({"teams_table":teams_table},targets)
 
     copied_players_table = copy.deepcopy(players_table)
@@ -423,7 +430,6 @@ async def new_client_connected(client_socket, path):
         deal_cards(6,username)
     else:
         local_players_table[username]["socket"] = client_socket
-        #This is just numbers. Needs content. Why does deck dict exist again?
         hand = players_table[username]["hand"]
         cards = []
         for card in hand:
@@ -439,6 +445,7 @@ async def new_client_connected(client_socket, path):
         choice = int(card_id)
         card = players_table[username]["deck_dict"][choice]
         play_card(username,card,choice)
+        teams_table[team]["text"] = "Playing!"
         #I see timer problems I'm concerned it's not running
         while check_no_cards():
             print("NONE!")
@@ -456,8 +463,4 @@ if __name__ == '__main__':
     event_loop.run_until_complete(start_server())
     event_loop.run_forever()
 #TODO
-#There's an issue with victory reset not happening properly. Likely due to things happening after and it not aborting progress
-#Create decals for cards and cards in plans
-#Implement sham cards
-#
-#General purpose display cards that looks nice
+#Start using images on cards
