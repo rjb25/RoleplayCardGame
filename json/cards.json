@@ -24,7 +24,7 @@
     "draw":{"stability":3,
         "cost":4,
         "enter":[
-            {"function":"draw","target":"self","amount":2}
+            {"function":"draw","target":"self","amount":3}
         ],
         "progress":[
             {"function":"draw","target":"team","amount":1}
@@ -82,7 +82,7 @@
     "umm":{"stability":1,
         "cost":0,
         "enter":[
-            {"function":"money","target":"team", "amount":1}
+            {"function":"money","target":"team", "amount":3}
         ],
         "progress":[
             {"function":"money","target":"team","amount":0}

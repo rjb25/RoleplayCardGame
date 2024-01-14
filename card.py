@@ -456,6 +456,7 @@ if __name__ == '__main__':
     event_loop.run_until_complete(start_server())
     event_loop.run_forever()
 #TODO
+#There's an issue with victory reset not happening properly. Likely due to things happening after and it not aborting progress
 #Create decals for cards and cards in plans
 #Implement sham cards
 #

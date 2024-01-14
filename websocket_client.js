@@ -1,6 +1,6 @@
 document.addEventListener('DOMContentLoaded', function(){
     //socketname = prompt("WebSocketURL no http://")
-    socketname = "e6d6-108-45-153-120.ngrok-free.app"
+    socketname = "c589-108-45-153-120.ngrok-free.app"
     username = prompt("Username:")
     team = "evil"
     enemy_team = "good"
