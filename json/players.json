@@ -1,7 +1,3 @@
 {
-    "deck_dict":{},
-    "deck":[],
-    "discard":[],
-    "hand":[],
-    "gold":10
+    "gold":16
 }

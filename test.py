@@ -1,11 +1,25 @@
-from collections import defaultdict
-#dictionary = {"hey":{"swaggins":3}, "hola":2, "heyo":3}
-#upper = {"hey":{"yolo":2}, "hiola":4, "heyo":7}
-#dictionary.update(upper)
-#print(dictionary)
-dictionary = {"hey":{"swaggins":3}, "hola":2, "heyo":3}
-upper = {"hey":{"yolo":2}, "hiola":4, "heyo":7, "Jason":3}
-def pro(me, you, yolo = "swaggins", other = "someone"):
-    return me + you + yolo + other
+from collections import Counter
+from collections import OrderedDict
+from mergedeep import merge, Strategy
+import random
 
-print(pro("jason","nathan",other = "zach"))
+mylist = [5,2,3,4]
+mylist.remove(5)
+print(mylist)
+
+#for each card you have
+{
+    "aggression":{"stability":3,
+        "cost":15,
+        {"enter":
+            {"start":
+            "rate": 0,
+            "actions": [{"function":"draw","target":"enemy_team", "percent": -200}]
+            }
+        ],
+        "progress":[
+            {"function":"money","target":"enemy_team","amount":-1}
+        ],
+        "exit":[
+            {"function":"damage","target":"enemy_team","amount":10}
+        ]},

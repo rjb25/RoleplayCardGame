@@ -1,6 +1,6 @@
 document.addEventListener('DOMContentLoaded', function(){
     //socketname = prompt("WebSocketURL no http://")
-    socketname = "c589-108-45-153-120.ngrok-free.app"
+    socketname = "visually-popular-iguana.ngrok-free.app"
     username = prompt("Username:")
     team = "evil"
     enemy_team = "good"
@@ -8,21 +8,24 @@ document.addEventListener('DOMContentLoaded', function(){
         team = "good"
         enemy_team = "evil"
     }
-    //username = "jason"
     const websocketClient = new WebSocket("wss://"+socketname+"/"+username+"/"+team);
-    //const websocketClient = new WebSocket("ws://localhost:12345/");
     const messagesContainer = document.querySelector("#messages_container");
     const situationsContainer = document.querySelector("#situations_container");
     const plansContainer = document.querySelector("#plans_container");
     const goldContainer = document.querySelector("#gold_container");
     const cardsContainer = document.querySelector("#cards_container");
+    const menuContainer = document.querySelector("#menu_container");
     const timerContainer = document.querySelector("#timer_container");
     const healthContainer = document.querySelector("#health_container");
     cardButtons = {};
+    function changeBackground(color) {
+        document.body.style.background = color;
+    }
     var time = 0;
     var running = false;
+    changeBackground("red");
     var timer = setInterval(function(){
-        timerContainer.innerHTML = time;
+        timerContainer.innerHTML = "&#8987;" + time;
         if(running){
             time = Math.max(time - 1,0);
         }
@@ -32,11 +35,24 @@ document.addEventListener('DOMContentLoaded', function(){
             parent.removeChild(parent.firstChild);
         }
     }
+    function menuButton(title){
+        menuButton = document.createElement("div");
+        menuButton.classList.add("card");
+        menuTitle = document.createElement("div");
+        menuTitle.innerHTML = title;
+        menuButton.appendChild(menuTitle);
+        menuButton.onclick = function(){
+            websocketClient.send( JSON.stringify({
+            command: title
+            }))
+        };
+        menuContainer.appendChild(menuButton);
+    }
     function generateCard(card){
         cardButton = document.createElement("div");
         cardButton.classList.add("card");
         cardTitle = document.createElement("div");
-        cardTitle.innerHTML =  card["title"] + " $" + card["cost"] + " ST" + card["stability"];
+        cardTitle.innerHTML =  card["title"] + " &#128176;" + card["cost"] + " &hearts;" + card["stability"];
         cardBase = document.createElement("div");
         enter_effect = card["enter"][0];
         enter_text = enter_effect["function"] + " " + enter_effect["target"] + " " + enter_effect["amount"];
@@ -54,57 +70,49 @@ document.addEventListener('DOMContentLoaded', function(){
 
         websocketClient.onmessage = function(message){
             messageJson = JSON.parse(message.data.replace(/'/g, '"'));
-            console.log(JSON.stringify(messageJson));
-            if("reset" in messageJson){
-                reset = messageJson["reset"];
-                if (reset){
-                    removeAllChildNodes(cardsContainer);
-                    cardButtons = {}
+            //console.log(JSON.stringify(messageJson));
+            console.log(JSON.stringify(messageJson["player_state"]["hand"]));
+                /*
+
+            if("log" in messageJson){
+                log = messageJson["log"];
+                if (log){
+                    console.log(log);
                 }
             }
+            */
 
-            if("played" in messageJson){
-                played = messageJson["played"];
-                played.forEach((card) => {
-                    if (card in cardButtons){
-                        button = cardButtons[card];
-                        button.parentNode.removeChild(button);
-                        delete cardButtons[card];
-                    }
-                });
-            }
-
-            if("gold" in messageJson){
-                gold = messageJson["gold"];
-                goldContainer.innerHTML = "";
-                const goldDiv = document.createElement("div");
-                goldDiv.innerHTML = gold;
-                goldContainer.appendChild(goldDiv);
-            }
-
-            if("player_table" in messageJson){
+            if("player_state" in messageJson){
                 //Myself
-                playerState = messageJson["player_table"]
+                playerState = messageJson["player_state"]
                 if ("gold" in playerState){
                     gold = playerState["gold"];
                     goldContainer.innerHTML = "";
                     const goldDiv = document.createElement("div");
-                    goldDiv.innerHTML = gold;
+                    goldDiv.innerHTML = "&#128176;" + gold;
                     goldContainer.appendChild(goldDiv);
                 }
                 if("hand" in playerState){
+                    cardsContainer.innerHTML = "";
+                    removeAllChildNodes(cardsContainer);
+                    cardButtons = {};
                     hand = playerState["hand"];
+                    /*
                     newCards = [];
                     hand.forEach((card) => {
                         if (!(card["id"] in cardButtons)){
                             newCards.push(card);
                         }
                     });
+                    */
 
-                    newCards.forEach((card) => {
+                    hand.forEach((card) => {
                         cardButton = generateCard(card)
                         cardButton.onclick = function(){
-                            websocketClient.send(card["id"]);
+                            websocketClient.send( JSON.stringify({
+                            id: card["id"],
+                            owner: card["owner"]
+                            }))
                         };
                         cardsContainer.appendChild(cardButton);
                         cardButtons[card["id"]] = cardButton;
@@ -117,16 +125,16 @@ document.addEventListener('DOMContentLoaded', function(){
                 enemyState = messageJson["teams_table"][enemy_team];
                 
                 //Enemy
-                if("plans" in enemyState){
-                    plans = enemyState["plans"];
+                if("board" in enemyState){
+                    board = enemyState["board"];
                     situationsContainer.innerHTML = "";
-                    plans.forEach((plan) => {
-                        planDiv = document.createElement("div");
-                        plan.forEach((card) => {
-                        cardBox = generateCard(card);
-                        planDiv.appendChild(cardBox);
-                        });
-                        situationsContainer.appendChild(planDiv);
+                    board.forEach((card) => {
+                        if (card){
+                            cardDiv = document.createElement("div");
+                            cardBox = generateCard(card);
+                            cardDiv.appendChild(cardBox);
+                            situationsContainer.appendChild(cardDiv);
+                        }
                     });
                 }
 
@@ -144,25 +152,29 @@ document.addEventListener('DOMContentLoaded', function(){
                 if("health" in teamState){
                     messageText = teamState["health"];
                     const messageDiv = document.createElement("div");
-                    messageDiv.innerHTML = messageText;
+                    messageDiv.innerHTML = "&hearts;" + messageText;
                     healthContainer.innerHTML = "";
                     healthContainer.appendChild(messageDiv);
                 }
                 if("running" in teamState){
                     running = teamState["running"];
+                    if (running) {
+                        changeBackground("green");
+                    } else {
+                        changeBackground("red");
+                    }
                 }
 
-
-                if("plans" in teamState){
-                    plans = teamState["plans"];
+                if("board" in teamState){
+                    board = teamState["board"];
                     plansContainer.innerHTML = "";
-                    plans.forEach((plan) => {
-                        planDiv = document.createElement("div");
-                        plan.forEach((card) => {
-                        cardBox = generateCard(card);
-                        planDiv.appendChild(cardBox);
-                        });
-                        plansContainer.appendChild(planDiv);
+                    board.forEach((card) => {
+                        if (card){
+                            cardDiv = document.createElement("div");
+                            cardBox = generateCard(card);
+                            cardDiv.appendChild(cardBox);
+                            plansContainer.appendChild(cardDiv);
+                        }
                     });
                 }
             }

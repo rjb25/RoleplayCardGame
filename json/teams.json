@@ -1,1 +1,1 @@
-{"limit":3,"time":120, "queue_length":6,"running":0,"cards_played":[], "health":100, "pay_to_next":0, "deal_to_next":0, "plans":[], "planned":0}
+{"income_percent":0, "income_rate":5, "draw_percent":0, "draw_rate":5, "cards_played":[], "health":20, "board":[0,0,0,0,0]}
