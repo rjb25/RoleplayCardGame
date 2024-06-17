@@ -3,23 +3,71 @@ from collections import OrderedDict
 from mergedeep import merge, Strategy
 import random
 
-mylist = [5,2,3,4]
-mylist.remove(5)
-print(mylist)
+board = {"hey":1,"hy":3}
+me = {"board":board}
+you = {"board":board}
+me["board"]["hey"]=2
+you["board"]["hooo"]=2
+print(board)
+print(me)
+print(you)
+
 
 #for each card you have
+#"target" returns a list of cards, "function" will receive all those cards along side an "argument"
+#What about draw? Well it calls draw passing it the player card/cards and arguments
+#Draw should target the deck
+#Money targets the player
 {
-    "aggression":{"stability":3,
-        "cost":15,
-        {"enter":
-            {"start":
-            "rate": 0,
-            "actions": [{"function":"draw","target":"enemy_team", "percent": -200}]
+"aggression":
+    {
+    "actions":
+        [
+            {
+                "name": "Enemy discard 2",
+                "traits":["board","instant"],
+                "percent":100,
+                "rate": 0,
+                "functions": [{"function":"progress","targets":[""], "arguments":{"trait":"expire", "percent": 200}}]
+            },
+            {
+                "traits":["board","duration"],
+                "percent":0,
+                "rate": 40,
+                "functions": [{"function":"progress","targets":["enemy"],"arguments":{"percent":-100}}]
+            },
+            {
+                "traits":["board","exit"],
+                "percent":0,
+                "rate": 10,
+                "functions": [{"function":"kill","targets":["enemy"],"arguments":{"percent":10}},{"function":"expire", "targets": ["self"]}]
+            },
+            {
+                "traits":["board","death"],
+                "percent":0,
+                "rate": 0,
+                "resist": 3,
+                "functions": [{"function":"move", "targets": ["self"], "arguments":{"to":"discard"}}]
+            },
+            {
+                "traits":["hand","shop"],
+                "percent":0,
+                "rate": 10,
+                "functions": [{"function":"expire", "targets": ["self"]}]
+            },
+            {
+                "traits":["buy"],
+                "percent":0,
+                "rate": 0,
+                "resist": 15,
+                "functions": [{"function":"purchase", "targets": ["self"]}]
+            },
+            {
+                "traits":["draw"],
+                "percent":0,
+                "rate": 0,
+                "functions": [{"function":"draw", "targets": ["self"]}]
             }
-        ],
-        "progress":[
-            {"function":"money","target":"enemy_team","amount":-1}
-        ],
-        "exit":[
-            {"function":"damage","target":"enemy_team","amount":10}
-        ]},
+        ]
+    }
+}

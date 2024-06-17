@@ -34,42 +34,12 @@ from itertools import takewhile
 #TODO Visual bars  for numbers
 #Enemy hand size and +-
 #Information round?
+#TODO if another card goes over 100% during a cards turn make sure it gets ticked after instead of instant.
 #todo change value next to values
 #green or red +- next to number with diff
 #one of each type in starting hand
 #empty the hearts when they go down
 #EFFECTS
-def destabilize_effect(action):
-    #good destabilize is the only one with an initial damage
-    team = get_team(action["owner"])
-    target = action["target"]
-    amount = action["amount"]
-    enemy_team = get_enemy_team(team)
-    if target == "random":
-        board = teams_table[enemy_team]["board"][1:]
-        card = random.choice(board)
-        if card:
-            card["stability"] -= amount
-
-def money_effect(action):
-    target = action["target"]
-    amount = action["amount"]
-    income_team(amount,target)
-
-def draw_effect(action):
-    target = action["target"]
-    amount = action["amount"]
-    draw_team(amount,target)
-
-def time_effect(action):
-    target = action["target"]
-    amount = action["amount"]
-    teams_table[target]["time"] += amount
-
-def damage_effect(action):
-    target = action["target"]
-    amount = action["amount"]
-    apply_damage(target,amount)
 
 #JSON
 def load(a):
@@ -79,11 +49,11 @@ def load(a):
 #adventure_table = load({"file":"json/adventure.json"})
 decks_table = load({"file":"json/decks.json"})
 cards_table = load({"file":"json/cards.json"})
-players_default = load({"file":"json/players.json"})
 team_default = load({"file":"json/teams.json"})
 teams_table = {"evil":{},"good":{}}
 game_table = {"tick_duration":0.5,"tick_value":1,"running":0, "loser":""}
 players_table = {}
+boards = {}
 local_players_table = {}
 #COMMUNICATIONS
 #adventure = "intro"
@@ -92,44 +62,11 @@ message_queue = {}
 loser = ""
 tick_rate = 5
 log_message = {}
-board_percents = ["exit","kill","progress"]
-hand_percents = ["expire"]
-team_percents = ["income","draw"]
 player_percents = []
-
-def log(action):
-    target = action["owner"]
-    amount = int(action["amount"])
-    function = action["function"]
-    log = {target:Counter({function:amount})}
-    merge(log_message, log, strategy=Strategy.ADDITIVE)
 
 def saveBattle():
         with open('json/decks.json', 'w') as f:
             json.dump(decks_table,f)
-
-#CORE
-def call_functions(card, step):
-    for action in card[step]:
-        function = action["function"]+"_effect"
-        #handles target interpretation 
-        owner = card["owner"]
-        action["owner"] = owner
-        target = action["target"]
-        if target == "self":
-            action["target"] = owner
-        elif target == "team":
-            action["target"] = get_team(owner)
-        elif target == "enemy_team":
-            action["target"] = get_enemy_team(get_team(owner))
-        globals()[function](card, action)
-
-def remove_broken_cards(team_data):
-    cards = team_data["board"]
-    for index, card in enumerate(cards):
-        if card:
-            if card["stability"] < 0:
-                kill_card(card)
 
 def get_next_field(board):
     for index, card in enumerate(board):
@@ -138,25 +75,12 @@ def get_next_field(board):
     return -1 
 
 def refresh_card(card):
-    card["exit_percent"] = 0
-    card["progress_percent"] = 0
-    card["expire_percent"] = 0
-    card["death_percent"] = 0
-
-#Flow of hand to discard
-def expire_card(card):
-    move(card,"discard")
-
-#Flow of board to discard
-def kill_card(card):
-    move(card,"discard")
-
-def progress_card(card):
-    call_functions(card,"progress")
-    
-def exit_card(card):
-    call_functions(card, "exit")
-    move(card,"discard")
+    actions = find_actions_without_trait(card,"persist")
+    instant_actions = find_actions_with_trait(card,"instant")
+    for action in actions:
+        action["percent"] = 0
+    for action in instant_actions:
+        action["percent"] = 100
 
 #Flow hand to board
 def play_card(card):
@@ -170,114 +94,100 @@ def play_card(card):
 
 #Flow deck to hand
 #Flow of discard to deck
-def draw(card):
-    username = card["owner"]
-    player_data = players_table[username]
-    deck = player_data["deck"]
-    player_discard = player_data["discard"]
-    hand = player_data["hand"]
-    if len(deck) <= 0:
-        for card in player_discard:
-            move(card,"deck")
-            random.shuffle(deck)
-    if len(deck) > 0:
-        card = deck[-1]
-        move(card,"hand")
-
-def discard(username):
-    player_data = players_table[username]
-    hand = player_data["hand"]
-    if hand:
-        card = hand[-1]
-        expire_card(card)
-
-def draw(count, target):
-    usernames = get_targets(target)
-    for username in usernames:
-        for i in range(abs(count)):
-            if count < 0:
-                discard(username)
-            else:
-                deal(username)
 
 #Back bone of flow
-def move(card, to, index = 0):
+def move(card, arguments, index = 0):
+    to = arguments["to"]
     card_owner = card["owner"]
     card_location = card["location"]
     card_target = card["location"]
     player_data = players_table[card_owner]
-    team_data = teams_table[player_data["team"]]
     if to == "board":
-        team_data[to][index] = card
+        player_data[to][index] = card
         card["location"] = to
+        card["index"] = index
     else:
         player_data[to].append(card)
         card["location"] = to
 
     if card_location == "board":
-        team_data[card_location].remove(card)
-    else:
         player_data[card_location].remove(card)
 
     if to == "discard":
         refresh_card(card)
 
-#You can eventually handle health and all things about a card through here
-#You can add the fields with just a word too and it will add bonus, multiplier, all that good stuff
-def update_card_percent(card,field):
-    card[field+"_percent"] += tick_rate() * card[field+"_rate"]
-    if card[field+"_percent"] >= 100:
-        function = field+"_card"
-        globals()[function](card)
+def find_actions_with_trait(card,trait):
+    actions = card["actions"]
+    actions_list = []
+    for action in actions:
 
 def update_team_percent(team,field):
     team[field+"_percent"] += tick_rate() * team[field+"_rate"]
     if team[field+"_percent"] >= 100:
         function = field+"_team"
         globals()[function](team)
+        if trait in action["traits"]:
+            actions_list.append(action)
+    return actions_list
+
+def find_actions_without_trait(card,trait):
+    actions = card["actions"]
+    actions_list = []
+    for action in actions:
+        if trait not in action["traits"]:
+            actions_list.append(action)
+    return actions_list
+
+def card_targets(card,targets):
+    target_cards = []
+    for target in targets:
+        if target == "self":
+            target_cards.append(card)
+        if target == "team":
+            card["owner"]
+
+def action_times(action):
+    times = 0
+    if "overkill" in action["traits"]:
+        times = round(action["percent"]/100)
+        action["percent"] = action["percent"] % 100
+    else:
+        action["percent"] = 0
+        times = 1
+        return times
+
+def execute_functions(card,action,arguments)
+    for function in action["functions"]:
+        targets = action["targets"]
+        args = action["arguments"]
+        for target_card in card_targets(card,targets):
+            globals()[function](target_card,arguments)
+    
+def progress(card,arguments):
+    trait = arguments["trait"]
+    percent = arguments["percent"]
+    actions = find_actions_with_trait(card,trait)
+    for action in actions:
+        action["percent"] += percent/action["resist"]
+        if action["percent"] >= 100 && action.get("functions") != None:
+            for x in range(action_times(action))
+                execute_functions(card,action,arguments)
 
 async def tick():
     while True:
         await asyncio.sleep(game_table["tick_duration"])
         if game_table["running"]:
-            #for team, team_data in teams_table.items():
-                #team_data["time"] = max(team_data["time"]-tick_rate, 0)
-            card_tick()
-            team_tick()
-            #A dict/list of data to tick
             hand_tick()
-            for team, team_data in teams_table.items():
-                remove_broken_cards(team_data)
+            board_tick()
+            player_tick()
             await update_state()
+
 def tick_rate():
     return game_table["tick_duration"]*game_table["tick_value"]
 
-
-def hand_tick():
+def tick_progress():
     for player, player_data in players_table.items():
-        for card in player_data["hand"]:
-            if card:
-                for field in hand_percents:
-                    update_card_percent(card,field)
 
-def team_tick():
-    for team, team_data in teams_table.items():
-
-        team_data["income_percent"] += tick_rate()*team_data["income_rate"]
-        team_data["draw_percent"] += tick_rate()*team_data["draw_rate"]
-        if team_data["draw_percent"] >= 100:
-            team_data["draw_percent"] -= 100
-            draw_team(1,team)
-        if team_data["income_percent"] >= 100:
-            team_data["income_percent"] -= 100
-            income_team(1,team)
-
-def card_tick():
-    for team, team_data in teams_table.items():
-        for card in team_data["board"]:
-            if card:
-                for field in board_percents:
-                    update_card_percent(card,field)
 
 def initialize_teams():
     for team in list(teams_table.keys()):
@@ -306,20 +216,11 @@ def initialize_card(card_name,username):
         baby_card["title"] = card_name
     baby_card["owner"] = username
     baby_card["id"] = get_unique_id()
-    baby_card["expire_rate"] = 10
-    baby_card["expire_percent"] = 0
-    baby_card["progress_rate"] = 40
-    baby_card["progress_percent"] = 0
-    baby_card["exit_rate"] = 10 
-    baby_card["exit_percent"] = 0
-    
-    baby_card["max_stability"] = baby_card["stability"]
     baby_card["location"] = "deck"
     return baby_card
 
 
 def load_deck(username):
-    players_table[username].update(copy.deepcopy(players_default))
     deck_to_load = decks_table[username]
     random.shuffle(deck_to_load)
     deck = []
@@ -330,40 +231,10 @@ def load_deck(username):
     players_table[username]["discard"] = []
     players_table[username]["hand"] = []
 
-def get_targets(target = ""):
-    if isinstance(target, list):
-        return target
-    target_list = []
-    #Target team
-    if is_team(target):
-        for player in list(players_table.keys()):
-            if target == get_team(player):
-                target_list.append(player)
-    #target player
-    elif target in list(players_table.keys()):
-        target_list.append(target)
-    #target everyone
-    else:
-        for player in list(players_table.keys()):
-            target_list.append(player)
-    return target_list
 
 def is_team(target = ""):
     if target in list(teams_table.keys()):
         return True
-
-def income(count, target):
-    usernames = get_targets(target)
-    for username in usernames:
-        players_table[username]["gold"] += count
-
-def apply_damage(team, damage):
-    teams_table[team]["health"] -= damage
-    global loser
-    if teams_table[team]["health"] <= 0 and (not loser):
-        #Make this a lose game function
-        loser = team
-        reset_state()
 
 async def release_message():
     global message_queue
@@ -395,6 +266,7 @@ def strip_keys_copy(keys, table):
     for key in keys:
         copied_table.pop(key, None)
 
+#If an action has a name then client renders the progress. Otherwise no
 async def update_state(targets = ""):
     strip = ["deck","discard","socket","team"]
     strip_keys_copy(strip, players_table)
@@ -415,15 +287,19 @@ async def new_client_connected(client_socket, path):
     username = paths[1]
     team = paths[2]
 
-    if not (username in list(decks_table.keys())):
+    if username not in list(decks_table.keys()):
         print("Invalid username")
         return ""
+
+    if team not in list(boards.keys()):
+        boards[team] = [0,0,0,0,0]
         
-    if not(username in list(players_table.keys())):
+    if username not in list(players_table.keys()):
         print("New client connected!")
         print("User: "+username)
         local_players_table[username] = {"socket":client_socket}
         players_table[username] = {"team":team}
+        players_table["board"] = boards[team]
         load_deck(username)
         deal_cards(3,username)
     else:
