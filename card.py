@@ -83,7 +83,7 @@ players_default = load({"file":"json/players.json"})
 team_default = load({"file":"json/teams.json"})
 teams_table = {}
 teams_list = ["good","evil"]
-game_table = {"tick_duration":0.5,"tick_value":1,"running":0, "loser":""}
+game_table = {"tick_duration":0.5,"tick_value":1,"running":1, "loser":""}
 players_table = {}
 local_players_table = {}
 #COMMUNICATIONS
