@@ -54,12 +54,12 @@ def destabilize_effect(action):
 def money_effect(action):
     target = action["target"]
     amount = action["amount"]
-    income_team(amount,target)
+    income(amount,target)
 
 def draw_effect(action):
     target = action["target"]
     amount = action["amount"]
-    draw_team(amount,target)
+    draw(amount,target)
 
 def time_effect(action):
     target = action["target"]
@@ -81,7 +81,8 @@ decks_table = load({"file":"json/decks.json"})
 cards_table = load({"file":"json/cards.json"})
 players_default = load({"file":"json/players.json"})
 team_default = load({"file":"json/teams.json"})
-teams_table = {"evil":{},"good":{}}
+teams_table = {}
+teams_list = ["good","evil"]
 game_table = {"tick_duration":0.5,"tick_value":1,"running":0, "loser":""}
 players_table = {}
 local_players_table = {}
@@ -92,9 +93,6 @@ message_queue = {}
 loser = ""
 tick_rate = 5
 log_message = {}
-board_percents = ["exit","kill","progress"]
-hand_percents = ["expire"]
-team_percents = ["income","draw"]
 player_percents = []
 
 def log(action):
@@ -122,7 +120,7 @@ def call_functions(card, step):
             action["target"] = get_team(owner)
         elif target == "enemy_team":
             action["target"] = get_enemy_team(get_team(owner))
-        globals()[function](card, action)
+        globals()[function](action)
 
 def remove_broken_cards(team_data):
     cards = team_data["board"]
@@ -138,10 +136,10 @@ def get_next_field(board):
     return -1 
 
 def refresh_card(card):
-    card["exit_percent"] = 0
-    card["progress_percent"] = 0
-    card["expire_percent"] = 0
-    card["death_percent"] = 0
+    card["exit_timer"] = 0
+    card["progress_timer"] = 0
+    card["expire_timer"] = 0
+    #TODO add back in health reset
 
 #Flow of hand to discard
 def expire_card(card):
@@ -170,8 +168,7 @@ def play_card(card):
 
 #Flow deck to hand
 #Flow of discard to deck
-def draw(card):
-    username = card["owner"]
+def deal(username):
     player_data = players_table[username]
     deck = player_data["deck"]
     player_discard = player_data["discard"]
@@ -224,31 +221,30 @@ def move(card, to, index = 0):
 
 #You can eventually handle health and all things about a card through here
 #You can add the fields with just a word too and it will add bonus, multiplier, all that good stuff
-def update_card_percent(card,field):
-    card[field+"_percent"] += tick_rate() * card[field+"_rate"]
-    if card[field+"_percent"] >= 100:
-        function = field+"_card"
-        globals()[function](card)
-
-def update_team_percent(team,field):
-    team[field+"_percent"] += tick_rate() * team[field+"_rate"]
-    if team[field+"_percent"] >= 100:
-        function = field+"_team"
-        globals()[function](team)
+def board_tick():
+    for team, team_data in teams_table.items():
+        for card in team_data["board"]:
+            if card:
+                card["exit_timer"] += tick_rate()
+                card["progress_timer"] += tick_rate()
+                if card["progress_timer"] >= card["progress_seconds"]:
+                    card["progress_timer"] -= card["progress_seconds"]
+                    progress_card(card)
+                if card["exit_timer"] >= card["exit_seconds"]:
+                    card["exit_timer"] -= card["exit_seconds"]
+                    exit_card(card)
 
 async def tick():
     while True:
         await asyncio.sleep(game_table["tick_duration"])
         if game_table["running"]:
-            #for team, team_data in teams_table.items():
-                #team_data["time"] = max(team_data["time"]-tick_rate, 0)
-            card_tick()
+            board_tick()
             team_tick()
-            #A dict/list of data to tick
             hand_tick()
             for team, team_data in teams_table.items():
                 remove_broken_cards(team_data)
             await update_state()
+
 def tick_rate():
     return game_table["tick_duration"]*game_table["tick_value"]
 
@@ -257,38 +253,42 @@ def hand_tick():
     for player, player_data in players_table.items():
         for card in player_data["hand"]:
             if card:
-                for field in hand_percents:
-                    update_card_percent(card,field)
+                card["expire_timer"] += tick_rate()
+                if card["expire_timer"] >= card["expire_seconds"]:
+                    expire_card(card)
 
 def team_tick():
     for team, team_data in teams_table.items():
+        team_data["income_timer"] += tick_rate()
+        team_data["draw_timer"] += tick_rate()
+        if team_data["draw_timer"] >= team_data["draw_seconds"]:
+            team_data["draw_timer"] -= team_data["draw_seconds"]
+            draw(1,team)
+        if team_data["income_timer"] >= team_data["income_seconds"]:
+            team_data["income_timer"] -= team_data["income_seconds"]
+            income(1,team)
 
-        team_data["income_percent"] += tick_rate()*team_data["income_rate"]
-        team_data["draw_percent"] += tick_rate()*team_data["draw_rate"]
-        if team_data["draw_percent"] >= 100:
-            team_data["draw_percent"] -= 100
-            draw_team(1,team)
-        if team_data["income_percent"] >= 100:
-            team_data["income_percent"] -= 100
-            income_team(1,team)
 
-def card_tick():
-    for team, team_data in teams_table.items():
-        for card in team_data["board"]:
-            if card:
-                for field in board_percents:
-                    update_card_percent(card,field)
-
-def initialize_teams():
+def reset_teams():
     for team in list(teams_table.keys()):
-        teams_table[team] = copy.deepcopy(team_default)
+        initialize_team(team)
+
+def initialize_team(team):
+    teams_table[team] = copy.deepcopy(team_default)
+    team_data = teams_table[team]
+    team_data["income_timer"] = 0
+    team_data["draw_timer"] = 0
+
+def initialize_teams(teams):
+    for team in teams:
+        initialize_team(team)
 
 def reset_state():
     global loser
-    initialize_teams()
+    reset_teams()
     for username in list(players_table.keys()):
         load_deck(username)
-        deal_cards(3,username)
+        draw(3,username)
 
     teams_table[loser]["text"] = "Defeat... &#x2639;"
     teams_table[get_enemy_team(loser)]["text"] = "Victory! &#128512;"
@@ -306,17 +306,15 @@ def initialize_card(card_name,username):
         baby_card["title"] = card_name
     baby_card["owner"] = username
     baby_card["id"] = get_unique_id()
-    baby_card["expire_rate"] = 10
-    baby_card["expire_percent"] = 0
-    baby_card["progress_rate"] = 40
-    baby_card["progress_percent"] = 0
-    baby_card["exit_rate"] = 10 
-    baby_card["exit_percent"] = 0
-    
+    baby_card["expire_seconds"] = 10
+    baby_card["expire_timer"] = 0
+    baby_card["progress_seconds"] = 2
+    baby_card["progress_timer"] = 0
+    baby_card["exit_seconds"] = 10 
+    baby_card["exit_timer"] = 0
     baby_card["max_stability"] = baby_card["stability"]
     baby_card["location"] = "deck"
     return baby_card
-
 
 def load_deck(username):
     players_table[username].update(copy.deepcopy(players_default))
@@ -418,6 +416,9 @@ async def new_client_connected(client_socket, path):
     if not (username in list(decks_table.keys())):
         print("Invalid username")
         return ""
+
+    if team not in list(teams_table.keys()):
+        initialize_team(team)
         
     if not(username in list(players_table.keys())):
         print("New client connected!")
@@ -425,7 +426,7 @@ async def new_client_connected(client_socket, path):
         local_players_table[username] = {"socket":client_socket}
         players_table[username] = {"team":team}
         load_deck(username)
-        deal_cards(3,username)
+        draw(3,username)
     else:
         #If the player that just connected already connected before just update their socket
         local_players_table[username]["socket"] = client_socket
@@ -450,8 +451,8 @@ async def new_client_connected(client_socket, path):
 
 async def start_server():
     print("Server started!")
-    initialize_teams()
     initialize_time()
+    initialize_teams(teams_list)
     await websockets.serve(new_client_connected, "localhost", 12345)
 
 if __name__ == '__main__':
