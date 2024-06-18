@@ -1,3 +1,4 @@
+#TODO work on getting zone selection for playing a card working
 #DON't use ordered dict since you can't choose insertion point. Just use a list with references to a mega dict
 import asyncio
 from collections import Counter
@@ -91,7 +92,6 @@ local_players_table = {}
 current_id = -1 
 message_queue = {}
 loser = ""
-tick_rate = 5
 log_message = {}
 player_percents = []
 
@@ -223,11 +223,14 @@ def board_tick():
     for team, team_data in teams_table.items():
         for card in team_data["board"]:
             if card:
-                card["age"] += 1
-                if card["age"] >= card["ticks"]:
+                card["exit_timer"] += tick_rate()
+                card["progress_timer"] += tick_rate()
+                if card["exit_timer"] >= card["exit_seconds"]:
                     exit_card(card)
-                else:
+                    card["exit_timer"] -= card["exit_seconds"]
+                if card["progress_timer"] >= card["progress_seconds"]:
                     progress_card(card)
+                    card["progress_timer"] -= card["progress_seconds"]
 
 async def tick():
     while True:
@@ -248,20 +251,16 @@ def hand_tick():
     for player, player_data in players_table.items():
         for card in player_data["hand"]:
             if card:
-                card["shop_age"] += 1
-                if card["shop_age"] >= card["shop_ticks"]:
+                card["shop_timer"] += tick_rate()
+                if card["shop_timer"] >= card["shop_seconds"]:
                     expire_card(card)
 
 def team_tick():
     for team, team_data in teams_table.items():
-        print(tick_rate())
-        print(team_data["draw_timer"])
-        print(team_data["draw_seconds"])
         team_data["income_timer"] += tick_rate()
         team_data["draw_timer"] += tick_rate()
         if team_data["draw_timer"] >= team_data["draw_seconds"]:
             team_data["draw_timer"] -= team_data["draw_seconds"]
-            print("DRAWING")
             draw(1,team)
         if team_data["income_timer"] >= team_data["income_seconds"]:
             team_data["income_timer"] -= team_data["income_seconds"]
@@ -302,8 +301,9 @@ def get_unique_id():
 def refresh_card(card):
     baby_card = copy.deepcopy(cards_table[card["name"]])
     card["age"] = 0
-    card["shop_age"] = 0
-    card["ticks"] = baby_card["ticks"]
+    card["shop_timer"] = 0
+    card["exit_timer"] = 0
+    card["progress_timer"] = 0
     card["max_stability"] = baby_card["stability"]
     card["stability"] = baby_card["stability"]
 

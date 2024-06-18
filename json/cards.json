@@ -1,8 +1,9 @@
 {
     "aggression":{"stability":3,
         "cost":15,
-        "ticks":20,
-        "shop_ticks":20,
+        "shop_seconds":20,
+        "progress_seconds":2,
+        "exit_seconds":10,
         "enter":[
             {"function":"draw","target":"enemy_team","amount":-2}
         ],
@@ -13,8 +14,9 @@
             {"function":"damage","target":"enemy_team","amount":10}
         ]},
     "attack":{"stability":3,
-        "ticks":20,
-        "shop_ticks":20,
+        "shop_seconds":20,
+        "progress_seconds":2,
+        "exit_seconds":10,
         "cost":4,
         "enter":[
             {"function":"destabilize","target":"random","amount":3}
@@ -27,8 +29,9 @@
         ]},
     "draw":{"stability":3,
         "cost":4,
-        "ticks":20,
-        "shop_ticks":20,
+        "shop_seconds":20,
+        "progress_seconds":2,
+        "exit_seconds":10,
         "enter":[
             {"function":"draw","target":"self","amount":3}
         ],
@@ -40,8 +43,9 @@
         ]},
     "wait":{"stability":7,
         "cost":4,
-        "ticks":20,
-        "shop_ticks":20,
+        "shop_seconds":20,
+        "progress_seconds":2,
+        "exit_seconds":10,
         "enter":[
             {"function":"time","target":"team","amount":20}
         ],
@@ -53,8 +57,9 @@
         ]},
     "loot":{"stability":3,
         "cost":4,
-        "ticks":20,
-        "shop_ticks":20,
+        "shop_seconds":20,
+        "progress_seconds":2,
+        "exit_seconds":10,
         "enter":[
             {"function":"money","target":"self","amount":3}
         ],
@@ -67,8 +72,9 @@
     },
     "caution":{"stability":1,
         "cost":1,
-        "ticks":20,
-        "shop_ticks":20,
+        "shop_seconds":20,
+        "progress_seconds":2,
+        "exit_seconds":10,
         "enter":[
             {"function":"money","target":"team","amount":1}
         ],
