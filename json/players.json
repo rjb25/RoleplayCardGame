@@ -1,3 +1,6 @@
 {
-    "gold":16
+    "gold":16,
+    "hand":[],
+    "deck":[],
+    "discard":[]
 }

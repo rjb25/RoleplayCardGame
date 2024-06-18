@@ -39,11 +39,11 @@ from itertools import takewhile
 #one of each type in starting hand
 #empty the hearts when they go down
 #EFFECTS
-def destabilize_effect(action):
+def destabilize_effect(arguments):
     #good destabilize is the only one with an initial damage
-    team = get_team(action["owner"])
-    target = action["target"]
-    amount = action["amount"]
+    team = get_team(arguments["owner"])
+    target = arguments["target"]
+    amount = arguments["amount"]
     enemy_team = get_enemy_team(team)
     if target == "random":
         board = teams_table[enemy_team]["board"][1:]
@@ -51,24 +51,24 @@ def destabilize_effect(action):
         if card:
             card["stability"] -= amount
 
-def money_effect(action):
-    target = action["target"]
-    amount = action["amount"]
+def money_effect(arguments):
+    target = arguments["target"]
+    amount = arguments["amount"]
     income(amount,target)
 
-def draw_effect(action):
-    target = action["target"]
-    amount = action["amount"]
+def draw_effect(arguments):
+    target = arguments["target"]
+    amount = arguments["amount"]
     draw(amount,target)
 
-def time_effect(action):
-    target = action["target"]
-    amount = action["amount"]
+def time_effect(arguments):
+    target = arguments["target"]
+    amount = arguments["amount"]
     teams_table[target]["time"] += amount
 
-def damage_effect(action):
-    target = action["target"]
-    amount = action["amount"]
+def damage_effect(arguments):
+    target = arguments["target"]
+    amount = arguments["amount"]
     apply_damage(target,amount)
 
 #JSON
@@ -83,7 +83,7 @@ players_default = load({"file":"json/players.json"})
 team_default = load({"file":"json/teams.json"})
 teams_table = {}
 teams_list = ["good","evil"]
-game_table = {"tick_duration":0.5,"tick_value":1,"running":1, "loser":""}
+game_table = {"tick_duration":0.5,"tick_value":1,"running":0, "loser":""}
 players_table = {}
 local_players_table = {}
 #COMMUNICATIONS
@@ -107,19 +107,22 @@ def saveBattle():
             json.dump(decks_table,f)
 
 #CORE
+def resolve_argument_aliases(card,arguments):
+    owner = card["owner"]
+    arguments["owner"] = owner
+    target = arguments["target"]
+    if target == "self":
+        arguments["target"] = owner
+    elif target == "team":
+        arguments["target"] = get_team(owner)
+    elif target == "enemy_team":
+        arguments["target"] = get_enemy_team(get_team(owner))
+    return arguments
+
 def call_functions(card, step):
     for action in card[step]:
         function = action["function"]+"_effect"
-        #handles target interpretation 
-        owner = card["owner"]
-        action["owner"] = owner
-        target = action["target"]
-        if target == "self":
-            action["target"] = owner
-        elif target == "team":
-            action["target"] = get_team(owner)
-        elif target == "enemy_team":
-            action["target"] = get_enemy_team(get_team(owner))
+        action = resolve_argument_aliases(card,action)
         globals()[function](action)
 
 def remove_broken_cards(team_data):
@@ -134,12 +137,6 @@ def get_next_field(board):
         if not card:
             return index
     return -1 
-
-def refresh_card(card):
-    card["exit_timer"] = 0
-    card["progress_timer"] = 0
-    card["expire_timer"] = 0
-    #TODO add back in health reset
 
 #Flow of hand to discard
 def expire_card(card):
@@ -160,6 +157,7 @@ def exit_card(card):
 def play_card(card):
     username = card["owner"]
     if players_table[username]["gold"] >= card["cost"]:
+        game_table["running"] = 1
         players_table[username]["gold"] -= card["cost"]
         #TODO replace with slot targetting
         #TODO make slot targetting smart to go to an opening after you play a card or go to slot 1 if all full. This way targetting is clear and can be manual if you want
@@ -225,14 +223,11 @@ def board_tick():
     for team, team_data in teams_table.items():
         for card in team_data["board"]:
             if card:
-                card["exit_timer"] += tick_rate()
-                card["progress_timer"] += tick_rate()
-                if card["progress_timer"] >= card["progress_seconds"]:
-                    card["progress_timer"] -= card["progress_seconds"]
-                    progress_card(card)
-                if card["exit_timer"] >= card["exit_seconds"]:
-                    card["exit_timer"] -= card["exit_seconds"]
+                card["age"] += 1
+                if card["age"] >= card["ticks"]:
                     exit_card(card)
+                else:
+                    progress_card(card)
 
 async def tick():
     while True:
@@ -253,16 +248,20 @@ def hand_tick():
     for player, player_data in players_table.items():
         for card in player_data["hand"]:
             if card:
-                card["expire_timer"] += tick_rate()
-                if card["expire_timer"] >= card["expire_seconds"]:
+                card["shop_age"] += 1
+                if card["shop_age"] >= card["shop_ticks"]:
                     expire_card(card)
 
 def team_tick():
     for team, team_data in teams_table.items():
+        print(tick_rate())
+        print(team_data["draw_timer"])
+        print(team_data["draw_seconds"])
         team_data["income_timer"] += tick_rate()
         team_data["draw_timer"] += tick_rate()
         if team_data["draw_timer"] >= team_data["draw_seconds"]:
             team_data["draw_timer"] -= team_data["draw_seconds"]
+            print("DRAWING")
             draw(1,team)
         if team_data["income_timer"] >= team_data["income_seconds"]:
             team_data["income_timer"] -= team_data["income_seconds"]
@@ -300,20 +299,23 @@ def get_unique_id():
     current_id += 1
     return current_id
 
+def refresh_card(card):
+    baby_card = copy.deepcopy(cards_table[card["name"]])
+    card["age"] = 0
+    card["shop_age"] = 0
+    card["ticks"] = baby_card["ticks"]
+    card["max_stability"] = baby_card["stability"]
+    card["stability"] = baby_card["stability"]
+
 def initialize_card(card_name,username):
     baby_card = copy.deepcopy(cards_table[card_name])
     if not("title" in baby_card.keys()):
         baby_card["title"] = card_name
+    baby_card["name"] = card_name
     baby_card["owner"] = username
     baby_card["id"] = get_unique_id()
-    baby_card["expire_seconds"] = 10
-    baby_card["expire_timer"] = 0
-    baby_card["progress_seconds"] = 2
-    baby_card["progress_timer"] = 0
-    baby_card["exit_seconds"] = 10 
-    baby_card["exit_timer"] = 0
-    baby_card["max_stability"] = baby_card["stability"]
     baby_card["location"] = "deck"
+    refresh_card(baby_card)
     return baby_card
 
 def load_deck(username):
