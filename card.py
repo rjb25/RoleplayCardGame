@@ -1,3 +1,4 @@
+#TODO 6/17/2024 I need to get the json set up for all this shenanigans. Mostly the team based stuff. Also add proper messaging to client
 #DON't use ordered dict since you can't choose insertion point. Just use a list with references to a mega dict
 import asyncio
 from collections import Counter
@@ -23,24 +24,7 @@ import shlex
 import copy
 import time
 from itertools import takewhile
-#Green screen when playing again
-#TODO end of game stats
-#TODO all cards need to execute
-#TODO debug log of all actions
-#TODO round summary, what you gained and lost each round
-#TODO deal specific card
-#TODO show round summary and opponent health and information
-#TODO simplify
-#TODO Visual bars  for numbers
-#Enemy hand size and +-
-#Information round?
 #TODO if another card goes over 100% during a cards turn make sure it gets ticked after instead of instant.
-#todo change value next to values
-#green or red +- next to number with diff
-#one of each type in starting hand
-#empty the hearts when they go down
-#EFFECTS
-
 #JSON
 def load(a):
     with open(a["file"]) as f:
@@ -48,12 +32,8 @@ def load(a):
 
 #adventure_table = load({"file":"json/adventure.json"})
 decks_table = load({"file":"json/decks.json"})
-cards_table = load({"file":"json/cards.json"})
+cards_info_table = load({"file":"json/cards.json"})
 team_default = load({"file":"json/teams.json"})
-teams_table = {"evil":{},"good":{}}
-game_table = {"tick_duration":0.5,"tick_value":1,"running":0, "loser":""}
-players_table = {}
-boards = {}
 local_players_table = {}
 #COMMUNICATIONS
 #adventure = "intro"
@@ -63,6 +43,17 @@ loser = ""
 tick_rate = 5
 log_message = {}
 player_percents = []
+#Unique card pile
+players_table = {}
+#Non unique card list
+teams_table = {"evil":{},"good":{}}
+game_table = {"tick_duration":0.5,"tick_value":1,"running":0, "loser":""}
+#Lists for the "give me all from location... Sub divided with team and player names and maintained in move"
+#tent and capital are the slots for captain and king
+#Generals and tents have health they just have different kill conditions. like retreat or reset with new.
+#Could even allow for multiple commanders... maybe. Would be annoying to deal with card purchase
+group_table = {"king":[],"tent":[],"card":[],"captain":[],"castle":[],"hand":[],"deck":[],"board":[]}
+boards = {}
 
 def saveBattle():
         with open('json/decks.json', 'w') as f:
@@ -87,15 +78,15 @@ def play_card(card):
     username = card["owner"]
     if players_table[username]["gold"] >= card["cost"]:
         players_table[username]["gold"] -= card["cost"]
-        #TODO replace with slot targetting
-        #TODO make slot targetting smart to go to an opening after you play a card or go to slot 1 if all full. This way targetting is clear and can be manual if you want
+        #TODO replace with slot targetting. Done on client
         move(card,"board",0)
         call_functions(card, "enter")
 
-#Flow deck to hand
-#Flow of discard to deck
+#def play_card(card):
+    #add_percent(remaining percent times resist)
+    #remove percent from wealth remaining percent time resist
+#play card should be handled by progressing buy
 
-#Back bone of flow
 def move(card, arguments, index = 0):
     to = arguments["to"]
     card_owner = card["owner"]
@@ -110,8 +101,10 @@ def move(card, arguments, index = 0):
         player_data[to].append(card)
         card["location"] = to
 
-    if card_location == "board":
-        player_data[card_location].remove(card)
+    #If a card is just moving
+    if to != card_location:
+        if card_location == "board":
+            player_data[card_location].remove(card)
 
     if to == "discard":
         refresh_card(card)
@@ -177,10 +170,11 @@ async def tick():
     while True:
         await asyncio.sleep(game_table["tick_duration"])
         if game_table["running"]:
-            hand_tick()
-            board_tick()
-            player_tick()
+            location_tick()
             await update_state()
+
+def location_tick():
+    for card in 
 
 def tick_rate():
     return game_table["tick_duration"]*game_table["tick_value"]
@@ -196,8 +190,9 @@ def initialize_teams():
 def reset_state():
     global loser
     initialize_teams()
+    #for captain in group[playernamecapital][team] and []
     for username in list(players_table.keys()):
-        load_deck(username)
+        load_deck(username,team)
         deal_cards(3,username)
 
     teams_table[loser]["text"] = "Defeat... &#x2639;"
@@ -211,10 +206,11 @@ def get_unique_id():
     return current_id
 
 def initialize_card(card_name,username):
-    baby_card = copy.deepcopy(cards_table[card_name])
+    baby_card = copy.deepcopy(cards_info_table[card_name])
     if not("title" in baby_card.keys()):
         baby_card["title"] = card_name
     baby_card["owner"] = username
+    baby_card["team"] = username
     baby_card["id"] = get_unique_id()
     baby_card["location"] = "deck"
     return baby_card
@@ -249,6 +245,7 @@ def queue_message(message, target = "", method = Strategy.REPLACE):
         message_queue.setdefault(player,{})
         merge(message_queue[player], message, strategy = method)
 
+#Is going to be gotten from
 def get_team(username):
     return players_table[username]["team"]
 
@@ -300,7 +297,7 @@ async def new_client_connected(client_socket, path):
         local_players_table[username] = {"socket":client_socket}
         players_table[username] = {"team":team}
         players_table["board"] = boards[team]
-        load_deck(username)
+        load_deck(username,team)
         deal_cards(3,username)
     else:
         #If the player that just connected already connected before just update their socket
@@ -334,6 +331,3 @@ if __name__ == '__main__':
     event_loop = asyncio.get_event_loop()
     event_loop.run_until_complete(start_server())
     event_loop.run_forever()
-#CARD IDEAS
-#Start using images on cards
-#They cannot select target while in play

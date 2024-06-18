@@ -1,0 +1,60 @@
+{
+    "actions":
+        [
+            "standard_player_income":
+            {
+                "traits":["tent"],
+                "percent":0,
+                "rate": 0,
+                "resist": 20,
+                "functions": [{"function":"lose", "targets": ["self"]}]
+            },
+            "standard_player_draw":
+            {
+                "traits":["castle","lose"],
+                "percent":0,
+                "rate": 0,
+                "resist": 20,
+                "functions": [{"function":"lose", "targets": ["self"]}]
+            },
+            "standard_team_health":
+            {
+                "traits":["castle","lose"],
+                "percent":0,
+                "rate": 0,
+                "resist": 20,
+                "functions": [{"function":"lose", "targets": ["self"]}]
+            },
+            "standard_health":
+            {
+                "traits":["board","death"],
+                "percent":0,
+                "rate": 0,
+                "resist": 3,
+                "functions": [{"function":"move", "targets": ["self"], "arguments":{"to":"discard"}}]
+            },
+            "standard_shop":
+            {
+                "traits":["hand","shop_timer"],
+                "percent":0,
+                "rate": 10,
+                "functions": [{"function":"expire", "targets": ["self"]}]
+            },
+            "standard_cost":
+            {
+                "traits":["hand","buy"],
+                "percent":0,
+                "rate": 0,
+                "resist": 5,
+                "functions": [{"function":"purchase", "targets": ["self"]}]
+            },
+            "standard_draw":
+            {
+                "traits":["deck","draw"],
+                "percent":0,
+                "rate": 0,
+                "functions": [{"function":"draw", "targets": ["self"]}]
+            }
+        ]
+    }
+}

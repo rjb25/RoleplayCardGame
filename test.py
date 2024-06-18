@@ -28,7 +28,7 @@ print(you)
                 "traits":["board","instant"],
                 "percent":100,
                 "rate": 0,
-                "functions": [{"function":"progress","targets":[""], "arguments":{"trait":"expire", "percent": 200}}]
+                "functions": [{"action_function":"progress", "action_arguments":{"trait":"shop_timer", "percent": 100}, "target_function":"generic", "target_arguments":{"location":"hand", "owner":"enemy", "indices":[-1,-2]}}]
             },
             {
                 "traits":["board","duration"],
@@ -50,20 +50,21 @@ print(you)
                 "functions": [{"function":"move", "targets": ["self"], "arguments":{"to":"discard"}}]
             },
             {
-                "traits":["hand","shop"],
+                "traits":["hand","shop_timer"],
                 "percent":0,
                 "rate": 10,
                 "functions": [{"function":"expire", "targets": ["self"]}]
             },
             {
-                "traits":["buy"],
+                "traits":["hand","buy"],
                 "percent":0,
                 "rate": 0,
                 "resist": 15,
+                #"resist_gain"/"resist_loss"
                 "functions": [{"function":"purchase", "targets": ["self"]}]
             },
             {
-                "traits":["draw"],
+                "traits":["deck","draw"],
                 "percent":0,
                 "rate": 0,
                 "functions": [{"function":"draw", "targets": ["self"]}]

@@ -1,1 +1,9 @@
-{"income_percent":0, "income_rate":5, "draw_percent":0, "draw_rate":5, "cards_played":[], "health":20, "board":[0,0,0,0,0]}
+{"health":20, "board":[0,0,0,0,0]}
+{
+    "good":{
+        "castle": ["porcy"]
+    },
+    "evil":{
+        "castle": ["porcy"]
+    },
+}

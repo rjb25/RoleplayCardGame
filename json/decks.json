@@ -1,5 +1,11 @@
 {
-    "jason":["aggression","aggression","draw","draw","draw","attack","attack","attack","loot","loot","loot","wait","wait","wait"],
-    "nathan":["aggression","aggression","draw","draw","draw","attack","attack","attack","loot","loot","loot","wait","wait","wait"],
-    "intro":["caution","attack","loot","wait","draw"]
+    "jason":{
+        "deck":["aggression","aggression","draw","draw","draw","attack","attack","attack","loot","loot","loot","wait","wait","wait"],
+        "tent": ["percy"]
+    },
+    "nathan":{
+        "deck":["aggression","aggression","draw","draw","draw","attack","attack","attack","loot","loot","loot","wait","wait","wait"],
+        "tent": ["percy"]
+    },
+    "notes":"Are good and evil actual players? Or do they replace teams.json and this decks. json replaces players.json"
 }
