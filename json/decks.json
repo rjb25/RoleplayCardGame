@@ -1,5 +1,5 @@
 {
-    "jason":["aggression","aggression","draw","draw","draw","attack","attack","attack","loot","loot","loot","wait","wait","wait"],
-    "nathan":["aggression","aggression","draw","draw","draw","attack","attack","attack","loot","loot","loot","wait","wait","wait"],
-    "intro":["caution","attack","loot","wait","draw"]
+    "standard":["aggression","aggression","draw","draw","draw","attack","attack","attack","loot","loot","loot"],
+    "nathan":["aggression","aggression","draw","draw","draw","attack","attack","attack","loot","loot","loot"],
+    "ai":["aggression","aggression","draw","draw","draw","attack","attack","attack","loot","loot","loot"]
 }

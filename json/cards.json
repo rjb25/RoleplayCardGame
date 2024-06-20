@@ -1,6 +1,6 @@
 {
     "aggression":{"stability":3,
-        "cost":15,
+        "cost":20,
         "shop_seconds":20,
         "progress_seconds":2,
         "exit_seconds":10,
@@ -33,7 +33,7 @@
         "progress_seconds":2,
         "exit_seconds":10,
         "enter":[
-            {"function":"draw","target":"self","amount":3}
+            {"function":"draw","target":"self","amount":2}
         ],
         "progress":[
             {"function":"draw","target":"team","amount":1}
@@ -41,48 +41,19 @@
         "exit":[
             {"function":"draw","target":"enemy_team", "amount":-3}
         ]},
-    "wait":{"stability":7,
-        "cost":4,
-        "shop_seconds":20,
-        "progress_seconds":2,
-        "exit_seconds":10,
-        "enter":[
-            {"function":"time","target":"team","amount":20}
-        ],
-        "progress":[
-            {"function":"time","target":"team","amount":5}
-        ],
-        "exit":[
-            {"function":"time","target":"enemy_team","amount":-30}
-        ]},
     "loot":{"stability":3,
         "cost":4,
         "shop_seconds":20,
         "progress_seconds":2,
         "exit_seconds":10,
         "enter":[
-            {"function":"money","target":"self","amount":3}
+            {"function":"money","target":"enemy_team","amount":-1}
         ],
         "progress":[
             {"function":"money","target":"team","amount":2}
         ],
         "exit":[
             {"function":"money","target":"enemy_team","amount":-5}
-        ]
-    },
-    "caution":{"stability":1,
-        "cost":1,
-        "shop_seconds":20,
-        "progress_seconds":2,
-        "exit_seconds":10,
-        "enter":[
-            {"function":"money","target":"team","amount":1}
-        ],
-        "progress":[
-            {"function":"money","target":"team","amount":1}
-        ],
-        "exit":[
-            {"function":"money","target":"enemy_team","amount":-4}
         ]
     }
 }

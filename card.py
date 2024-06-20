@@ -1,5 +1,4 @@
-#TODO work on getting zone selection for playing a card working
-#DON't use ordered dict since you can't choose insertion point. Just use a list with references to a mega dict
+#DON'T USE ORDERED DICT SINCE YOU CAN'T CHOOSE INSERTION POINT. JUST USE A LIST WITH REFERENCES TO A MEGA DICT
 import asyncio
 from collections import Counter
 import websockets
@@ -24,6 +23,9 @@ import shlex
 import copy
 import time
 from itertools import takewhile
+#Make progress content be modifiers. something that is just on while in play, then off when exits. Effects team
+#Play instant cards usually effect you in some way,
+#Exit cards usually effect the enemy in some way
 #Green screen when playing again
 #TODO end of game stats
 #TODO all cards need to execute
@@ -47,7 +49,8 @@ def destabilize_effect(arguments):
     amount = arguments["amount"]
     enemy_team = get_enemy_team(team)
     if target == "random":
-        board = teams_table[enemy_team]["board"][1:]
+        #TODO is this 1: needed?
+        board = teams_table[enemy_team]["board"]
         card = random.choice(board)
         if card:
             card["stability"] -= amount
@@ -84,7 +87,7 @@ players_default = load({"file":"json/players.json"})
 team_default = load({"file":"json/teams.json"})
 teams_table = {}
 teams_list = ["good","evil"]
-game_table = {"tick_duration":0.5,"tick_value":1,"running":0, "loser":""}
+game_table = {"tick_duration":0.5,"tick_value":1,"running":False, "loser":""}
 players_table = {}
 local_players_table = {}
 #COMMUNICATIONS
@@ -107,7 +110,9 @@ def saveBattle():
             json.dump(decks_table,f)
 
 #CORE
-def resolve_argument_aliases(card,arguments):
+def resolve_argument_aliases(card,argus):
+    #TODO need a copy function here so UI isn't messed up
+    arguments = copy.deepcopy(argus)
     owner = card["owner"]
     arguments["owner"] = owner
     target = arguments["target"]
@@ -127,16 +132,22 @@ def call_functions(card, step):
 
 def remove_broken_cards(team_data):
     cards = team_data["board"]
-    for index, card in enumerate(cards):
+    for card in cards:
         if card:
-            if card["stability"] < 0:
+            if card["stability"] <= 0:
                 kill_card(card)
 
-def get_next_field(board):
+def get_card_index(board):
+    for index, card in enumerate(board):
+        if card:
+            return index
+    return None
+
+def get_empty_index(board):
     for index, card in enumerate(board):
         if not card:
             return index
-    return -1 
+    return None
 
 #Flow of hand to discard
 def expire_card(card):
@@ -154,14 +165,14 @@ def exit_card(card):
     move(card,"discard")
 
 #Flow hand to board
-def play_card(card):
+def play_card(card,card_index):
     username = card["owner"]
     if players_table[username]["gold"] >= card["cost"]:
-        game_table["running"] = 1
+        game_table["running"] = True
         players_table[username]["gold"] -= card["cost"]
-        #TODO replace with slot targetting
-        #TODO make slot targetting smart to go to an opening after you play a card or go to slot 1 if all full. This way targetting is clear and can be manual if you want
-        move(card,"board",0)
+        #TODO replace with index targetting
+        #TODO make index targetting smart to go to an opening after you play a card or go to index 1 if all full. This way targetting is clear and can be manual if you want
+        move(card,"board",card_index)
         call_functions(card, "enter")
 
 #Flow deck to hand
@@ -174,16 +185,20 @@ def deal(username):
     if len(deck) <= 0:
         for card in player_discard:
             move(card,"deck")
-            random.shuffle(deck)
-    if len(deck) > 0:
+        random.shuffle(deck)
+    empty_hand_index = get_empty_index(hand)
+    if len(deck) > 0 and empty_hand_index is not None:
         card = deck[-1]
-        move(card,"hand")
+        if not card:
+            print("193")
+        move(card,"hand",empty_hand_index)
 
 def discard(username):
     player_data = players_table[username]
     hand = player_data["hand"]
-    if hand:
-        card = hand[-1]
+    card_index = get_card_index(hand)
+    if card_index is not None:
+        card = hand[card_index]
         expire_card(card)
 
 def draw(count, target):
@@ -196,29 +211,37 @@ def draw(count, target):
                 deal(username)
 
 #Back bone of flow
-def move(card, to, index = 0):
+def move(card, to, index = -1):
     card_owner = card["owner"]
     card_location = card["location"]
-    card_target = card["location"]
     player_data = players_table[card_owner]
     team_data = teams_table[player_data["team"]]
     if to == "board":
         team_data[to][index] = card
-        card["location"] = to
+    elif to == "hand":
+        player_data[to][index] = card
     else:
         player_data[to].append(card)
-        card["location"] = to
 
     if card_location == "board":
-        team_data[card_location].remove(card)
+        team_data[card_location][card["index"]] = 0
+    elif card_location == "hand":
+        player_data[card_location][card["index"]] = 0
     else:
-        player_data[card_location].remove(card)
+        if card in player_data[card_location]:
+            player_data[card_location].remove(card)
+        else:
+            print("SOMETHING ELSE MOVED THE CARD SOMEHOW")
+            print(card)
+            print(to)
+            print(index)
+
+    card["location"] = to
+    card["index"] = index
 
     if to == "discard":
         refresh_card(card)
 
-#You can eventually handle health and all things about a card through here
-#You can add the fields with just a word too and it will add bonus, multiplier, all that good stuff
 def board_tick():
     for team, team_data in teams_table.items():
         for card in team_data["board"]:
@@ -239,6 +262,7 @@ async def tick():
             board_tick()
             team_tick()
             hand_tick()
+            ai_tick()
             for team, team_data in teams_table.items():
                 remove_broken_cards(team_data)
             await update_state()
@@ -246,6 +270,21 @@ async def tick():
 def tick_rate():
     return game_table["tick_duration"]*game_table["tick_value"]
 
+def safe_get(l, idx, default=0): 
+    try: 
+        return l[idx] 
+    except IndexError: 
+        return default
+
+def ai_tick():
+    for player, player_data in players_table.items():
+        if player_data["ai"]:
+            hand = player_data["hand"]
+            card_from_index = get_card_index(hand)
+            card_to_index = get_empty_index(get_board(player))
+            if card_from_index is not None and card_to_index is not None:
+                card = hand[card_from_index]
+                play_card(card,card_to_index)
 
 def hand_tick():
     for player, player_data in players_table.items():
@@ -318,9 +357,9 @@ def initialize_card(card_name,username):
     refresh_card(baby_card)
     return baby_card
 
-def load_deck(username):
+def load_deck(username,deck_type="standard"):
     players_table[username].update(copy.deepcopy(players_default))
-    deck_to_load = decks_table[username]
+    deck_to_load = decks_table[deck_type]
     random.shuffle(deck_to_load)
     deck = []
     for card_name in deck_to_load:
@@ -328,7 +367,6 @@ def load_deck(username):
         deck.append(baby_card)
     players_table[username]["deck"] = deck
     players_table[username]["discard"] = []
-    players_table[username]["hand"] = []
 
 def get_targets(target = ""):
     if isinstance(target, list):
@@ -356,6 +394,7 @@ def income(count, target):
     usernames = get_targets(target)
     for username in usernames:
         players_table[username]["gold"] += count
+        players_table[username]["gold"] = max(0, players_table[username]["gold"])
 
 def apply_damage(team, damage):
     teams_table[team]["health"] -= damage
@@ -368,7 +407,8 @@ def apply_damage(team, damage):
 async def release_message():
     global message_queue
     for username in list(message_queue.keys()):
-        await local_players_table[username]["socket"].send(str(message_queue[username]))
+        if local_players_table.get(username):
+            await local_players_table[username]["socket"].send(str(message_queue[username]))
     message_queue = {}
 
 def queue_message(message, target = "", method = Strategy.REPLACE):
@@ -380,6 +420,9 @@ def queue_message(message, target = "", method = Strategy.REPLACE):
 
 def get_team(username):
     return players_table[username]["team"]
+
+def get_board(username):
+    return teams_table[players_table[username]["team"]]["board"]
 
 def get_enemy_team(team): 
     if team == "evil":
@@ -406,7 +449,7 @@ async def update_state(targets = ""):
 
 def card_from(card_id, cards):
     for card in cards:
-        if card_id == card["id"]:
+        if card and card_id == card["id"]:
             return card
     return {}
 
@@ -415,10 +458,6 @@ async def new_client_connected(client_socket, path):
     username = paths[1]
     team = paths[2]
 
-    if not (username in list(decks_table.keys())):
-        print("Invalid username")
-        return ""
-
     if team not in list(teams_table.keys()):
         initialize_team(team)
         
@@ -426,7 +465,7 @@ async def new_client_connected(client_socket, path):
         print("New client connected!")
         print("User: "+username)
         local_players_table[username] = {"socket":client_socket}
-        players_table[username] = {"team":team}
+        players_table[username] = {"team":team, "ai": 0}
         load_deck(username)
         draw(3,username)
     else:
@@ -437,14 +476,39 @@ async def new_client_connected(client_socket, path):
 
     while True:
         card_json_message = await client_socket.recv()
-        print("Client sent:", card_json_message)
         card_json = json.loads(card_json_message)
+        print("Client sent:", card_json)
+        if ("id" in card_json.keys()):
+            await handle_play(username,team,card_json)
+        if (card_json.get("command")):
+            globals()[card_json["command"]]()
+
+def pause():
+    print("pause")
+    game_table["running"] = not game_table["running"]
+
+def add_ai_evil():
+    connect_ai("evil")
+
+def add_ai_good():
+    connect_ai("good")
+
+def connect_ai(team):
+    username = "ai" + str(get_unique_id())
+    if not(username in list(players_table.keys())):
+        print("Bot Added!")
+        print("User: "+username)
+        players_table[username] = {"team":team,"ai":1}
+        load_deck(username)
+        draw(3,username)
+
+async def handle_play(username,team,card_json):
         card_id = int(card_json["id"])
-        card_owner = card_json["owner"]
+        card_index = int(card_json["index"])
         #Get card from id
         card = card_from(card_id, players_table[username]["hand"])
         if card:
-            play_card(card)
+            play_card(card,card_index)
         else:
             teams_table[team]["text"] = "That card was yeeted... Oops"
 
