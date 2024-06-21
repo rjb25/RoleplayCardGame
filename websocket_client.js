@@ -1,4 +1,17 @@
-
+my_team = "good"
+enemy_team = "evil"
+oldBoards = {"good":[0,0,0,0,0], "evil":[0,0,0,0,0]}
+oldHand = [0,0,0,0,0]
+function join_good(){
+    console.log("goodness")
+    my_team = "good"
+    enemy_team = "evil"
+}
+function join_evil(){
+    console.log("evilness")
+    my_team = "evil"
+    enemy_team = "good"
+}
 document.addEventListener('DOMContentLoaded', function(){
     window.addEventListener("keydown", function (event) {
       if (event.defaultPrevented) {
@@ -10,20 +23,12 @@ document.addEventListener('DOMContentLoaded', function(){
         }
         console.log(number)
 
-    // Cancel the default action to avoid it being handled twice
       event.preventDefault();
     }, true);
     //socketname = prompt("WebSocketURL no http://")
     socketname = "visually-popular-iguana.ngrok-free.app"
-    username = prompt("Username:")
-    team = "evil"
-    enemy_team = "good"
-    if(confirm("Join good team? Otherwise join evil.")){
-        team = "good"
-        enemy_team = "evil"
-    }
     //This is what you run if you want to reconnect to server
-    const websocketClient = new WebSocket("wss://"+socketname+"/"+username+"/"+team);
+    const websocketClient = new WebSocket("wss://"+socketname);
     const messagesContainer = document.querySelector("#messages_container");
     const situationsContainer = document.querySelector("#situations_container");
     const plansContainer = document.querySelector("#plans_container");
@@ -32,6 +37,8 @@ document.addEventListener('DOMContentLoaded', function(){
     const menuContainer = document.querySelector("#menu_container");
     const timerContainer = document.querySelector("#timer_container");
     const healthContainer = document.querySelector("#health_container");
+    containers = { "good": plansContainer, "evil": situationsContainer};
+
     cardButtons = {};
     function changeBackground(color) {
         document.body.style.background = color;
@@ -61,14 +68,23 @@ document.addEventListener('DOMContentLoaded', function(){
             websocketClient.send( JSON.stringify({
             command: title
             }))
+            console.log("called function" + title)
+            console.log(window)
+            if (window[title]){
+                console.log("called extra function " + title)
+                window[title]();
+            }
         };
         menuContainer.appendChild(menuButton);
     }
     makeMenuButton("pause");
     makeMenuButton("add_ai_evil");
     makeMenuButton("add_ai_good");
+    makeMenuButton("join_good");
+    makeMenuButton("join_evil");
     function generateCard(card){
         cardButton = document.createElement("div");
+        cardButton.id = card["id"]
         cardButton.classList.add("card");
         cardTitle = document.createElement("div");
         cardBase = document.createElement("div");
@@ -87,21 +103,26 @@ document.addEventListener('DOMContentLoaded', function(){
         cardButton.appendChild(cardBase);
         return cardButton;
     }
+    for([team, container] of Object.entries(containers)){
+        for (let i = 0; i < 5; i ++){
+            cardDiv = document.createElement("div");
+            cardBox = generateCard(0);
+            cardDiv.appendChild(cardBox);
+            container.append(cardDiv);
+        }
+    }
+    for (let i = 0; i < 5; i ++){
+        cardDiv = document.createElement("div");
+        cardBox = generateCard(0);
+        cardDiv.appendChild(cardBox);
+        cardsContainer.append(cardDiv);
+    }
     websocketClient.onopen = function(){
         console.log("Client connected!");
 
         websocketClient.onmessage = function(message){
             messageJson = JSON.parse(message.data.replace(/'/g, '"'));
             //console.log(JSON.stringify(messageJson));
-                /*
-
-            if("log" in messageJson){
-                log = messageJson["log"];
-                if (log){
-                    console.log(log);
-                }
-            }
-            */
 
             if("player_state" in messageJson){
                 //Myself
@@ -114,43 +135,47 @@ document.addEventListener('DOMContentLoaded', function(){
                     goldContainer.appendChild(goldDiv);
                 }
                 if("hand" in playerState){
-                    cardsContainer.innerHTML = "";
-                    removeAllChildNodes(cardsContainer);
-                    cardButtons = {};
-                    hand = playerState["hand"];
+                    newHand = playerState["hand"];
 
-                    hand.forEach((card) => {
-                        cardDiv = document.createElement("div");
-                        cardBox = generateCard(card)
-                        cardBox.onclick = function(){
-                            websocketClient.send( JSON.stringify({
-                            id: card["id"],
-                            index: target
-                            }));
-                            target++;
-                            target = target % 5;
-                        };
-                        cardDiv.appendChild(cardBox);
-                        cardsContainer.appendChild(cardDiv);
-                        cardButtons[card["id"]] = cardBox;
+                    newHand.forEach((card,i) => {
+                        if(oldHand[i]["id"] != card["id"]){
+                            cardDiv = document.createElement("div");
+                            cardBox = generateCard(card);
+                            cardBox.onclick = function(){
+                                websocketClient.send( JSON.stringify({
+                                id: card["id"],
+                                index: target
+                                }));
+                                target++;
+                                target = target % 5;
+                            };
+                            cardDiv.appendChild(cardBox);
+                            cardsContainer.childNodes[i].replaceWith(cardDiv);
+                            cardButtons[card["id"]] = cardBox;
+                        }
                     });
+                    oldHand = newHand;
                 }
             }
 
             if("teams_table" in messageJson){
-                teamState = messageJson["teams_table"][team];
-                enemyState = messageJson["teams_table"][enemy_team];
-                
+                teamTable = messageJson["teams_table"];
+                teamState = messageJson["teams_table"][my_team];
                 //Enemy
-                if("board" in enemyState){
-                    board = enemyState["board"];
-                    situationsContainer.innerHTML = "";
-                    board.forEach((card) => {
-                        cardDiv = document.createElement("div");
-                        cardBox = generateCard(card);
-                        cardDiv.appendChild(cardBox);
-                        situationsContainer.appendChild(cardDiv);
-                    });
+                //TODO make this not fail so hard
+                for([team, container] of Object.entries(containers)){
+                    oldBoard = oldBoards[team]
+                    newBoard = teamTable[team]["board"];
+                    for (let i = 0; i < oldBoard.length; i ++){
+                        if(oldBoard[i]["id"] != newBoard[i]["id"]){
+                            cardDiv = document.createElement("div");
+                            cardBox = generateCard(newBoard[i]);
+                            cardDiv.appendChild(cardBox);
+                            container.childNodes[i].replaceWith(cardDiv);
+                        }
+                    }
+                    oldBoards[team] = newBoard
+
                 }
 
                 //My team
@@ -180,17 +205,6 @@ document.addEventListener('DOMContentLoaded', function(){
                     }
                 }
 
-                if("board" in teamState){
-                    board = teamState["board"];
-                    plansContainer.innerHTML = "";
-                    board.forEach((card) => {
-                        cardDiv = document.createElement("div");
-                        cardBox = generateCard(card);
-                        cardDiv.appendChild(cardBox);
-
-                        plansContainer.appendChild(cardDiv);
-                    });
-                }
             }
 
         };

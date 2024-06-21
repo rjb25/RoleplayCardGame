@@ -43,16 +43,19 @@ from itertools import takewhile
 #empty the hearts when they go down
 #EFFECTS
 def destabilize_effect(arguments):
+    print("destabilizing")
+    #TODO fix this
     #good destabilize is the only one with an initial damage
     team = get_team(arguments["owner"])
     target = arguments["target"]
     amount = arguments["amount"]
     enemy_team = get_enemy_team(team)
     if target == "random":
-        #TODO is this 1: needed?
         board = teams_table[enemy_team]["board"]
         card = random.choice(board)
+        print(card)
         if card:
+            print(amount)
             card["stability"] -= amount
 
 def money_effect(arguments):
@@ -189,8 +192,6 @@ def deal(username):
     empty_hand_index = get_empty_index(hand)
     if len(deck) > 0 and empty_hand_index is not None:
         card = deck[-1]
-        if not card:
-            print("193")
         move(card,"hand",empty_hand_index)
 
 def discard(username):
@@ -454,24 +455,8 @@ def card_from(card_id, cards):
     return {}
 
 async def new_client_connected(client_socket, path):
-    paths = path.split('/')
-    username = paths[1]
-    team = paths[2]
-
-    if team not in list(teams_table.keys()):
-        initialize_team(team)
-        
-    if not(username in list(players_table.keys())):
-        print("New client connected!")
-        print("User: "+username)
-        local_players_table[username] = {"socket":client_socket}
-        players_table[username] = {"team":team, "ai": 0}
-        load_deck(username)
-        draw(3,username)
-    else:
-        #If the player that just connected already connected before just update their socket
-        local_players_table[username]["socket"] = client_socket
-
+    username = add_player("good", 0)
+    local_players_table[username] = {"socket":client_socket}
     await update_state(username)
 
     while True:
@@ -479,41 +464,49 @@ async def new_client_connected(client_socket, path):
         card_json = json.loads(card_json_message)
         print("Client sent:", card_json)
         if ("id" in card_json.keys()):
-            await handle_play(username,team,card_json)
+            await handle_play(username,card_json)
         if (card_json.get("command")):
-            globals()[card_json["command"]]()
+            globals()[card_json["command"]](username)
 
-def pause():
-    print("pause")
+def pause(username):
+    print(username + " paused")
     game_table["running"] = not game_table["running"]
 
-def add_ai_evil():
-    connect_ai("evil")
+def join_evil(username):
+    print(username + " joined evil")
+    players_table[username]["team"] = "evil"
 
-def add_ai_good():
-    connect_ai("good")
+def join_good(username):
+    print(username + " joined good")
+    players_table[username]["team"] = "good"
 
-def connect_ai(team):
-    username = "ai" + str(get_unique_id())
-    if not(username in list(players_table.keys())):
-        print("Bot Added!")
-        print("User: "+username)
-        players_table[username] = {"team":team,"ai":1}
-        load_deck(username)
-        draw(3,username)
+def add_ai_evil(username):
+    add_player("evil",1)
 
-async def handle_play(username,team,card_json):
-        card_id = int(card_json["id"])
-        card_index = int(card_json["index"])
-        #Get card from id
-        card = card_from(card_id, players_table[username]["hand"])
-        if card:
-            play_card(card,card_index)
-        else:
-            teams_table[team]["text"] = "That card was yeeted... Oops"
+def add_ai_good(username):
+    add_player("good",1)
 
-        teams_table[team]["text"] = "Playing!"
-        await update_state()
+def add_player(team,ai):
+    username = "player" + str(get_unique_id())
+    print("Player Added: "+username)
+    players_table[username] = {"team":team,"ai":ai}
+    load_deck(username)
+    draw(3,username)
+    return username
+
+async def handle_play(username,card_json):
+    team = get_team(username)
+    card_id = int(card_json["id"])
+    card_index = int(card_json["index"])
+    #Get card from id
+    card = card_from(card_id, players_table[username]["hand"])
+    if card:
+        play_card(card,card_index)
+    else:
+        teams_table[team]["text"] = "That card was yeeted... Oops"
+
+    teams_table[team]["text"] = "Playing!"
+    await update_state()
 
 async def start_server():
     print("Server started!")
