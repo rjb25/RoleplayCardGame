@@ -23,27 +23,9 @@ import shlex
 import copy
 import time
 from itertools import takewhile
-#Make progress content be modifiers. something that is just on while in play, then off when exits. Effects team
-#Play instant cards usually effect you in some way,
-#Exit cards usually effect the enemy in some way
-#Green screen when playing again
-#TODO end of game stats
-#TODO all cards need to execute
-#TODO debug log of all actions
-#TODO round summary, what you gained and lost each round
-#TODO deal specific card
-#TODO show round summary and opponent health and information
-#TODO simplify
-#TODO Visual bars  for numbers
-#Enemy hand size and +-
-#Information round?
-#todo change value next to values
-#green or red +- next to number with diff
-#one of each type in starting hand
-#empty the hearts when they go down
+#
 #EFFECTS
 def destabilize_effect(arguments):
-    print("destabilizing")
     #TODO fix this
     #good destabilize is the only one with an initial damage
     team = get_team(arguments["owner"])
@@ -53,9 +35,7 @@ def destabilize_effect(arguments):
     if target == "random":
         board = teams_table[enemy_team]["board"]
         card = random.choice(board)
-        print(card)
         if card:
-            print(amount)
             card["stability"] -= amount
 
 def money_effect(arguments):
@@ -90,7 +70,7 @@ players_default = load({"file":"json/players.json"})
 team_default = load({"file":"json/teams.json"})
 teams_table = {}
 teams_list = ["good","evil"]
-game_table = {"tick_duration":0.5,"tick_value":1,"running":False, "loser":""}
+game_table = {"tick_duration":0.5,"tick_value":1,"running":0, "loser":""}
 players_table = {}
 local_players_table = {}
 #COMMUNICATIONS
@@ -171,7 +151,7 @@ def exit_card(card):
 def play_card(card,card_index):
     username = card["owner"]
     if players_table[username]["gold"] >= card["cost"]:
-        game_table["running"] = True
+        game_table["running"] = 1
         players_table[username]["gold"] -= card["cost"]
         #TODO replace with index targetting
         #TODO make index targetting smart to go to an opening after you play a card or go to index 1 if all full. This way targetting is clear and can be manual if you want
@@ -262,7 +242,6 @@ async def tick():
         if game_table["running"]:
             board_tick()
             team_tick()
-            hand_tick()
             ai_tick()
             for team, team_data in teams_table.items():
                 remove_broken_cards(team_data)
@@ -286,14 +265,6 @@ def ai_tick():
             if card_from_index is not None and card_to_index is not None:
                 card = hand[card_from_index]
                 play_card(card,card_to_index)
-
-def hand_tick():
-    for player, player_data in players_table.items():
-        for card in player_data["hand"]:
-            if card:
-                card["shop_timer"] += tick_rate()
-                if card["shop_timer"] >= card["shop_seconds"]:
-                    expire_card(card)
 
 def team_tick():
     for team, team_data in teams_table.items():
@@ -341,7 +312,6 @@ def get_unique_id():
 def refresh_card(card):
     baby_card = copy.deepcopy(cards_table[card["name"]])
     card["age"] = 0
-    card["shop_timer"] = 0
     card["exit_timer"] = 0
     card["progress_timer"] = 0
     card["max_stability"] = baby_card["stability"]
@@ -442,6 +412,7 @@ def strip_keys_copy(keys, table):
 async def update_state(targets = ""):
     strip = ["deck","discard","socket","team"]
     strip_keys_copy(strip, players_table)
+    queue_message({"game_table":game_table},targets)
     queue_message({"teams_table":teams_table},targets)
     target_list = get_targets(targets)
     for player in target_list:
@@ -480,6 +451,11 @@ def join_good(username):
     print(username + " joined good")
     players_table[username]["team"] = "good"
 
+def reset_game(username):
+    global loser
+    loser = "good"
+    reset_state()
+
 def add_ai_evil(username):
     add_player("evil",1)
 
@@ -502,10 +478,7 @@ async def handle_play(username,card_json):
     card = card_from(card_id, players_table[username]["hand"])
     if card:
         play_card(card,card_index)
-    else:
-        teams_table[team]["text"] = "That card was yeeted... Oops"
 
-    teams_table[team]["text"] = "Playing!"
     await update_state()
 
 async def start_server():

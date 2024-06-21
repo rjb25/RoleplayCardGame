@@ -1,7 +1,6 @@
 {
     "aggression":{"stability":3,
         "cost":20,
-        "shop_seconds":20,
         "progress_seconds":2,
         "exit_seconds":10,
         "enter":[
@@ -14,7 +13,6 @@
             {"function":"damage","target":"enemy_team","amount":10}
         ]},
     "attack":{"stability":3,
-        "shop_seconds":20,
         "progress_seconds":2,
         "exit_seconds":10,
         "cost":4,
@@ -29,7 +27,6 @@
         ]},
     "draw":{"stability":3,
         "cost":4,
-        "shop_seconds":20,
         "progress_seconds":2,
         "exit_seconds":10,
         "enter":[
@@ -43,7 +40,6 @@
         ]},
     "loot":{"stability":3,
         "cost":4,
-        "shop_seconds":20,
         "progress_seconds":2,
         "exit_seconds":10,
         "enter":[

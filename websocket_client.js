@@ -1,17 +1,17 @@
 my_team = "good"
 enemy_team = "evil"
+    function join_good(){
+        console.log("goodness")
+        my_team = "good"
+        enemy_team = "evil"
+    }
+    function join_evil(){
+        console.log("evilness")
+        my_team = "evil"
+        enemy_team = "good"
+    }
 oldBoards = {"good":[0,0,0,0,0], "evil":[0,0,0,0,0]}
 oldHand = [0,0,0,0,0]
-function join_good(){
-    console.log("goodness")
-    my_team = "good"
-    enemy_team = "evil"
-}
-function join_evil(){
-    console.log("evilness")
-    my_team = "evil"
-    enemy_team = "good"
-}
 document.addEventListener('DOMContentLoaded', function(){
     window.addEventListener("keydown", function (event) {
       if (event.defaultPrevented) {
@@ -37,7 +37,7 @@ document.addEventListener('DOMContentLoaded', function(){
     const menuContainer = document.querySelector("#menu_container");
     const timerContainer = document.querySelector("#timer_container");
     const healthContainer = document.querySelector("#health_container");
-    containers = { "good": plansContainer, "evil": situationsContainer};
+    buttonContainers = [situationsContainer,plansContainer,cardsContainer]
 
     cardButtons = {};
     function changeBackground(color) {
@@ -77,11 +77,13 @@ document.addEventListener('DOMContentLoaded', function(){
         };
         menuContainer.appendChild(menuButton);
     }
+    makeMenuButton("reset_game");
     makeMenuButton("pause");
     makeMenuButton("add_ai_evil");
     makeMenuButton("add_ai_good");
     makeMenuButton("join_good");
     makeMenuButton("join_evil");
+    //Need to make this an update the button/card function not a generate a new one. That way the update model works still
     function generateCard(card){
         cardButton = document.createElement("div");
         cardButton.id = card["id"]
@@ -103,20 +105,16 @@ document.addEventListener('DOMContentLoaded', function(){
         cardButton.appendChild(cardBase);
         return cardButton;
     }
-    for([team, container] of Object.entries(containers)){
-        for (let i = 0; i < 5; i ++){
+    //Create Buttons
+    function createButtons(item,index){
+        for (let i = 0; i < 5; i++){
             cardDiv = document.createElement("div");
             cardBox = generateCard(0);
             cardDiv.appendChild(cardBox);
-            container.append(cardDiv);
+            item.append(cardDiv);
         }
     }
-    for (let i = 0; i < 5; i ++){
-        cardDiv = document.createElement("div");
-        cardBox = generateCard(0);
-        cardDiv.appendChild(cardBox);
-        cardsContainer.append(cardDiv);
-    }
+    buttonContainers.forEach(createButtons);
     websocketClient.onopen = function(){
         console.log("Client connected!");
 
@@ -161,21 +159,22 @@ document.addEventListener('DOMContentLoaded', function(){
             if("teams_table" in messageJson){
                 teamTable = messageJson["teams_table"];
                 teamState = messageJson["teams_table"][my_team];
+                enemyState = messageJson["teams_table"][enemy_team];
                 //Enemy
-                //TODO make this not fail so hard
-                for([team, container] of Object.entries(containers)){
-                    oldBoard = oldBoards[team]
-                    newBoard = teamTable[team]["board"];
-                    for (let i = 0; i < oldBoard.length; i ++){
-                        if(oldBoard[i]["id"] != newBoard[i]["id"]){
-                            cardDiv = document.createElement("div");
-                            cardBox = generateCard(newBoard[i]);
-                            cardDiv.appendChild(cardBox);
-                            container.childNodes[i].replaceWith(cardDiv);
-                        }
-                    }
-                    oldBoards[team] = newBoard
-
+                //TODO Make these buttons that get their content updated
+                myBoard = teamTable[my_team]["board"];
+                enemyBoard = teamTable[enemy_team]["board"];
+                for (let i = 0; i < 5; i++){
+                    cardDiv = document.createElement("div");
+                    cardBox = generateCard(myBoard[i]);
+                    cardDiv.appendChild(cardBox);
+                    plansContainer.childNodes[i].replaceWith(cardDiv);
+                }
+                for (let i = 0; i < 5; i++){
+                    cardDiv = document.createElement("div");
+                    cardBox = generateCard(enemyBoard[i]);
+                    cardDiv.appendChild(cardBox);
+                    situationsContainer.childNodes[i].replaceWith(cardDiv);
                 }
 
                 //My team
@@ -190,23 +189,24 @@ document.addEventListener('DOMContentLoaded', function(){
                     time = teamState["time"];
                 }
                 if("health" in teamState){
-                    messageText = teamState["health"];
+                    myText = teamState["health"];
+                    enemyText = enemyState["health"];
                     const messageDiv = document.createElement("div");
-                    messageDiv.innerHTML = "&hearts;" + messageText;
+                    messageDiv.innerHTML = "Ally &hearts;" + myText + ".    Enemy &hearts;" +enemyText;
                     healthContainer.innerHTML = "";
                     healthContainer.appendChild(messageDiv);
                 }
-                if("running" in teamState){
-                    running = teamState["running"];
-                    if (running) {
-                        changeBackground("green");
-                    } else {
-                        changeBackground("red");
-                    }
-                }
 
             }
-
+            if("game_table" in messageJson){
+                gameTable = messageJson["game_table"];
+                running = gameTable["running"];
+                if (running) {
+                    changeBackground("green");
+                } else {
+                    changeBackground("red");
+                }
+            }
         };
     };
 }, false);
