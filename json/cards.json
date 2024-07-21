@@ -12,6 +12,11 @@
         "exit":[
             {"function":"damage","target":"enemy_team","amount":10}
         ]},
+    "shield":{"stability":3,
+        "cost":0,
+        "effect":[
+            {"function":"protect","target":"team","amount":2}
+        ]},
     "attack":{"stability":3,
         "progress_seconds":2,
         "exit_seconds":10,

@@ -1,3 +1,7 @@
+#TODO simple items step by step
+#drag and drop cards
+#right click to see information
+#Make refresh work
 #DON'T USE ORDERED DICT SINCE YOU CAN'T CHOOSE INSERTION POINT. JUST USE A LIST WITH REFERENCES TO A MEGA DICT
 import asyncio
 from collections import Counter
@@ -26,8 +30,6 @@ from itertools import takewhile
 #
 #EFFECTS
 def destabilize_effect(arguments):
-    #TODO fix this
-    #good destabilize is the only one with an initial damage
     team = get_team(arguments["owner"])
     target = arguments["target"]
     amount = arguments["amount"]
@@ -57,6 +59,16 @@ def damage_effect(arguments):
     target = arguments["target"]
     amount = arguments["amount"]
     apply_damage(target,amount)
+
+def protect_effect(arguments):
+    target = arguments["target"]
+    amount = arguments["amount"]
+    teams_table[target]["armor"] += amount
+
+def protect_remove_effect(arguments):
+    target = arguments["target"]
+    amount = arguments["amount"]
+    teams_table[target]["armor"] -= amount
 
 #JSON
 def load(a):
@@ -107,9 +119,13 @@ def resolve_argument_aliases(card,argus):
         arguments["target"] = get_enemy_team(get_team(owner))
     return arguments
 
-def call_functions(card, step):
+def call_functions(card, step, extension =""):
     for action in card[step]:
-        function = action["function"]+"_effect"
+        function = ""
+        if extension:
+            function = action["function"]+"_"+extension+"_effect"
+        else:
+            function = action["function"]+"_effect"
         action = resolve_argument_aliases(card,action)
         globals()[function](action)
 
@@ -156,7 +172,10 @@ def play_card(card,card_index):
         #TODO replace with index targetting
         #TODO make index targetting smart to go to an opening after you play a card or go to index 1 if all full. This way targetting is clear and can be manual if you want
         move(card,"board",card_index)
-        call_functions(card, "enter")
+        if card.get("enter"):
+            call_functions(card, "enter")
+        if card.get("effect"):
+            call_functions(card, "effect")
 
 #Flow deck to hand
 #Flow of discard to deck
@@ -205,6 +224,8 @@ def move(card, to, index = -1):
         player_data[to].append(card)
 
     if card_location == "board":
+        if card.get("effect"):
+            call_functions(card,"effect","remove")
         team_data[card_location][card["index"]] = 0
     elif card_location == "hand":
         player_data[card_location][card["index"]] = 0
@@ -227,14 +248,17 @@ def board_tick():
     for team, team_data in teams_table.items():
         for card in team_data["board"]:
             if card:
-                card["exit_timer"] += tick_rate()
-                card["progress_timer"] += tick_rate()
-                if card["exit_timer"] >= card["exit_seconds"]:
-                    exit_card(card)
-                    card["exit_timer"] -= card["exit_seconds"]
-                if card["progress_timer"] >= card["progress_seconds"]:
-                    progress_card(card)
-                    card["progress_timer"] -= card["progress_seconds"]
+                if card.get("exit"):
+                    card["exit_timer"] += tick_rate()
+                    if card["exit_timer"] >= card["exit_seconds"]:
+                        exit_card(card)
+                        card["exit_timer"] -= card["exit_seconds"]
+
+                if card.get("progress"):
+                    card["progress_timer"] += tick_rate()
+                    if card["progress_timer"] >= card["progress_seconds"]:
+                        progress_card(card)
+                        card["progress_timer"] -= card["progress_seconds"]
 
 async def tick():
     while True:
@@ -270,6 +294,7 @@ def team_tick():
     for team, team_data in teams_table.items():
         team_data["income_timer"] += tick_rate()
         team_data["draw_timer"] += tick_rate()
+        #overdraw needed for if the timer loops
         if team_data["draw_timer"] >= team_data["draw_seconds"]:
             team_data["draw_timer"] -= team_data["draw_seconds"]
             draw(1,team)
@@ -328,7 +353,7 @@ def initialize_card(card_name,username):
     refresh_card(baby_card)
     return baby_card
 
-def load_deck(username,deck_type="standard"):
+def load_deck(username,deck_type="beginner"):
     players_table[username].update(copy.deepcopy(players_default))
     deck_to_load = decks_table[deck_type]
     random.shuffle(deck_to_load)
@@ -368,7 +393,7 @@ def income(count, target):
         players_table[username]["gold"] = max(0, players_table[username]["gold"])
 
 def apply_damage(team, damage):
-    teams_table[team]["health"] -= damage
+    teams_table[team]["health"] -= max(damage - teams_table[team]["armor"], 0)
     global loser
     if teams_table[team]["health"] <= 0 and (not loser):
         #Make this a lose game function
@@ -430,14 +455,18 @@ async def new_client_connected(client_socket, path):
     local_players_table[username] = {"socket":client_socket}
     await update_state(username)
 
-    while True:
-        card_json_message = await client_socket.recv()
-        card_json = json.loads(card_json_message)
-        print("Client sent:", card_json)
-        if ("id" in card_json.keys()):
-            await handle_play(username,card_json)
-        if (card_json.get("command")):
-            globals()[card_json["command"]](username)
+    try:
+        while True:
+            card_json_message = await client_socket.recv()
+            card_json = json.loads(card_json_message)
+            print("Client sent:", card_json)
+            if ("id" in card_json.keys()):
+                await handle_play(username,card_json)
+            if (card_json.get("command")):
+                globals()[card_json["command"]](username)
+    except:
+        print("Client quit:", username)
+        del local_players_table[username]
 
 def pause(username):
     print(username + " paused")

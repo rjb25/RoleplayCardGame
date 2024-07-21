@@ -1,5 +1,6 @@
 {
     "standard":["aggression","aggression","draw","draw","draw","attack","attack","attack","loot","loot","loot"],
+    "beginner":["shield","shield","shield","shield","shield","attack","attack","attack","attack","attack","attack"],
     "nathan":["aggression","aggression","draw","draw","draw","attack","attack","attack","loot","loot","loot"],
     "ai":["aggression","aggression","draw","draw","draw","attack","attack","attack","loot","loot","loot"]
 }

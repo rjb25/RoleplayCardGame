@@ -1,14 +1,30 @@
 my_team = "good"
 enemy_team = "evil"
-    function join_good(){
-        console.log("goodness")
-        my_team = "good"
-        enemy_team = "evil"
+function join_good(){
+    console.log("goodness")
+    my_team = "good"
+    enemy_team = "evil"
+}
+function join_evil(){
+    console.log("evilness")
+    my_team = "evil"
+    enemy_team = "good"
+}
+    function allowDrop(ev) {
+        console.log("queen");
+      ev.preventDefault();
     }
-    function join_evil(){
-        console.log("evilness")
-        my_team = "evil"
-        enemy_team = "good"
+
+    function drag(ev) {
+        console.log("queen");
+      ev.dataTransfer.setData("text", ev.target.id);
+    }
+
+    function drop(ev) {
+        console.log("queen");
+      ev.preventDefault();
+      var data = ev.dataTransfer.getData("text");
+      ev.target.appendChild(document.getElementById(data));
     }
 oldBoards = {"good":[0,0,0,0,0], "evil":[0,0,0,0,0]}
 oldHand = [0,0,0,0,0]
@@ -88,11 +104,22 @@ document.addEventListener('DOMContentLoaded', function(){
         cardButton = document.createElement("div");
         cardButton.id = card["id"]
         cardButton.classList.add("card");
+        cardButton.setAttribute("ondrop","drop(event)");
+        cardButton.setAttribute("ondragover","allowDrop(event)");
         cardTitle = document.createElement("div");
         cardBase = document.createElement("div");
+        cardImage = new Image(90,90);
+
         //TODO make targetting an image
         if (card) {
-            cardTitle.innerHTML =  card["title"] + " &#128176;" + card["cost"] + " &hearts;" + card["stability"];
+            cardTitle.innerHTML = " &#128176;" + card["cost"] + " &hearts;" + card["stability"];
+            cardImage.src = "pics/" + card["title"]+".png";
+            cardImage.alt = card["title"];
+            cardImage.draggable = true;
+            cardImage.setAttribute("ondragstart", "drag(event)");
+            cardImage.id = card["id"];
+
+            /*
             enter_effect = card["enter"][0];
             enter_text = enter_effect["function"] + " " + enter_effect["target"] + " " + enter_effect["amount"];
             progress_effect = card["progress"][0];
@@ -100,15 +127,19 @@ document.addEventListener('DOMContentLoaded', function(){
             exit_effect = card["exit"][0];
             exit_text = exit_effect["function"] + " " + exit_effect["target"] + " " + exit_effect["amount"];
             cardBase.innerHTML = enter_text + "<br>" + progress_text + "<br>" + exit_text;
+            */
         }
         cardButton.appendChild(cardTitle);
         cardButton.appendChild(cardBase);
+        cardButton.appendChild(cardImage);
         return cardButton;
     }
     //Create Buttons
     function createButtons(item,index){
         for (let i = 0; i < 5; i++){
+            var id = "id" + Math.random().toString(16).slice(2);
             cardDiv = document.createElement("div");
+            cardDiv.setAttribute("id", id);
             cardBox = generateCard(0);
             cardDiv.appendChild(cardBox);
             item.append(cardDiv);
