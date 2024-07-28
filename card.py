@@ -1,7 +1,20 @@
-#TODO simple items step by step
-#drag and drop cards
-#right click to see information
+#TODO TODONE
+#Add images
+#Make it so you can play against yourself
+#Make drag and drop work
 #Make refresh work
+#inspect to see information
+#TODO simple items step by step
+#Restructure cards so enter progress and exit are inside a trigger dict
+#Restructure trigger so you have a trigger function that can be called with any data that might be relevant to a trigger.
+#Switch exit and progress to timer triggers where discard is a function on the exit timer trigger
+#Correct the javascript to read this format
+
+#visualize cooldown
+#TODO SCENARIOS
+#Scenario 1. A shield wall from the bot. You need to break their cards and attack them as they try to keep up their wall.
+
+
 #DON'T USE ORDERED DICT SINCE YOU CAN'T CHOOSE INSERTION POINT. JUST USE A LIST WITH REFERENCES TO A MEGA DICT
 import asyncio
 from collections import Counter
@@ -30,7 +43,7 @@ from itertools import takewhile
 #
 #EFFECTS
 def destabilize_effect(arguments):
-    team = get_team(arguments["owner"])
+    team = arguments["team"]
     target = arguments["target"]
     amount = arguments["amount"]
     enemy_team = get_enemy_team(team)
@@ -110,13 +123,15 @@ def resolve_argument_aliases(card,argus):
     arguments = copy.deepcopy(argus)
     owner = card["owner"]
     arguments["owner"] = owner
+    team = card["team"]
+    arguments["team"] = card["team"]
     target = arguments["target"]
     if target == "self":
         arguments["target"] = owner
     elif target == "team":
-        arguments["target"] = get_team(owner)
+        arguments["target"] = team
     elif target == "enemy_team":
-        arguments["target"] = get_enemy_team(get_team(owner))
+        arguments["target"] = get_enemy_team(team)
     return arguments
 
 def call_functions(card, step, extension =""):
@@ -172,6 +187,7 @@ def play_card(card,card_index):
         #TODO replace with index targetting
         #TODO make index targetting smart to go to an opening after you play a card or go to index 1 if all full. This way targetting is clear and can be manual if you want
         move(card,"board",card_index)
+        #Team set here so you can play against yourself
         if card.get("enter"):
             call_functions(card, "enter")
         if card.get("effect"):
@@ -215,9 +231,9 @@ def move(card, to, index = -1):
     card_owner = card["owner"]
     card_location = card["location"]
     player_data = players_table[card_owner]
-    team_data = teams_table[player_data["team"]]
     if to == "board":
-        team_data[to][index] = card
+        card["team"] = get_team(card_owner)
+        teams_table[card["team"]][to][index] = card
     elif to == "hand":
         player_data[to][index] = card
     else:
@@ -226,7 +242,7 @@ def move(card, to, index = -1):
     if card_location == "board":
         if card.get("effect"):
             call_functions(card,"effect","remove")
-        team_data[card_location][card["index"]] = 0
+        teams_table[card["team"]][card_location][card["index"]] = 0
     elif card_location == "hand":
         player_data[card_location][card["index"]] = 0
     else:
@@ -244,11 +260,13 @@ def move(card, to, index = -1):
     if to == "discard":
         refresh_card(card)
 
+#Make it so that 
 def board_tick():
     for team, team_data in teams_table.items():
         for card in team_data["board"]:
             if card:
                 if card.get("exit"):
+                    #Having these be optional timers would help. Then just adding discard as a function to the end of exit
                     card["exit_timer"] += tick_rate()
                     if card["exit_timer"] >= card["exit_seconds"]:
                         exit_card(card)
@@ -439,9 +457,12 @@ async def update_state(targets = ""):
     strip_keys_copy(strip, players_table)
     queue_message({"game_table":game_table},targets)
     queue_message({"teams_table":teams_table},targets)
+    queue_message({"evil":teams_table["evil"]["board"]},targets)
+    queue_message({"good":teams_table["good"]["board"]},targets)
     target_list = get_targets(targets)
     for player in target_list:
         queue_message({"player_state":players_table[player]},player)
+        queue_message({"hand":players_table[player]["hand"]},player)
     await release_message()
 
 def card_from(card_id, cards):
@@ -464,8 +485,10 @@ async def new_client_connected(client_socket, path):
                 await handle_play(username,card_json)
             if (card_json.get("command")):
                 globals()[card_json["command"]](username)
-    except:
+
+    except Exception as e:
         print("Client quit:", username)
+        print(e)
         del local_players_table[username]
 
 def pause(username):

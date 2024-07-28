@@ -1,0 +1,25 @@
+{
+    "shield":{"stability":3,
+        "cost":0,
+        "triggers":{
+            "timer":[{},{}],
+            "effect":[{"function":"protect","target":"team","amount":2}]
+        },
+    "attack":{"stability":3,
+        "progress_seconds":2,
+        "exit_seconds":10,
+        "cost":0,
+        "triggers":{
+            "timer":[{},{}],
+            "enter":[{"function":"destabilize","target":"random","amount":3}]
+        },
+    "attack":{"stability":3,
+        "cost":4,
+            
+        "progress":[
+            {"function":"destabilize","target":"random","amount":1}
+        ],
+        "exit":[
+            {"function":"damage","target":"enemy_team","amount":3}
+        ]}
+}

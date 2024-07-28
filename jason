@@ -44,6 +44,7 @@ set tabstop=4
 set ttimeout
 set ttimeoutlen=100
 set visualbell
+set wildignore=*.pyc
 set wildmenu
 set wildmode=list:longest,longest:full
 set window=78
@@ -86,11 +87,16 @@ set winminheight=0
 set winheight=1
 set winminwidth=0
 set winwidth=1
-exe 'vert 1resize ' . ((&columns * 56 + 140) / 281)
-exe 'vert 2resize ' . ((&columns * 55 + 140) / 281)
-exe 'vert 3resize ' . ((&columns * 55 + 140) / 281)
-exe 'vert 4resize ' . ((&columns * 56 + 140) / 281)
-exe 'vert 5resize ' . ((&columns * 55 + 140) / 281)
+exe '1resize ' . ((&lines * 21 + 39) / 79)
+exe 'vert 1resize ' . ((&columns * 16 + 140) / 281)
+exe '2resize ' . ((&lines * 21 + 39) / 79)
+exe 'vert 2resize ' . ((&columns * 16 + 140) / 281)
+exe '3resize ' . ((&lines * 21 + 39) / 79)
+exe 'vert 3resize ' . ((&columns * 16 + 140) / 281)
+exe '4resize ' . ((&lines * 21 + 39) / 79)
+exe 'vert 4resize ' . ((&columns * 12 + 140) / 281)
+exe '5resize ' . ((&lines * 21 + 39) / 79)
+exe 'vert 5resize ' . ((&columns * 16 + 140) / 281)
 argglobal
 setlocal keymap=
 setlocal noarabic
@@ -215,7 +221,7 @@ setlocal nowinfixwidth
 setlocal wrap
 setlocal wrapmargin=0
 silent! normal! zE
-let s:l = 3 - ((2 * winheight(0) + 38) / 76)
+let s:l = 3 - ((1 * winheight(0) + 10) / 21)
 if s:l < 1 | let s:l = 1 | endif
 exe s:l
 normal! zt
@@ -348,12 +354,12 @@ setlocal nowinfixwidth
 setlocal wrap
 setlocal wrapmargin=0
 silent! normal! zE
-let s:l = 1 - ((0 * winheight(0) + 38) / 76)
+let s:l = 1 - ((0 * winheight(0) + 10) / 21)
 if s:l < 1 | let s:l = 1 | endif
 exe s:l
 normal! zt
 1
-normal! 0181|
+normal! 01|
 lcd ~/RoleplayCardGame
 wincmd w
 argglobal
@@ -481,7 +487,7 @@ setlocal nowinfixwidth
 setlocal wrap
 setlocal wrapmargin=0
 silent! normal! zE
-let s:l = 3 - ((2 * winheight(0) + 38) / 76)
+let s:l = 3 - ((1 * winheight(0) + 10) / 21)
 if s:l < 1 | let s:l = 1 | endif
 exe s:l
 normal! zt
@@ -614,7 +620,7 @@ setlocal nowinfixwidth
 setlocal wrap
 setlocal wrapmargin=0
 silent! normal! zE
-let s:l = 2 - ((1 * winheight(0) + 38) / 76)
+let s:l = 2 - ((0 * winheight(0) + 10) / 21)
 if s:l < 1 | let s:l = 1 | endif
 exe s:l
 normal! zt
@@ -747,7 +753,7 @@ setlocal nowinfixwidth
 setlocal wrap
 setlocal wrapmargin=0
 silent! normal! zE
-let s:l = 1 - ((0 * winheight(0) + 38) / 76)
+let s:l = 1 - ((0 * winheight(0) + 10) / 21)
 if s:l < 1 | let s:l = 1 | endif
 exe s:l
 normal! zt
@@ -755,11 +761,16 @@ normal! zt
 normal! 02|
 lcd ~/RoleplayCardGame
 wincmd w
-exe 'vert 1resize ' . ((&columns * 56 + 140) / 281)
-exe 'vert 2resize ' . ((&columns * 55 + 140) / 281)
-exe 'vert 3resize ' . ((&columns * 55 + 140) / 281)
-exe 'vert 4resize ' . ((&columns * 56 + 140) / 281)
-exe 'vert 5resize ' . ((&columns * 55 + 140) / 281)
+exe '1resize ' . ((&lines * 21 + 39) / 79)
+exe 'vert 1resize ' . ((&columns * 16 + 140) / 281)
+exe '2resize ' . ((&lines * 21 + 39) / 79)
+exe 'vert 2resize ' . ((&columns * 16 + 140) / 281)
+exe '3resize ' . ((&lines * 21 + 39) / 79)
+exe 'vert 3resize ' . ((&columns * 16 + 140) / 281)
+exe '4resize ' . ((&lines * 21 + 39) / 79)
+exe 'vert 4resize ' . ((&columns * 12 + 140) / 281)
+exe '5resize ' . ((&lines * 21 + 39) / 79)
+exe 'vert 5resize ' . ((&columns * 16 + 140) / 281)
 tabnext
 edit ~/RoleplayCardGame/test.py
 set splitbelow splitright
@@ -774,8 +785,8 @@ set winminheight=0
 set winheight=1
 set winminwidth=0
 set winwidth=1
-exe 'vert 1resize ' . ((&columns * 140 + 140) / 281)
-exe 'vert 2resize ' . ((&columns * 140 + 140) / 281)
+exe 'vert 1resize ' . ((&columns * 39 + 140) / 281)
+exe 'vert 2resize ' . ((&columns * 241 + 140) / 281)
 argglobal
 setlocal keymap=
 setlocal noarabic
@@ -1035,7 +1046,7 @@ setlocal nowinfixwidth
 setlocal wrap
 setlocal wrapmargin=0
 silent! normal! zE
-let s:l = 176 - ((67 * winheight(0) + 38) / 76)
+let s:l = 176 - ((38 * winheight(0) + 38) / 76)
 if s:l < 1 | let s:l = 1 | endif
 exe s:l
 normal! zt
@@ -1043,9 +1054,8 @@ normal! zt
 normal! 018|
 lcd ~/RoleplayCardGame
 wincmd w
-2wincmd w
-exe 'vert 1resize ' . ((&columns * 140 + 140) / 281)
-exe 'vert 2resize ' . ((&columns * 140 + 140) / 281)
+exe 'vert 1resize ' . ((&columns * 39 + 140) / 281)
+exe 'vert 2resize ' . ((&columns * 241 + 140) / 281)
 tabnext
 edit ~/RoleplayCardGame/style.css
 set splitbelow splitright
@@ -1063,9 +1073,9 @@ set winminheight=0
 set winheight=1
 set winminwidth=0
 set winwidth=1
-exe 'vert 1resize ' . ((&columns * 22 + 140) / 281)
-exe 'vert 2resize ' . ((&columns * 21 + 140) / 281)
-exe 'vert 3resize ' . ((&columns * 236 + 140) / 281)
+exe 'vert 1resize ' . ((&columns * 1 + 140) / 281)
+exe 'vert 2resize ' . ((&columns * 1 + 140) / 281)
+exe 'vert 3resize ' . ((&columns * 277 + 140) / 281)
 argglobal
 setlocal keymap=
 setlocal noarabic
@@ -1328,7 +1338,7 @@ if s:l < 1 | let s:l = 1 | endif
 exe s:l
 normal! zt
 12
-normal! 066|
+normal! 010|
 lcd ~/RoleplayCardGame
 wincmd w
 argglobal
@@ -1457,17 +1467,18 @@ setlocal nowinfixwidth
 setlocal wrap
 setlocal wrapmargin=0
 silent! normal! zE
-let s:l = 188 - ((75 * winheight(0) + 38) / 76)
+let s:l = 78 - ((37 * winheight(0) + 38) / 76)
 if s:l < 1 | let s:l = 1 | endif
 exe s:l
 normal! zt
-188
-normal! 0
+78
+normal! 022|
 lcd ~/RoleplayCardGame
 wincmd w
-exe 'vert 1resize ' . ((&columns * 22 + 140) / 281)
-exe 'vert 2resize ' . ((&columns * 21 + 140) / 281)
-exe 'vert 3resize ' . ((&columns * 236 + 140) / 281)
+3wincmd w
+exe 'vert 1resize ' . ((&columns * 1 + 140) / 281)
+exe 'vert 2resize ' . ((&columns * 1 + 140) / 281)
+exe 'vert 3resize ' . ((&columns * 277 + 140) / 281)
 tabnext
 edit ~/RoleplayCardGame/test.py
 set splitbelow splitright
@@ -1603,14 +1614,14 @@ setlocal nowinfixwidth
 setlocal wrap
 setlocal wrapmargin=0
 silent! normal! zE
-let s:l = 5 - ((4 * winheight(0) + 38) / 76)
+let s:l = 5 - ((1 * winheight(0) + 10) / 21)
 if s:l < 1 | let s:l = 1 | endif
 exe s:l
 normal! zt
 5
 normal! 0
 lcd ~/RoleplayCardGame
-tabnext 2
+tabnext 3
 set stal=1
 badd +1 ~/RoleplayCardGame/json/decks.json
 badd +1 ~/RoleplayCardGame
@@ -1619,7 +1630,7 @@ badd +1 ~/RoleplayCardGame/style.css
 badd +1 ~/RoleplayCardGame/json/teams.json
 badd +1 ~/RoleplayCardGame/json/cards.json
 badd +1 ~/RoleplayCardGame/json/players.json
-badd +1 ~/RoleplayCardGame/card.py
+badd +0 ~/RoleplayCardGame/card.py
 badd +1 ~/RoleplayCardGame/index.html
 badd +1 ~/RoleplayCardGame/websocket_client.js
 badd +2308 ~/RoleplayCardGame/old/basic.py
