@@ -1,60 +1,33 @@
 {
-    "aggression":{"stability":3,
-        "cost":20,
-        "progress_seconds":2,
-        "exit_seconds":10,
-        "enter":[
-            {"function":"draw","target":"enemy_team","amount":-2}
-        ],
-        "progress":[
-            {"function":"money","target":"enemy_team","amount":-1}
-        ],
-        "exit":[
-            {"function":"damage","target":"enemy_team","amount":10}
-        ]},
     "shield":{"stability":3,
         "cost":0,
-        "effect":[
-            {"function":"protect","target":"team","amount":2}
-        ]},
-    "attack":{"stability":3,
-        "progress_seconds":2,
-        "exit_seconds":10,
+        "triggers":{
+            "effect":[
+                {"actions":[
+                    {"function":"protect","target":"team","amount":2}
+                ]}
+            ]
+        }
+    },
+
+    "attack":{
+        "stability":3,
         "cost":4,
-        "enter":[
-            {"function":"destabilize","target":"random","amount":3}
-        ],
-        "progress":[
-            {"function":"destabilize","target":"random","amount":1}
-        ],
-        "exit":[
-            {"function":"damage","target":"enemy_team","amount":3}
-        ]},
-    "draw":{"stability":3,
-        "cost":4,
-        "progress_seconds":2,
-        "exit_seconds":10,
-        "enter":[
-            {"function":"draw","target":"self","amount":2}
-        ],
-        "progress":[
-            {"function":"draw","target":"team","amount":1}
-        ],
-        "exit":[
-            {"function":"draw","target":"enemy_team", "amount":-3}
-        ]},
-    "loot":{"stability":3,
-        "cost":4,
-        "progress_seconds":2,
-        "exit_seconds":10,
-        "enter":[
-            {"function":"money","target":"enemy_team","amount":-1}
-        ],
-        "progress":[
-            {"function":"money","target":"team","amount":2}
-        ],
-        "exit":[
-            {"function":"money","target":"enemy_team","amount":-5}
-        ]
+        "triggers": {
+            "timer": [
+                {"goal":2, "progress":0, "actions":[
+                    {"function":"destabilize","target":"random","amount":1}
+                ]},
+                {"goal":10, "progress":0, "actions":[
+                    {"function":"damage","target":"enemy_team","amount":3},
+                    {"function":"finish","target":"self"}
+                ]}
+            ], 
+            "enter": [
+                {"actions":[
+                    {"function":"destabilize","target":"random","amount":3}
+                ]}
+            ]
+        }
     }
 }

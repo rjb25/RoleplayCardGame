@@ -4,12 +4,9 @@
 #Make drag and drop work
 #Make refresh work
 #inspect to see information
-#TODO simple items step by step
 #Restructure cards so enter progress and exit are inside a trigger dict
-#Restructure trigger so you have a trigger function that can be called with any data that might be relevant to a trigger.
-#Switch exit and progress to timer triggers where discard is a function on the exit timer trigger
-#Correct the javascript to read this format
-
+#Change the python and javascript to match the new structure
+#TODO simple items step by step
 #visualize cooldown
 #TODO SCENARIOS
 #Scenario 1. A shield wall from the bot. You need to break their cards and attack them as they try to keep up their wall.
@@ -41,47 +38,96 @@ import copy
 import time
 from itertools import takewhile
 #
-#EFFECTS
-def destabilize_effect(arguments):
+#ACTIONS
+def destabilize_action(card, arguments):
     team = arguments["team"]
     target = arguments["target"]
     amount = arguments["amount"]
     enemy_team = get_enemy_team(team)
     if target == "random":
         board = teams_table[enemy_team]["board"]
-        card = random.choice(board)
-        if card:
-            card["stability"] -= amount
+        victim = random.choice(board)
+        if victim:
+            victim["stability"] -= amount
 
-def money_effect(arguments):
+def finish_action(card, arguments):
+    move(card,"discard")
+
+def money_action(card, arguments):
     target = arguments["target"]
     amount = arguments["amount"]
     income(amount,target)
 
-def draw_effect(arguments):
+def draw_action(card, arguments):
     target = arguments["target"]
     amount = arguments["amount"]
     draw(amount,target)
 
-def time_effect(arguments):
+def time_action(card, arguments):
     target = arguments["target"]
     amount = arguments["amount"]
     teams_table[target]["time"] += amount
 
-def damage_effect(arguments):
+def damage_action(card, arguments):
     target = arguments["target"]
     amount = arguments["amount"]
     apply_damage(target,amount)
 
-def protect_effect(arguments):
+def protect_action(card, arguments):
     target = arguments["target"]
     amount = arguments["amount"]
     teams_table[target]["armor"] += amount
 
-def protect_remove_effect(arguments):
+#TRIGGERS
+#Could make this a general progress trigger that gets passed an amount eventually
+def timer_trigger(card,timer):
+    seconds_passed = timer.get("progress")
+    timer["progress"] += tick_rate()
+    if timer["progress"] >= timer["goal"]:
+        timer["progress"] -= timer["goal"]
+        for action in timer["actions"]:
+            call_actions(card,action)
+
+def standard_trigger(card,event):
+    for action in event["actions"]:
+        call_actions(card,action)
+
+#CORE
+def call_actions(card,action):
+    function = action["function"]+"_action"
+    action = resolve_argument_aliases(card,action)
+    globals()[function](card, action)
+
+def call_triggers(card,event_type):
+    events = card["triggers"].get(event_type)
+    if events:
+        for event in events:
+            function = event_type + "_trigger";
+            if function in globals():
+                globals()[function](card, event)
+            else:
+                standard_trigger(card, event)
+
+def resolve_argument_aliases(card,argus):
+    #TODO need a copy function here so UI isn't messed up
+    arguments = copy.deepcopy(argus)
+    owner = card["owner"]
+    arguments["owner"] = owner
+    team = card["team"]
+    arguments["team"] = card["team"]
     target = arguments["target"]
-    amount = arguments["amount"]
-    teams_table[target]["armor"] -= amount
+    if target == "self":
+        arguments["target"] = owner
+    elif target == "team":
+        arguments["target"] = team
+    elif target == "enemy_team":
+        arguments["target"] = get_enemy_team(team)
+    return arguments
+
+#Maybe make this an action?
+def kill_card(card):
+    move(card,"discard")
+
 
 #JSON
 def load(a):
@@ -117,32 +163,7 @@ def saveBattle():
         with open('json/decks.json', 'w') as f:
             json.dump(decks_table,f)
 
-#CORE
-def resolve_argument_aliases(card,argus):
-    #TODO need a copy function here so UI isn't messed up
-    arguments = copy.deepcopy(argus)
-    owner = card["owner"]
-    arguments["owner"] = owner
-    team = card["team"]
-    arguments["team"] = card["team"]
-    target = arguments["target"]
-    if target == "self":
-        arguments["target"] = owner
-    elif target == "team":
-        arguments["target"] = team
-    elif target == "enemy_team":
-        arguments["target"] = get_enemy_team(team)
-    return arguments
 
-def call_functions(card, step, extension =""):
-    for action in card[step]:
-        function = ""
-        if extension:
-            function = action["function"]+"_"+extension+"_effect"
-        else:
-            function = action["function"]+"_effect"
-        action = resolve_argument_aliases(card,action)
-        globals()[function](action)
 
 def remove_broken_cards(team_data):
     cards = team_data["board"]
@@ -163,21 +184,6 @@ def get_empty_index(board):
             return index
     return None
 
-#Flow of hand to discard
-def expire_card(card):
-    move(card,"discard")
-
-#Flow of board to discard
-def kill_card(card):
-    move(card,"discard")
-
-def progress_card(card):
-    call_functions(card,"progress")
-    
-def exit_card(card):
-    call_functions(card, "exit")
-    move(card,"discard")
-
 #Flow hand to board
 def play_card(card,card_index):
     username = card["owner"]
@@ -188,10 +194,7 @@ def play_card(card,card_index):
         #TODO make index targetting smart to go to an opening after you play a card or go to index 1 if all full. This way targetting is clear and can be manual if you want
         move(card,"board",card_index)
         #Team set here so you can play against yourself
-        if card.get("enter"):
-            call_functions(card, "enter")
-        if card.get("effect"):
-            call_functions(card, "effect")
+        call_triggers(card, "enter")
 
 #Flow deck to hand
 #Flow of discard to deck
@@ -215,7 +218,7 @@ def discard(username):
     card_index = get_card_index(hand)
     if card_index is not None:
         card = hand[card_index]
-        expire_card(card)
+        move(card,"discard")
 
 def draw(count, target):
     usernames = get_targets(target)
@@ -240,8 +243,7 @@ def move(card, to, index = -1):
         player_data[to].append(card)
 
     if card_location == "board":
-        if card.get("effect"):
-            call_functions(card,"effect","remove")
+        call_triggers(card,"exit")
         teams_table[card["team"]][card_location][card["index"]] = 0
     elif card_location == "hand":
         player_data[card_location][card["index"]] = 0
@@ -260,23 +262,11 @@ def move(card, to, index = -1):
     if to == "discard":
         refresh_card(card)
 
-#Make it so that 
 def board_tick():
     for team, team_data in teams_table.items():
         for card in team_data["board"]:
             if card:
-                if card.get("exit"):
-                    #Having these be optional timers would help. Then just adding discard as a function to the end of exit
-                    card["exit_timer"] += tick_rate()
-                    if card["exit_timer"] >= card["exit_seconds"]:
-                        exit_card(card)
-                        card["exit_timer"] -= card["exit_seconds"]
-
-                if card.get("progress"):
-                    card["progress_timer"] += tick_rate()
-                    if card["progress_timer"] >= card["progress_seconds"]:
-                        progress_card(card)
-                        card["progress_timer"] -= card["progress_seconds"]
+                call_triggers(card,"timer")
 
 async def tick():
     while True:
@@ -354,9 +344,7 @@ def get_unique_id():
 
 def refresh_card(card):
     baby_card = copy.deepcopy(cards_table[card["name"]])
-    card["age"] = 0
-    card["exit_timer"] = 0
-    card["progress_timer"] = 0
+    card["triggers"] = baby_card["triggers"]
     card["max_stability"] = baby_card["stability"]
     card["stability"] = baby_card["stability"]
 
@@ -528,6 +516,7 @@ async def handle_play(username,card_json):
     card_index = int(card_json["index"])
     #Get card from id
     card = card_from(card_id, players_table[username]["hand"])
+    print(card_json)
     if card:
         play_card(card,card_index)
 

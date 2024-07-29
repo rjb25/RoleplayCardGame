@@ -89,37 +89,23 @@ function makeMenuButton(title) {
     fetch(menuContainer).appendChild(menuButton);
 }
 function updateCardButton(cardButton,card){
-        cardButton.card = card;
-        cardTitle = cardButton.querySelector(".title");
-        moneyString = "&#128176;".repeat(card["cost"]);
-        cardTitle.innerHTML = moneyString +" " + "&hearts;".repeat(card["stability"]) + " progress" + card["progress_timer"] + " exit" + card["exit_timer"];
+    cardButton.card = card;
+    cardTitle = cardButton.querySelector(".title");
+    moneyString = "&#128176;".repeat(card["cost"]);
+    cardTitle.innerHTML = moneyString +" " + "&hearts;".repeat(card["stability"]);
 }
 function inspect(slot){
     cardButton = slot.querySelector('.card')
     if(cardButton){
         card = cardButton.card;
         if(card){
-            enter_text = "";
-            progress_text = "";
-            exit_text = "";
-            effect_text = "";
-            if(card["enter"]){
-                enter_effect = card["enter"][0];
-                enter_text = enter_effect["function"] + " " + enter_effect["target"] + " " + enter_effect["amount"];
-            }
-            if(card["enter"]){
-                progress_effect = card["progress"][0];
-                progress_text = progress_effect["function"] + " " + progress_effect["target"] + " " + progress_effect["amount"];
-            }
-            if(card["exit"]){
-                exit_effect = card["exit"][0];
-                exit_text = exit_effect["function"] + " " + exit_effect["target"] + " " + exit_effect["amount"];
-            }
-            if(card["effect"]){
-                effect_effect = card["effect"][0];
-                effect_text = effect_effect["function"] + " " + effect_effect["target"] + " " + effect_effect["amount"];
-            }
-            fetch(inspectContainer).innerHTML = enter_text + "<br>" + progress_text + "<br>" + exit_text + "<br>" + effect_text;
+            triggersText = ""
+            Object.entries(card["triggers"]).forEach(([triggerType,triggers]) => {
+                triggersText += triggerType + " ";
+                //triggers.forEach
+
+            });
+            fetch(inspectContainer).innerHTML = triggersText ;
         }
     }
 }
@@ -137,6 +123,8 @@ function generateCardButton(card){
     cardImage.draggable = true;
     cardImage.setAttribute("ondragstart", "drag(event)");
     cardImage.id = card["id"];
+    moneyString = "&#128176;".repeat(card["cost"]);
+    cardTitle.innerHTML = moneyString +" " + "&hearts;".repeat(card["stability"]);
     cardButton.appendChild(cardTitle);
     cardButton.appendChild(cardImage);
     return cardButton;
