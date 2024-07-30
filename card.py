@@ -1,16 +1,26 @@
 #TODO TODONE
+#Make refresh work
 #Add images
 #Make it so you can play against yourself
 #Make drag and drop work
-#Make refresh work
 #inspect to see information
 #Restructure cards so enter progress and exit are inside a trigger dict
 #Change the python and javascript to match the new structure
-#TODO simple items step by step
-#visualize cooldown
+#How to get divs on an image
+#Progress bars of different thickness to represent number, and color to represent function. Yellow for gold, teal for cards, blue for shield, green for heal. etc. Overlay them thinly on the bottom of the card
+#TODO 
+#Make more cards
+#Make trigger for shield exit
+#TODO Maybe
+#Visualize actions somehow
 #TODO SCENARIOS
 #Scenario 1. A shield wall from the bot. You need to break their cards and attack them as they try to keep up their wall.
-
+#TODO TRIGGERS
+#On draw triggers so when you draw the card you get money or something. Or you take damage when you draw the card.
+#TODO CARD IDEAS
+#Start using images on cards
+#Hot potato or cooked grenade cards that start their countdown while in your hand.
+#They cannot select target while in play
 
 #DON'T USE ORDERED DICT SINCE YOU CAN'T CHOOSE INSERTION POINT. JUST USE A LIST WITH REFERENCES TO A MEGA DICT
 import asyncio
@@ -532,6 +542,3 @@ if __name__ == '__main__':
     event_loop = asyncio.get_event_loop()
     event_loop.run_until_complete(start_server())
     event_loop.run_forever()
-#CARD IDEAS
-#Start using images on cards
-#They cannot select target while in play

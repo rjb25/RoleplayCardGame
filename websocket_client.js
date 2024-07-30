@@ -1,5 +1,6 @@
-my_team = "good"
-enemy_team = "evil"
+my_team = "good";
+enemy_team = "evil";
+actionColors = {"damage":"red", "destabilize":"brown"};
 var running = false;
 var target = 0;
 socketname = "visually-popular-iguana.ngrok-free.app";
@@ -88,26 +89,62 @@ function makeMenuButton(title) {
     };
     fetch(menuContainer).appendChild(menuButton);
 }
-function updateCardButton(cardButton,card){
-    cardButton.card = card;
-    cardTitle = cardButton.querySelector(".title");
-    moneyString = "&#128176;".repeat(card["cost"]);
-    cardTitle.innerHTML = moneyString +" " + "&hearts;".repeat(card["stability"]);
-}
 function inspect(slot){
     cardButton = slot.querySelector('.card')
     if(cardButton){
         card = cardButton.card;
         if(card){
             triggersText = ""
-            Object.entries(card["triggers"]).forEach(([triggerType,triggers]) => {
-                triggersText += triggerType + " ";
-                //triggers.forEach
-
+            Object.entries(card["triggers"]).forEach(([triggerType,events]) => {
+                events.forEach((eventDict) => {
+                    triggersText += triggerType;
+                    if (eventDict["goal"]) {
+                        triggersText += " length:" + eventDict["goal"];
+                    }
+                    triggersText += "<br>";
+                    eventDict["actions"].forEach((action) => {
+                        triggersText += "&nbsp;&nbsp;&nbsp;&nbsp;" + action["function"] + " " + action["target"];
+                        if (action["amount"]) {
+                            triggersText += " " + action["amount"];
+                        }
+                        triggersText += "<br>";
+                    });
+                });
             });
             fetch(inspectContainer).innerHTML = triggersText ;
         }
     }
+}
+function updateCardButton(cardButton,card){
+    cardButton.card = card;
+    cardTitle = cardButton.querySelector(".title");
+    moneyString = "&#128176;".repeat(card["cost"]);
+    currentBottom = 4;
+    //Should be reversed at some point to match input data
+    Object.entries(card["triggers"]).forEach(([triggerType,events]) => {
+        events.forEach((eventDict,i) => {
+            if(eventDict["goal"]){
+                progressBars = cardButton.querySelectorAll(".progress");
+                progressBar = progressBars[i];
+                firstAction = eventDict["actions"][0];
+                height = 2 + firstAction["amount"];
+                progressBar.style.height = height + "px";
+                progressBar.style.bottom = currentBottom + "px";
+                currentBottom += height;
+                percent = 100 * eventDict["progress"] / eventDict["goal"] 
+                if (percent < 0.1){
+                    percent = 100;
+                }
+                progressBar.style.width = percent +"%";
+                color = actionColors[firstAction["function"]];
+                if (!color){
+                    color = "black";
+                }
+                progressBar.style.background = color;
+            }
+        });
+    });
+    cardTitle.innerHTML = moneyString +" " + "&hearts;".repeat(card["stability"]);
 }
 function generateCardButton(card){
     cardButton = document.createElement("div");
@@ -117,16 +154,23 @@ function generateCardButton(card){
     cardTitle.classList.add("title");
     cardImage = new Image(90,90);
     cardImage.classList.add("picture");
-    //cardImage = cardButton.querySelector(".picture");
     cardImage.src = "pics/" + card["title"]+".png";
     cardImage.alt = card["title"];
     cardImage.draggable = true;
     cardImage.setAttribute("ondragstart", "drag(event)");
     cardImage.id = card["id"];
-    moneyString = "&#128176;".repeat(card["cost"]);
-    cardTitle.innerHTML = moneyString +" " + "&hearts;".repeat(card["stability"]);
     cardButton.appendChild(cardTitle);
     cardButton.appendChild(cardImage);
+    Object.entries(card["triggers"]).forEach(([triggerType,events]) => {
+        events.forEach((eventDict) => {
+            if (eventDict["goal"]){
+                progressBar = document.createElement("div");
+                progressBar.classList.add("progress");
+                cardButton.appendChild(progressBar);
+            }
+        });
+    });
+    updateCardButton(cardButton,card);
     return cardButton;
 }
 function createSlots(container){

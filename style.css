@@ -12,9 +12,8 @@
 .slot {
   box-shadow: 0 4px 8px 0 rgba(0,0,0,0.2);
   transition: 0.3s;
-  border-radius: 5px; 
-  width: 8em;
-  height: 6em;
+  width: 6em;
+  height: 8em;
 }
 .prevent-select {
   -webkit-user-select: none; /* Safari */
@@ -58,4 +57,16 @@
     left: 0px;
     height: 100%;
     width: 100%;
+}
+.card {
+  position:relative;
+  width: 100%;
+
+} 
+
+.progress {
+  position: absolute;
+}
+.picture {
+    width:100%;
 }
