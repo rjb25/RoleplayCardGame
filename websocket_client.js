@@ -1,6 +1,6 @@
 my_team = "good";
 enemy_team = "evil";
-actionColors = {"damage":"red", "destabilize":"brown"};
+actionColors = {"damage":"rgba(255, 0, 0, 0.8)", "destabilize":"rgba(100, 55, 55, 0.8)"};
 var running = false;
 var target = 0;
 socketname = "visually-popular-iguana.ngrok-free.app";
@@ -18,6 +18,9 @@ menuButtons = ["reset_game","pause","add_ai_evil","add_ai_good","join_good","joi
 //socketname = prompt("WebSocketURL no http://")
 const websocketClient = new WebSocket("wss://"+socketname);
 
+function pause(){
+    changeBackground("red");
+}
 function join_good(){
     console.log("goodness")
     my_team = "good"
@@ -72,7 +75,7 @@ function removeAllChildNodes(parent) {
 }
 function makeMenuButton(title) {
     menuButton = document.createElement("div");
-    menuButton.classList.add("card");
+    menuButton.classList.add("menu");
     menuTitle = document.createElement("div");
     menuTitle.innerHTML = title;
     menuButton.appendChild(menuTitle);
@@ -80,7 +83,7 @@ function makeMenuButton(title) {
         websocketClient.send( JSON.stringify({
         command: title
         }))
-        console.log("called function" + title)
+        console.log("called function " + title)
         console.log(window)
         if (window[title]){
             console.log("called extra function " + title)
@@ -117,9 +120,28 @@ function inspect(slot){
 }
 function updateCardButton(cardButton,card){
     cardButton.card = card;
-    cardTitle = cardButton.querySelector(".title");
-    moneyString = "&#128176;".repeat(card["cost"]);
-    currentBottom = 4;
+    health = cardButton.querySelector(".health");
+    cardCoinImage = cardButton.querySelector(".coin");
+    cost = cardButton.querySelector(".cost");
+    if(card["location"] == "hand"){
+        cost.innerHTML =  card["cost"];
+    } else {
+        //health.innerHTML = "&hearts;".repeat(Math.max(card["stability"],0));
+        percent = 100 * card["stability"] / card["max_stability"] ;
+        health.style.width = percent +"%";
+        //target = findAncestor(nestedTarget, "slot");
+        if (percent > 75){
+            health.style.background = "rgba(0, 255, 0, 0.8)";
+        } else if (percent > 40){
+            health.style.background = "rgba(255, 255, 0, 0.8)";
+        } else {
+            health.style.background = "rgba(255, 0, 0, 0.8)";
+        }
+
+        cost.innerHTML = "";
+        cardCoinImage.style.display = "none";
+    }
+    currentBottom = 0;
     //Should be reversed at some point to match input data
     Object.entries(card["triggers"]).forEach(([triggerType,events]) => {
         events.forEach((eventDict,i) => {
@@ -144,23 +166,35 @@ function updateCardButton(cardButton,card){
             }
         });
     });
-    cardTitle.innerHTML = moneyString +" " + "&hearts;".repeat(card["stability"]);
 }
 function generateCardButton(card){
     cardButton = document.createElement("div");
     cardButton.id = card["id"]
     cardButton.classList.add("card");
-    cardTitle = document.createElement("div");
-    cardTitle.classList.add("title");
-    cardImage = new Image(90,90);
+    cardImage = new Image();
     cardImage.classList.add("picture");
     cardImage.src = "pics/" + card["title"]+".png";
     cardImage.alt = card["title"];
     cardImage.draggable = true;
     cardImage.setAttribute("ondragstart", "drag(event)");
     cardImage.id = card["id"];
-    cardButton.appendChild(cardTitle);
+
+    cost = document.createElement("p");
+    cost.classList.add("cost");
+    coinImage = new Image();
+    coinImage.draggable = false;
+    coinImage.classList.add("coin");
+    coinImage.src = "pics/" + "coin3.png";
+    coinImage.alt = "coin";
+
+    health = document.createElement("div");
+    health.classList.add("health");
+
     cardButton.appendChild(cardImage);
+    cardButton.appendChild(health);
+    cardButton.appendChild(coinImage);
+    cardButton.appendChild(cost);
+
     Object.entries(card["triggers"]).forEach(([triggerType,events]) => {
         events.forEach((eventDict) => {
             if (eventDict["goal"]){
@@ -176,6 +210,12 @@ function generateCardButton(card){
 function createSlots(container){
     for (let i = 0; i < 5; i++){
         slot = document.createElement("div");
+        skullImage = new Image();
+        skullImage.classList.add("picture");
+        skullImage.src = "pics/" + "skull.png";
+        skullImage.alt = "skull";
+        skullImage.draggable = false;
+        slot = document.createElement("div");
         slot.setAttribute("spot", i);
         slot.classList.add("slot");
         slot.setAttribute("ondrop","drop(event)");
@@ -183,6 +223,7 @@ function createSlots(container){
         slot.onclick = function(){
             inspect(this);
         };
+        //slot.append(skullImage);
         fetch(container).append(slot);
     }
 }
@@ -191,18 +232,33 @@ function updateSlots(container,messageJson,containerName){
     newCards = messageJson[containerName];
     newCards.forEach((newCard,i) => {
             slot = container.childNodes[i];
-            
-            cardButton = slot.childNodes[0];
+            oldCardButton = slot.querySelector(".card");
+            oldId = 0;
+            newId = 0;
+            if (oldCardButton) {
+                oldId = oldCardButton["id"];
+            } 
+            if (newCard) {
+                newId = newCard["id"];
+            }
             //Replace or delete
-            if(!cardButton || cardButton["id"] != newCard["id"]){
-                container.childNodes[i].innerHTML = '';
-                if(newCard){
-                    cardBox = generateCardButton(newCard);
-                    container.childNodes[i].append(cardBox);
+            if(newId != oldId){
+                if(newId){
+                    newCardButton = generateCardButton(newCard);
+                    slot.append(newCardButton);
+                    if (oldCardButton){
+                        oldCardButton.remove();
+                    }
+                } else {
+                    if (oldCardButton){
+                        oldCardButton.remove();
+                    }
                 }
             } else {
                 //Update
-                updateCardButton(cardButton,newCard);
+                if(newCard){
+                    updateCardButton(oldCardButton,newCard);
+                }
             }
         });
 }
@@ -212,60 +268,60 @@ function fetch(id){
 
 document.addEventListener('DOMContentLoaded', function(){
     //HAVE A list of targets under an attack cards with the images of what's being targetted. Pulse green for good things red for bad targets.
-    changeBackground("red");
+    changeBackground("black");
     buttonContainers.forEach(createSlots);
     menuButtons.forEach(makeMenuButton);
     websocketClient.onopen = function(){
         console.log("Client connected!");
         websocketClient.onmessage = function(message){
             messageJson = JSON.parse(message.data.replace(/'/g, '"'));
-                //console.log(JSON.stringify(messageJson));
-                buttonContainers.forEach(function (container,index){ 
-                    updateSlots(fetch(container),messageJson,buttonContainerNames[index]);
-                });
+            //console.log(JSON.stringify(messageJson));
+            buttonContainers.forEach(function (container,index){ 
+                updateSlots(fetch(container),messageJson,buttonContainerNames[index]);
+            });
 
-                if("player_state" in messageJson){
-                    //Myself
-                    playerState = messageJson["player_state"]
-                    if ("gold" in playerState){
-                        gold = playerState["gold"];
-                        fetch(goldContainer).innerHTML = "";
-                        const goldDiv = document.createElement("div");
-                        goldDiv.innerHTML = "&#128176;" + gold;
-                        fetch(goldContainer).appendChild(goldDiv);
-                    }
+            if("player_state" in messageJson){
+                //Myself
+                playerState = messageJson["player_state"]
+                if ("gold" in playerState){
+                    gold = playerState["gold"];
+                    fetch(goldContainer).innerHTML = "";
+                    const goldDiv = document.createElement("div");
+                    goldDiv.innerHTML = "&#128176;" + gold;
+                    fetch(goldContainer).appendChild(goldDiv);
+                }
+            }
+
+            if("teams_table" in messageJson){
+                teamState = messageJson["teams_table"][my_team];
+                enemyState = messageJson["teams_table"][enemy_team];
+                //My team
+                if("text" in teamState){
+                    messageText = teamState["text"];
+                    const messageDiv = document.createElement("div");
+                    messageDiv.innerHTML = messageText;
+                    fetch(messagesContainer).innerHTML = "";
+                    fetch(messagesContainer).appendChild(messageDiv);
+                }
+                if("health" in teamState){
+                    myText = teamState["health"];
+                    enemyText = enemyState["health"];
+                    const messageDiv = document.createElement("div");
+                    messageDiv.innerHTML = "Ally &hearts;" + myText + ".    Enemy &hearts;" +enemyText;
+                    fetch(healthContainer).innerHTML = "";
+                    fetch(healthContainer).appendChild(messageDiv);
                 }
 
-                if("teams_table" in messageJson){
-                    teamState = messageJson["teams_table"][my_team];
-                    enemyState = messageJson["teams_table"][enemy_team];
-                    //My team
-                    if("text" in teamState){
-                        messageText = teamState["text"];
-                        const messageDiv = document.createElement("div");
-                        messageDiv.innerHTML = messageText;
-                        fetch(messagesContainer).innerHTML = "";
-                        fetch(messagesContainer).appendChild(messageDiv);
-                    }
-                    if("health" in teamState){
-                        myText = teamState["health"];
-                        enemyText = enemyState["health"];
-                        const messageDiv = document.createElement("div");
-                        messageDiv.innerHTML = "Ally &hearts;" + myText + ".    Enemy &hearts;" +enemyText;
-                        fetch(healthContainer).innerHTML = "";
-                        fetch(healthContainer).appendChild(messageDiv);
-                    }
-
+            }
+            if("game_table" in messageJson){
+                gameTable = messageJson["game_table"];
+                running = gameTable["running"];
+                if (running) {
+                    changeBackground("black");
+                } else {
+                    changeBackground("red");
                 }
-                if("game_table" in messageJson){
-                    gameTable = messageJson["game_table"];
-                    running = gameTable["running"];
-                    if (running) {
-                        changeBackground("green");
-                    } else {
-                        changeBackground("red");
-                    }
-                }
+            }
         };
     };
 }, false);

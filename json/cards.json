@@ -4,7 +4,7 @@
         "triggers":{
             "effect":[
                 {"actions":[
-                    {"function":"protect","target":"team","amount":2}
+                    {"function":"protect","target":"team","amount":1}
                 ]}
             ]
         }

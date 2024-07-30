@@ -8,9 +8,15 @@
 #Change the python and javascript to match the new structure
 #How to get divs on an image
 #Progress bars of different thickness to represent number, and color to represent function. Yellow for gold, teal for cards, blue for shield, green for heal. etc. Overlay them thinly on the bottom of the card
+#Image and number for coins
+#Refactor cardButton updates.
 #TODO 
+#fix shield
 #Make more cards
-#Make trigger for shield exit
+#Send an effect list that the client can pick up on
+#Really what I need to do is clear dead on start of next tick not on end of current tick so full message is sent
+#Same reset for timers if possible
+#Add skull image on death
 #TODO Maybe
 #Visualize actions somehow
 #TODO SCENARIOS
@@ -18,6 +24,7 @@
 #TODO TRIGGERS
 #On draw triggers so when you draw the card you get money or something. Or you take damage when you draw the card.
 #TODO CARD IDEAS
+#Card that deals more damage when hurt
 #Start using images on cards
 #Hot potato or cooked grenade cards that start their countdown while in your hand.
 #They cannot select target while in play
@@ -156,7 +163,7 @@ players_table = {}
 local_players_table = {}
 #COMMUNICATIONS
 #adventure = "intro"
-current_id = -1 
+current_id = 1
 message_queue = {}
 loser = ""
 log_message = {}
