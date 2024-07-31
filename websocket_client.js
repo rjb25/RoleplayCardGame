@@ -1,6 +1,7 @@
 my_team = "good";
 enemy_team = "evil";
-actionColors = {"damage":"rgba(255, 0, 0, 0.8)", "destabilize":"rgba(100, 55, 55, 0.8)"};
+tr = " 0.7)";
+actionColors = {"damage":"rgba(255, 0, 0," + tr, "destabilize":"rgba(100, 55, 55," +tr};
 var running = false;
 var target = 0;
 socketname = "visually-popular-iguana.ngrok-free.app";
@@ -122,20 +123,23 @@ function updateCardButton(cardButton,card){
     cardButton.card = card;
     health = cardButton.querySelector(".health");
     cardCoinImage = cardButton.querySelector(".coin");
+    skullImage = cardButton.querySelector(".skull");
     cost = cardButton.querySelector(".cost");
     if(card["location"] == "hand"){
         cost.innerHTML =  card["cost"];
     } else {
         //health.innerHTML = "&hearts;".repeat(Math.max(card["stability"],0));
         percent = 100 * card["stability"] / card["max_stability"] ;
-        health.style.width = percent +"%";
+        health.style.width = Math.max(percent,0) +"%";
         //target = findAncestor(nestedTarget, "slot");
         if (percent > 75){
             health.style.background = "rgba(0, 255, 0, 0.8)";
         } else if (percent > 40){
             health.style.background = "rgba(255, 255, 0, 0.8)";
-        } else {
+        } else if (percent > 0){
             health.style.background = "rgba(255, 0, 0, 0.8)";
+        } else {
+            skullImage.style.display = "";
         }
 
         cost.innerHTML = "";
@@ -154,9 +158,6 @@ function updateCardButton(cardButton,card){
                 progressBar.style.bottom = currentBottom + "px";
                 currentBottom += height;
                 percent = 100 * eventDict["progress"] / eventDict["goal"] 
-                if (percent < 0.1){
-                    percent = 100;
-                }
                 progressBar.style.width = percent +"%";
                 color = actionColors[firstAction["function"]];
                 if (!color){
@@ -187,6 +188,14 @@ function generateCardButton(card){
     coinImage.src = "pics/" + "coin3.png";
     coinImage.alt = "coin";
 
+    skullImage = new Image();
+    skullImage.classList.add("skull");
+    skullImage.classList.add("picture");
+    skullImage.src = "pics/" + "skull.png";
+    skullImage.alt = "skull";
+    skullImage.draggable = false;
+    skullImage.style.display = "none";
+
     health = document.createElement("div");
     health.classList.add("health");
 
@@ -194,6 +203,7 @@ function generateCardButton(card){
     cardButton.appendChild(health);
     cardButton.appendChild(coinImage);
     cardButton.appendChild(cost);
+    cardButton.append(skullImage);
 
     Object.entries(card["triggers"]).forEach(([triggerType,events]) => {
         events.forEach((eventDict) => {
@@ -210,12 +220,6 @@ function generateCardButton(card){
 function createSlots(container){
     for (let i = 0; i < 5; i++){
         slot = document.createElement("div");
-        skullImage = new Image();
-        skullImage.classList.add("picture");
-        skullImage.src = "pics/" + "skull.png";
-        skullImage.alt = "skull";
-        skullImage.draggable = false;
-        slot = document.createElement("div");
         slot.setAttribute("spot", i);
         slot.classList.add("slot");
         slot.setAttribute("ondrop","drop(event)");
@@ -223,7 +227,6 @@ function createSlots(container){
         slot.onclick = function(){
             inspect(this);
         };
-        //slot.append(skullImage);
         fetch(container).append(slot);
     }
 }

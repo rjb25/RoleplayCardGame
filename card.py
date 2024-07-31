@@ -10,11 +10,11 @@
 #Progress bars of different thickness to represent number, and color to represent function. Yellow for gold, teal for cards, blue for shield, green for heal. etc. Overlay them thinly on the bottom of the card
 #Image and number for coins
 #Refactor cardButton updates.
+#Refactor for sending complete states to client instead of the client never seeing that something is dead or progress complete. Just the reset to 0 state
 #TODO 
 #fix shield
 #Make more cards
-#Send an effect list that the client can pick up on
-#Really what I need to do is clear dead on start of next tick not on end of current tick so full message is sent
+#bot removal and upgrading
 #Same reset for timers if possible
 #Add skull image on death
 #TODO Maybe
@@ -22,8 +22,13 @@
 #TODO SCENARIOS
 #Scenario 1. A shield wall from the bot. You need to break their cards and attack them as they try to keep up their wall.
 #TODO TRIGGERS
+#On target action - When a target takes and action.... Specify name of action or category. Handled in trigger function.
+#On target trigger - When a target trigger occurs... Specify name of trigger
 #On draw triggers so when you draw the card you get money or something. Or you take damage when you draw the card.
+#TODO Actions
+#Mirror requres action to mirror as argument and does so. Basically trigger handles action
 #TODO CARD IDEAS
+#Card that reflects destabilize back at attacker
 #Card that deals more damage when hurt
 #Start using images on cards
 #Hot potato or cooked grenade cards that start their countdown while in your hand.
@@ -99,11 +104,12 @@ def protect_action(card, arguments):
 #Could make this a general progress trigger that gets passed an amount eventually
 def timer_trigger(card,timer):
     seconds_passed = timer.get("progress")
-    timer["progress"] += tick_rate()
     if timer["progress"] >= timer["goal"]:
         timer["progress"] -= timer["goal"]
         for action in timer["actions"]:
             call_actions(card,action)
+    #The change comes after so the client gets a chance to see the progress
+    timer["progress"] += tick_rate()
 
 def standard_trigger(card,event):
     for action in event["actions"]:
@@ -292,9 +298,10 @@ async def tick():
             board_tick()
             team_tick()
             ai_tick()
+            await update_state()
+            #Done here so that the client gets full states
             for team, team_data in teams_table.items():
                 remove_broken_cards(team_data)
-            await update_state()
 
 def tick_rate():
     return game_table["tick_duration"]*game_table["tick_value"]
