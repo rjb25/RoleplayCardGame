@@ -1,0 +1,26 @@
+{
+    "triggers":{
+        "enter":{
+            "action": "any",
+            "not-action": "protect"
+        },
+        "timer":{
+            "goal":"random", 
+            "progress":"random", 
+            "action": "any",
+            "not-action": "protect"
+        },
+        "exit":{
+            "action": "any",
+            "not-action": "protect"
+        }
+    },
+    "actions":{
+        "protect":{"amount":"random","target":["team"],"not-target":""},
+        "destabilize":{"amount":"random","target":["random","self","across"],"not-target":""},
+        "damage":{"amount":"random","target":["team"],"not-target":""},
+        "finish":{"amount":"random","target":["self"],"not-target":""}
+    },
+    "targets":["random","team","self","enemy_team","across"]
+}
+

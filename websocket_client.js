@@ -1,7 +1,7 @@
 my_team = "good";
 enemy_team = "evil";
 tr = " 0.7)";
-actionColors = {"damage":"rgba(255, 0, 0," + tr, "destabilize":"rgba(100, 55, 55," +tr};
+actionColors = {"damage":"rgba(255, 0, 0," + tr, "finish":"rgba(255, 255, 255," +tr, "destabilize":"rgba(100, 55, 55," +tr};
 var running = false;
 var target = 0;
 socketname = "visually-popular-iguana.ngrok-free.app";
@@ -14,7 +14,7 @@ healthContainer =     "#health_container";
 //These need to be variables
 buttonContainers = ["#situations_container", "#plans_container", "#cards_container"];
 buttonContainerNames = [enemy_team,my_team,"hand"];
-menuButtons = ["reset_game","pause","add_ai_evil","add_ai_good","join_good","join_evil"];
+menuButtons = ["quit","remove_ai","reset_game","pause","add_ai_evil","add_ai_good","join_good","join_evil"];
 //This is what you run if you want to reconnect to server
 //socketname = prompt("WebSocketURL no http://")
 const websocketClient = new WebSocket("wss://"+socketname);
@@ -98,7 +98,9 @@ function inspect(slot){
     if(cardButton){
         card = cardButton.card;
         if(card){
-            triggersText = ""
+            infoText = "Health: " + card["stability"] + "<br>Cost:" + card["cost"] + "<br>";
+            
+            triggersText = "";
             Object.entries(card["triggers"]).forEach(([triggerType,events]) => {
                 events.forEach((eventDict) => {
                     triggersText += triggerType;
@@ -107,7 +109,7 @@ function inspect(slot){
                     }
                     triggersText += "<br>";
                     eventDict["actions"].forEach((action) => {
-                        triggersText += "&nbsp;&nbsp;&nbsp;&nbsp;" + action["function"] + " " + action["target"];
+                        triggersText += "&nbsp;&nbsp;&nbsp;&nbsp;" + action["action"] + " " + action["target"];
                         if (action["amount"]) {
                             triggersText += " " + action["amount"];
                         }
@@ -115,7 +117,7 @@ function inspect(slot){
                     });
                 });
             });
-            fetch(inspectContainer).innerHTML = triggersText ;
+            fetch(inspectContainer).innerHTML = infoText + triggersText ;
         }
     }
 }
@@ -127,11 +129,19 @@ function updateCardButton(cardButton,card){
     cost = cardButton.querySelector(".cost");
     if(card["location"] == "hand"){
         cost.innerHTML =  card["cost"];
+        mContainer = fetch(messagesContainer);
+        if (mContainer.playerState && mContainer.playerState["gold"]){
+            money = mContainer.playerState["gold"];
+            if (card["cost"] > money){
+                cost.style.color = "crimson";
+            }else{
+                cost.style.color = "black";
+            }
+        }
     } else {
         //health.innerHTML = "&hearts;".repeat(Math.max(card["stability"],0));
         percent = 100 * card["stability"] / card["max_stability"] ;
         health.style.width = Math.max(percent,0) +"%";
-        //target = findAncestor(nestedTarget, "slot");
         if (percent > 75){
             health.style.background = "rgba(0, 255, 0, 0.8)";
         } else if (percent > 40){
@@ -153,13 +163,17 @@ function updateCardButton(cardButton,card){
                 progressBars = cardButton.querySelectorAll(".progress");
                 progressBar = progressBars[i];
                 firstAction = eventDict["actions"][0];
-                height = 2 + firstAction["amount"];
+                amount = 0;
+                if(firstAction["amount"]){
+                    amount = firstAction["amount"];
+                }
+                height = 2 + Math.max(amount,0);
                 progressBar.style.height = height + "px";
                 progressBar.style.bottom = currentBottom + "px";
                 currentBottom += height;
                 percent = 100 * eventDict["progress"] / eventDict["goal"] 
                 progressBar.style.width = percent +"%";
-                color = actionColors[firstAction["function"]];
+                color = actionColors[firstAction["action"]];
                 if (!color){
                     color = "black";
                 }
@@ -286,10 +300,12 @@ document.addEventListener('DOMContentLoaded', function(){
             if("player_state" in messageJson){
                 //Myself
                 playerState = messageJson["player_state"]
+                mContainer = fetch(messagesContainer);
+                mContainer.playerState = playerState;
                 if ("gold" in playerState){
                     gold = playerState["gold"];
                     fetch(goldContainer).innerHTML = "";
-                    const goldDiv = document.createElement("div");
+                    goldDiv = document.createElement("div");
                     goldDiv.innerHTML = "&#128176;" + gold;
                     fetch(goldContainer).appendChild(goldDiv);
                 }
@@ -298,18 +314,22 @@ document.addEventListener('DOMContentLoaded', function(){
             if("teams_table" in messageJson){
                 teamState = messageJson["teams_table"][my_team];
                 enemyState = messageJson["teams_table"][enemy_team];
+                mContainer = fetch(messagesContainer);
+                mContainer.enemyState = enemyState;
+                mContainer.teamState = teamState;
                 //My team
                 if("text" in teamState){
                     messageText = teamState["text"];
-                    const messageDiv = document.createElement("div");
+                    messageDiv = document.createElement("div");
                     messageDiv.innerHTML = messageText;
-                    fetch(messagesContainer).innerHTML = "";
-                    fetch(messagesContainer).appendChild(messageDiv);
+                    mContainer = fetch(messagesContainer)
+                    mContainer.innerHTML = "";
+                    mContainer.appendChild(messageDiv);
                 }
                 if("health" in teamState){
                     myText = teamState["health"];
                     enemyText = enemyState["health"];
-                    const messageDiv = document.createElement("div");
+                    messageDiv = document.createElement("div");
                     messageDiv.innerHTML = "Ally &hearts;" + myText + ".    Enemy &hearts;" +enemyText;
                     fetch(healthContainer).innerHTML = "";
                     fetch(healthContainer).appendChild(messageDiv);

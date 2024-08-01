@@ -2,9 +2,31 @@
     "shield":{"stability":3,
         "cost":0,
         "triggers":{
-            "effect":[
+            "enter":[
                 {"actions":[
-                    {"function":"protect","target":"team","amount":1}
+                    {"action":"protect","target":"team","amount":1}
+                ]}
+            ],
+            "timer": [
+                {"goal":10, "progress":0, "actions":[
+                    {"action":"finish","target":"self"}
+                ]}
+            ], 
+            "exit":[
+                {"actions":[
+                    {"action":"protect","target":"team","amount":-1}
+                ]}
+            ]
+        }
+    },
+
+    "bomb":{"stability":3,
+        "cost":10,
+        "triggers":{
+            "timer": [
+                {"goal":12, "progress":0, "actions":[
+                    {"action":"damage","target":"enemy_team","amount":3},
+                    {"action":"finish","target":"self"}
                 ]}
             ]
         }
@@ -16,16 +38,10 @@
         "triggers": {
             "timer": [
                 {"goal":2, "progress":0, "actions":[
-                    {"function":"destabilize","target":"random","amount":1}
+                    {"action":"destabilize","target":"across","amount":1}
                 ]},
                 {"goal":10, "progress":0, "actions":[
-                    {"function":"damage","target":"enemy_team","amount":3},
-                    {"function":"finish","target":"self"}
-                ]}
-            ], 
-            "enter": [
-                {"actions":[
-                    {"function":"destabilize","target":"random","amount":3}
+                    {"action":"finish","target":"self"}
                 ]}
             ]
         }
