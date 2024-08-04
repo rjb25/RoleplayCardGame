@@ -5,16 +5,10 @@ actionColors = {"damage":"rgba(255, 0, 0," + tr, "finish":"rgba(255, 255, 255," 
 var running = false;
 var target = 0;
 socketname = "visually-popular-iguana.ngrok-free.app";
-messagesContainer =   "#messages_container";
-situationsContainer = "#situations_container";
-goldContainer =       "#gold_container";
-menuContainer =       "#menu_container";
-inspectContainer =       "#inspect_container";
-healthContainer =     "#health_container";
 //These need to be variables
 buttonContainers = ["#situations_container", "#plans_container", "#cards_container"];
 buttonContainerNames = [enemy_team,my_team,"hand"];
-menuButtons = ["quit","remove_ai","reset_game","pause","add_ai_evil","add_ai_good","join_good","join_evil"];
+menuButtons = ["save_random_cards","add_random_card","quit","remove_ai","reset_game","pause","add_ai_evil","add_ai_good","join_good","join_evil"];
 //This is what you run if you want to reconnect to server
 //socketname = prompt("WebSocketURL no http://")
 const websocketClient = new WebSocket("wss://"+socketname);
@@ -91,7 +85,7 @@ function makeMenuButton(title) {
             window[title]();
         }
     };
-    fetch(menuContainer).appendChild(menuButton);
+    fetch("#menu_container").appendChild(menuButton);
 }
 function inspect(slot){
     cardButton = slot.querySelector('.card')
@@ -117,7 +111,7 @@ function inspect(slot){
                     });
                 });
             });
-            fetch(inspectContainer).innerHTML = infoText + triggersText ;
+            fetch("#inspect_container").innerHTML = infoText + triggersText ;
         }
     }
 }
@@ -129,7 +123,7 @@ function updateCardButton(cardButton,card){
     cost = cardButton.querySelector(".cost");
     if(card["location"] == "hand"){
         cost.innerHTML =  card["cost"];
-        mContainer = fetch(messagesContainer);
+        mContainer = fetch("#messages_container");
         if (mContainer.playerState && mContainer.playerState["gold"]){
             money = mContainer.playerState["gold"];
             if (card["cost"] > money){
@@ -300,21 +294,21 @@ document.addEventListener('DOMContentLoaded', function(){
             if("player_state" in messageJson){
                 //Myself
                 playerState = messageJson["player_state"]
-                mContainer = fetch(messagesContainer);
+                mContainer = fetch("#messages_container");
                 mContainer.playerState = playerState;
                 if ("gold" in playerState){
                     gold = playerState["gold"];
-                    fetch(goldContainer).innerHTML = "";
+                    fetch("#gold_container").innerHTML = "";
                     goldDiv = document.createElement("div");
                     goldDiv.innerHTML = "&#128176;" + gold;
-                    fetch(goldContainer).appendChild(goldDiv);
+                    fetch("#gold_container").appendChild(goldDiv);
                 }
             }
 
             if("teams_table" in messageJson){
                 teamState = messageJson["teams_table"][my_team];
                 enemyState = messageJson["teams_table"][enemy_team];
-                mContainer = fetch(messagesContainer);
+                mContainer = fetch("#messages_container");
                 mContainer.enemyState = enemyState;
                 mContainer.teamState = teamState;
                 //My team
@@ -322,7 +316,6 @@ document.addEventListener('DOMContentLoaded', function(){
                     messageText = teamState["text"];
                     messageDiv = document.createElement("div");
                     messageDiv.innerHTML = messageText;
-                    mContainer = fetch(messagesContainer)
                     mContainer.innerHTML = "";
                     mContainer.appendChild(messageDiv);
                 }
@@ -331,8 +324,8 @@ document.addEventListener('DOMContentLoaded', function(){
                     enemyText = enemyState["health"];
                     messageDiv = document.createElement("div");
                     messageDiv.innerHTML = "Ally &hearts;" + myText + ".    Enemy &hearts;" +enemyText;
-                    fetch(healthContainer).innerHTML = "";
-                    fetch(healthContainer).appendChild(messageDiv);
+                    fetch("#health_container").innerHTML = "";
+                    fetch("#health_container").appendChild(messageDiv);
                 }
 
             }

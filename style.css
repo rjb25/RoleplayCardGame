@@ -19,11 +19,17 @@
 }
 
 .slot:hover {
-  box-shadow: 0 8px 16px 0 rgba(0,0,0,0.5);
+  box-shadow: 0 8px 16px 0 rgba(0,0,0,0.6);
 }
 
+.row-container {
+  background-color: black;
+  margin: auto;
+}
 .card-container {
+  display: inline-block;
   background-color: DodgerBlue;
+  margin: auto;
 }
 .menu-container {
   background-color: DodgerBlue;

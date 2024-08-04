@@ -23,6 +23,12 @@
 #Fix higher cost for cards
 #rounded slots
 #TODO 
+#Make while triggers
+#Make the team a card, but in another sector
+#Change protect to add temporary health on a timer. Maybe a blue line below healthbar
+#Then a grey bar for flat armor below that?
+#Make a way to create cards from terminal
+#Make add random card a player menu function
 #Make more triggers and actions
 #Make a discard pile
 #Bots play to random open slot instead of 12345
@@ -130,7 +136,7 @@ def standard_trigger(card,event):
 def call_actions(card,action):
     function_name = action["action"]+"_action"
     arguments = resolve_argument_aliases(card,action)
-    print(function_name, action)
+    #print(function_name, action)
     globals()[function_name](card, arguments)
 
 def call_triggers(card,event_type):
@@ -176,20 +182,33 @@ def load(a):
     with open(a["file"]) as f:
             return json.load(f)
 
-#This is kind of a joke, but I want to see it play out so I can understand what I'm really doing system wise. How hard is it for a new person to make a card? Protect is confusing as is was a realization.
 #Make a version of this that allows the user to create a card from lists. Then randomization is simply choosing random options. Asks if you want to continue.
 #All options are integer based
 #Random card just chooses random integers and maybe continues, maybe does not.
 #If Auto random, else promptgg
-def random_card():
-    card = {}
+def create_random_card(card_name):
+    cards_table[card_name] = {}
+    card = cards_table[card_name]
     card["stability"] = random.randint(1,9)
     card["cost"] = random.randint(1,9)
-    random_table
-    return
+    card["triggers"] = {}
+    for x in range(random.randint(1,9)):
+        trigger, triggerData = random.choice(list(random_table["triggers"].items()))
+        card["triggers"][trigger] = create_random_trigger(triggerData)
+        print(trigger, triggerData)
+    return card
+
+def create_random_trigger(trigger):
+    if "goal" in trigger:
+        trigger["goal"] = random.randint(1,9)
+    if "progress" in trigger:
+        trigger["progress"] = random.randint(1,9)
+
+def create_random_actoin(action):
+    return "hey"
 
 #adventure_table = load({"file":"json/adventure.json"})
-random_table = load({"file":"json/decks.json"})
+random_table = load({"file":"json/random.json"})
 decks_table = load({"file":"json/decks.json"})
 cards_table = load({"file":"json/cards.json"})
 players_default = load({"file":"json/players.json"})
@@ -413,17 +432,18 @@ def get_unique_id():
     current_id += 1
     return current_id
 
+def get_unique_name():
+    cards_table["current_name"] += 1
+    return cards_table["current_name"]
+
 def refresh_card(card):
     baby_card = copy.deepcopy(cards_table[card["name"]])
     card["triggers"] = baby_card["triggers"]
     card["max_stability"] = baby_card["stability"]
     card["stability"] = baby_card["stability"]
 
-def initialize_card(card_name,username,random=""):
+def initialize_card(card_name,username):
     baby_card = {}
-    if random:
-        baby_card = random_card()
-        card_name = get_unique_id()
     baby_card = copy.deepcopy(cards_table[card_name])
     if not("title" in baby_card.keys()):
         baby_card["title"] = card_name
@@ -540,23 +560,23 @@ async def new_client_connected(client_socket, path):
     local_players_table[username] = {"socket":client_socket}
     await update_state(username)
 
-    try:
-        while True:
-            card_json_message = await client_socket.recv()
-            card_json = json.loads(card_json_message)
-            print("Client sent:", card_json)
-            if ("id" in card_json.keys()):
-                await handle_play(username,card_json)
-            if (card_json.get("command")):
-                globals()[card_json["command"]](username)
-                if card_json.get("command") == "quit":
-                    break;
+    #try:
+    while True:
+        card_json_message = await client_socket.recv()
+        card_json = json.loads(card_json_message)
+        print("Client sent:", card_json)
+        if ("id" in card_json.keys()):
+            await handle_play(username,card_json)
+        if (card_json.get("command")):
+            globals()[card_json["command"]](username)
+            if card_json.get("command") == "quit":
+                break;
 
-    except Exception as e:
-        print("Client quit:", username)
-        print(e)
-        del local_players_table[username]
-        del players_table[username]
+    #except Exception as e:
+    #    print("Client quit:", username)
+    #    print(e)
+    #    del local_players_table[username]
+    #    del players_table[username]
 
 def pause(username):
     print(username + " paused")
@@ -564,7 +584,15 @@ def pause(username):
         game_table["running"] = 0
     else:
         game_table["running"] = 1
+def add_random_card(username):
+    card_name = get_unique_name()
+    baby_card = create_random_card(card_name)
+    baby_card = initialize_card(card_name, username)
+    players_table[username]["deck"].append(baby_card)
 
+def save_random_cards(username):
+    with open('json/cards.json', 'w') as f:
+        json.dump(cards_table,f)
 
 def join_evil(username):
     print(username + " joined evil")
