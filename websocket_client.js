@@ -1,13 +1,16 @@
 my_team = "good";
 enemy_team = "evil";
+firstUpdate = 1;
 tr = " 0.7)";
-actionColors = {"damage":"rgba(255, 0, 0," + tr, "finish":"rgba(255, 255, 255," +tr, "destabilize":"rgba(100, 55, 55," +tr};
+actionColors = {"damage":"rgba(255, 0, 0," + tr, "finish":"rgba(255, 255, 255," +tr};
 var running = false;
 var target = 0;
 socketname = "visually-popular-iguana.ngrok-free.app";
 //These need to be variables
-buttonContainers = ["#situations_container", "#plans_container", "#cards_container"];
-buttonContainerNames = [enemy_team,my_team,"hand"];
+buttonContainers = ["#enemy_base_container","#situations_container", "#ally_base_container", "#plans_container", "#tent_container","#cards_container"];
+buttonContainerRegions = ["teams","teams","teams","teams","players","players"];
+buttonContainerLocations = ["base","board","base","board","tent","hand"];
+buttonContainerNames = [enemy_team,enemy_team,my_team,my_team,"me","me"];
 menuButtons = ["save_random_cards","add_random_card","quit","remove_ai","reset_game","pause","add_ai_evil","add_ai_good","join_good","join_evil"];
 //This is what you run if you want to reconnect to server
 //socketname = prompt("WebSocketURL no http://")
@@ -20,13 +23,13 @@ function join_good(){
     console.log("goodness")
     my_team = "good"
     enemy_team = "evil"
-    buttonContainerNames = [enemy_team,my_team,"hand"];
+    buttonContainerNames = [enemy_team,enemy_team,my_team,my_team,"me","me"];
 }
 function join_evil(){
     console.log("evilness")
     my_team = "evil"
     enemy_team = "good"
-    buttonContainerNames = [enemy_team,my_team,"hand"];
+    buttonContainerNames = [enemy_team,enemy_team,my_team,my_team,"me","me"];
 }
 function allowDrop(ev) {
   ev.preventDefault();
@@ -92,7 +95,7 @@ function inspect(slot){
     if(cardButton){
         card = cardButton.card;
         if(card){
-            infoText = "Health: " + card["stability"] + "<br>Cost:" + card["cost"] + "<br>";
+            infoText = "Health: " + card["health"] + "<br>Cost:" + card["cost"] + "<br>";
             
             triggersText = "";
             Object.entries(card["triggers"]).forEach(([triggerType,events]) => {
@@ -121,10 +124,14 @@ function updateCardButton(cardButton,card){
     cardCoinImage = cardButton.querySelector(".coin");
     skullImage = cardButton.querySelector(".skull");
     cost = cardButton.querySelector(".cost");
-    if(card["location"] == "hand"){
-        cost.innerHTML =  card["cost"];
+    if(card["location"] == "tent"){
+        bank = cardButton.querySelector(".bank");
+        bank.innerHTML = card["gold"];
+    }
+    if(card["location"] == "hand" && "cost" in card){
+        cost.innerHTML = card["cost"];
         mContainer = fetch("#messages_container");
-        if (mContainer.playerState && mContainer.playerState["gold"]){
+        if (mContainer.playerState){
             money = mContainer.playerState["gold"];
             if (card["cost"] > money){
                 cost.style.color = "crimson";
@@ -133,8 +140,7 @@ function updateCardButton(cardButton,card){
             }
         }
     } else {
-        //health.innerHTML = "&hearts;".repeat(Math.max(card["stability"],0));
-        percent = 100 * card["stability"] / card["max_stability"] ;
+        percent = 100 * card["health"] / card["max_health"] ;
         health.style.width = Math.max(percent,0) +"%";
         if (percent > 75){
             health.style.background = "rgba(0, 255, 0, 0.8)";
@@ -143,7 +149,9 @@ function updateCardButton(cardButton,card){
         } else if (percent > 0){
             health.style.background = "rgba(255, 0, 0, 0.8)";
         } else {
-            skullImage.style.display = "";
+            if(card["location"] != "tent"){
+                skullImage.style.display = "";
+            }
         }
 
         cost.innerHTML = "";
@@ -169,13 +177,14 @@ function updateCardButton(cardButton,card){
                 progressBar.style.width = percent +"%";
                 color = actionColors[firstAction["action"]];
                 if (!color){
-                    color = "black";
+                    color = "white";
                 }
                 progressBar.style.background = color;
             }
         });
     });
 }
+
 function generateCardButton(card){
     cardButton = document.createElement("div");
     cardButton.id = card["id"]
@@ -213,6 +222,18 @@ function generateCardButton(card){
     cardButton.appendChild(cost);
     cardButton.append(skullImage);
 
+    if (card["location"] == "tent"){
+        bank = document.createElement("p");
+        bank.classList.add("bank");
+        sackImage = new Image();
+        sackImage.classList.add("coin");
+        sackImage.src = "pics/" + "coin3.png";
+        sackImage.alt = "sack";
+        sackImage.draggable = false;
+        cardButton.appendChild(sackImage);
+        cardButton.appendChild(bank);
+    }
+
     Object.entries(card["triggers"]).forEach(([triggerType,events]) => {
         events.forEach((eventDict) => {
             if (eventDict["goal"]){
@@ -225,8 +246,9 @@ function generateCardButton(card){
     updateCardButton(cardButton,card);
     return cardButton;
 }
-function createSlots(container){
-    for (let i = 0; i < 5; i++){
+
+function createSlots(container, length){
+    for (let i = 0; i < length; i++){
         slot = document.createElement("div");
         slot.setAttribute("spot", i);
         slot.classList.add("slot");
@@ -235,12 +257,16 @@ function createSlots(container){
         slot.onclick = function(){
             inspect(this);
         };
-        fetch(container).append(slot);
+        container.append(slot);
     }
 }
 
-function updateSlots(container,messageJson,containerName){
-    newCards = messageJson[containerName];
+function updateSlots(container,messageJson, name, region, local){
+    newCards = []
+    if (name == "me"){
+        name = messageJson["me"]
+    }
+    newCards = messageJson["game_table"][region][name][local];
     newCards.forEach((newCard,i) => {
             slot = container.childNodes[i];
             oldCardButton = slot.querySelector(".card");
@@ -279,64 +305,49 @@ function fetch(id){
 
 document.addEventListener('DOMContentLoaded', function(){
     //HAVE A list of targets under an attack cards with the images of what's being targetted. Pulse green for good things red for bad targets.
-    changeBackground("black");
-    buttonContainers.forEach(createSlots);
-    menuButtons.forEach(makeMenuButton);
     websocketClient.onopen = function(){
         console.log("Client connected!");
         websocketClient.onmessage = function(message){
             messageJson = JSON.parse(message.data.replace(/'/g, '"'));
+            //console.log(messageJson);
+            if(firstUpdate){
+                changeBackground("black");
+                buttonContainers.forEach(function (container,index){ 
+                    region = buttonContainerRegions[index]
+                    name = buttonContainerNames[index]
+                    local = buttonContainerLocations[index]
+                    if (name == "me"){
+                        name = messageJson["me"]
+                    }
+                    length = messageJson["game_table"][region][name][local].length;
+                    createSlots(fetch(container),length);
+                });
+                menuButtons.forEach(makeMenuButton);
+                firstUpdate = 0;
+            }
             //console.log(JSON.stringify(messageJson));
             buttonContainers.forEach(function (container,index){ 
-                updateSlots(fetch(container),messageJson,buttonContainerNames[index]);
+                updateSlots(fetch(container),messageJson,buttonContainerNames[index],buttonContainerRegions[index],buttonContainerLocations[index]);
             });
 
-            if("player_state" in messageJson){
-                //Myself
-                playerState = messageJson["player_state"]
-                mContainer = fetch("#messages_container");
-                mContainer.playerState = playerState;
-                if ("gold" in playerState){
-                    gold = playerState["gold"];
-                    fetch("#gold_container").innerHTML = "";
-                    goldDiv = document.createElement("div");
-                    goldDiv.innerHTML = "&#128176;" + gold;
-                    fetch("#gold_container").appendChild(goldDiv);
-                }
-            }
+            //Myself
+            gameState = messageJson["game_table"]
+            teamsState = gameState["teams"]
+            me = messageJson["me"];
+            mContainer = fetch("#messages_container");
+            mContainer.message = messageJson;
+            playerState = gameState["players"][me]["tent"][0];
+            mContainer.playerState = playerState
 
-            if("teams_table" in messageJson){
-                teamState = messageJson["teams_table"][my_team];
-                enemyState = messageJson["teams_table"][enemy_team];
-                mContainer = fetch("#messages_container");
-                mContainer.enemyState = enemyState;
-                mContainer.teamState = teamState;
-                //My team
-                if("text" in teamState){
-                    messageText = teamState["text"];
-                    messageDiv = document.createElement("div");
-                    messageDiv.innerHTML = messageText;
-                    mContainer.innerHTML = "";
-                    mContainer.appendChild(messageDiv);
-                }
-                if("health" in teamState){
-                    myText = teamState["health"];
-                    enemyText = enemyState["health"];
-                    messageDiv = document.createElement("div");
-                    messageDiv.innerHTML = "Ally &hearts;" + myText + ".    Enemy &hearts;" +enemyText;
-                    fetch("#health_container").innerHTML = "";
-                    fetch("#health_container").appendChild(messageDiv);
-                }
-
+            messageText = gameState["text"][my_team];
+            if(messageText){
+                mContainer.innerHTML = messageText;
             }
-            if("game_table" in messageJson){
-                gameTable = messageJson["game_table"];
-                running = gameTable["running"];
-                if (running) {
-                    changeBackground("black");
-                } else {
-                    changeBackground("red");
-                }
+            running = gameState["running"];
+            if (running) {
+                changeBackground("black");
+            } else {
+                changeBackground("red");
             }
         };
     };

@@ -3,5 +3,6 @@
     "gold_limit":50,
     "hand":[0,0,0,0,0],
     "deck":[],
-    "discard":[]
+    "discard":[],
+    "tent":[0]
 }

@@ -22,18 +22,23 @@
 #Red text if you don't have the money
 #Fix higher cost for cards
 #rounded slots
-#TODO 
-#Make while triggers
+#Hard refactor targetting so that Name = actual card
+#refactor data so all I need to push is game state
+#Add zones for tent and base so cards can target them just like they would other cards
+#Update javascript to match new zones
 #Make the team a card, but in another sector
+#TODO 
+#Make while triggers, maybe they add something something in a pre tick. The "effect" section is then wiped on tick cleanup
 #Change protect to add temporary health on a timer. Maybe a blue line below healthbar
 #Then a grey bar for flat armor below that?
 #Make a way to create cards from terminal
 #Make add random card a player menu function
 #Make more triggers and actions
 #Make a discard pile
+#prevent replace card so players don't step on toes
 #Bots play to random open slot instead of 12345
 #Make a team health bar near you and on their side for them
-#Make you money bar closer to you
+#Make you money bar closer to you on the player icon
 #TODO maybe
 #Create random cards and allow them to be saved off if good
 #TODO SCENARIOS / Bot loadouts. Tutorial bot. Bots sequence on defeat, checks player list for name+1 also contains message relevant to bot
@@ -74,7 +79,6 @@ import traceback
 from functools import reduce
 from operator import getitem
 from collections import defaultdict
-import pprint
 import tkinter as tk
 import argparse
 import re
@@ -82,64 +86,77 @@ import shlex
 import copy
 import time
 from itertools import takewhile
-#ACTIONS
-def destabilize_action(card, arguments):
-    target = arguments["target"]
-    amount = arguments["amount"]
-    if target:
-        target["stability"] -= amount
+def log(*words):
+    for word in words:
+        print(word)
 
-def finish_action(card, arguments):
-    move(card,"discard")
+def play_action(target,action,card=0):
+    username = target["owner"]
+    owner = owner_card(username)
+    if owner["gold"] >= target["cost"]:
+        game_table["running"] = 1
+        owner["gold"] -= target["cost"]
+        move(target,"board",action["to"])
+        call_triggers(target, "enter")
 
-def money_action(card, arguments):
-    target = arguments["target"]
-    amount = arguments["amount"]
-    income(amount,target)
+def discard_action(target, action = 0, card = 0):
+    move(target,"discard")
 
-def draw_action(card, arguments):
-    target = arguments["target"]
-    amount = arguments["amount"]
-    draw(amount,target)
+def income_action(target, action, card = 0):
+    target["gold"] += action["amount"]
+    target["gold"] = max(0, target["gold"])
+    target["gold"] = min(target["gold_limit"], target["gold"])
 
-def time_action(card, arguments):
-    target = arguments["target"]
-    amount = arguments["amount"]
-    teams_table[target]["time"] += amount
+def draw_action(target, action = 0, card = 0):
+    player_data = players_table[target["owner"]]
+    deck = player_data["deck"]
+    player_discard = player_data["discard"]
+    hand = player_data["hand"]
+    empty_hand_index = get_empty_index(hand)
+    if not (empty_hand_index is None):
+        move(target,"hand",empty_hand_index)
+    if len(deck) <= 0:
+        for discarded in player_discard:
+            move(discarded,"deck")
+        random.shuffle(deck)
 
-def damage_action(card, arguments):
-    target = arguments["target"]
-    amount = arguments["amount"]
-    apply_damage(target,amount)
+def damage_action(target, action, card = 0):
+    target["health"] -= action["amount"]
 
-def protect_action(card, arguments):
-    target = arguments["target"]
-    amount = arguments["amount"]
-    teams_table[target]["armor"] += amount
+def protect_action(target, action, card = 0):
+    target["armor"] += action["amount"]
+
+def find_triggers_with_action_name(card, action):
+    triggers = []
+    for trigger in card["triggers"]:
+        for action in trigger["actions"]:
+            if "action_name" == action["action"]:
+                triggers.append(trigger)
+                continue
 
 #TRIGGERS
 #Could make this a general progress trigger that gets passed an amount eventually
-def timer_trigger(card,timer):
+def timer_trigger(card, timer):
     seconds_passed = timer.get("progress")
     if timer["progress"] >= timer["goal"]:
         timer["progress"] -= timer["goal"]
         for action in timer["actions"]:
-            call_actions(card,action)
+            call_action(action, card)
     #The change comes after so the client gets a chance to see the progress
     timer["progress"] += tick_rate()
 
-def standard_trigger(card,event):
+def standard_trigger(card, event):
     for action in event["actions"]:
-        call_actions(card,action)
+        call_action(action, card)
 
 #CORE
-def call_actions(card,action):
+def call_action(action, card = 0):
     function_name = action["action"]+"_action"
-    arguments = resolve_argument_aliases(card,action)
-    #print(function_name, action)
-    globals()[function_name](card, arguments)
+    targets = targetting(action["target"], card)
+    for target in targets:
+        globals()[function_name](target, action, card)
 
-def call_triggers(card,event_type):
+def call_triggers(card, event_type):
     events = card["triggers"].get(event_type)
     if events:
         for event in events:
@@ -149,33 +166,116 @@ def call_triggers(card,event_type):
             else:
                 standard_trigger(card, event)
 
-def resolve_argument_aliases(card,argus):
-    #TODO need a copy function here so UI isn't messed up
-    arguments = copy.deepcopy(argus)
-    owner = card["owner"]
-    arguments["owner"] = owner
-    team = card["team"]
-    enemy_team = get_enemy_team(team)
-    arguments["team"] = card["team"]
-    target = arguments["target"]
-    enemy_board = teams_table[enemy_team]["board"]
-    my_board = teams_table[team]["board"]
-    if target == "self":
-        arguments["target"] = owner
-    elif target == "team":
-        arguments["target"] = team
-    elif target == "enemy_team":
-        arguments["target"] = enemy_team
-    elif target == "random":
-        arguments["target"] = random.choice(enemy_board)
-    elif target == "across":
-        arguments["target"] = enemy_board[card["index"]]
-    return arguments
+#Kind of messy, but it at least puts all the messy in one place
+def targetting(target, card = 0):
+    if not isinstance(target, list):
+        target_aliases = [target]
+    else:
+        target_aliases = target
+
+    paths = []
+    for target_alias in target_aliases:
+        if target_alias == "self":
+            who = ""
+            if card["location"] in ["base","board"]:
+                who = card["team"]
+            else:
+                who = card["owner"]
+            paths.append({"location":card["location"],"who":who,"index":card["index"]})
+
+        elif target_alias == "allies":
+            for player, player_data in players_table.items():
+                if player_data["team"] == card["team"]:
+                    paths.append({"location":"tent","who":player})
+
+        elif target_alias == "enemies":
+            for player in players_table.keys():
+                if player_data["team"] != card["team"]:
+                    paths.append({"location":"tent","who":player})
+
+        elif target_alias == "ally_base":
+            for team in teams_table.keys():
+                if team == card["team"]:
+                    paths.append({"location":"base","who":team})
+
+        elif target_alias == "enemy_base":
+            for team in teams_table.keys():
+                if team != card["team"]:
+                    paths.append({"location":"base","who":team})
+
+        elif target_alias == "team-decks":
+            for player, player_data in players_table.items():
+                if player_data["team"] == card["team"]:
+                    paths.append({"location":"deck","who":player,"index":-1})
+
+        elif target_alias == "my-deck":
+            paths.append({"location":"deck","who":card["owner"],"index":-1})
+
+        elif target_alias == "my-deck3":
+            paths.append({"location":"deck","who":card["owner"],"index":[-1,-2,-3]})
+
+        elif target_alias == "random":
+            for team in teams_table.keys():
+                if team != card["team"]:
+                    paths.append({"location":"board","who":team})
+
+        elif target_alias == "across":
+            for team in teams_table.keys():
+                if team != card["team"]:
+                    paths.append({"location":card["location"],"who":team,"index":card["index"]})
+
+    for path in paths:
+        if path["location"] in ["board","base"]:
+            path["region"] = "teams"
+        else:
+            path["region"] = "players"
+
+    targets = []
+    for path in paths:
+        try:
+            if "index" in path:
+                indices = []
+                #If index is not a list make it a list
+                if not isinstance(path["index"], list):
+                    indices = [path["index"]]
+                else:
+                    indices = path["index"]
+                for index in indices:
+                    target = game_table[path["region"]][path["who"]][path["location"]][index]
+                    if target:
+                        targets.append(target)
+            else:
+                target = random.choice(game_table[path["region"]][path["who"]][path["location"]])
+                if target:
+                    targets.append(target)
+        except KeyError:
+            pass
+        except IndexError:
+            print("INDEX ERROR")
+            print(path)
+            print(target)
+            print(card)
+            pass
+    return targets
+
+#Ultimately this is a card in spot simulator. location, who, index. All have their aliases.
+#These aliases could  have selection logic and multiples
+#This reaches full code level complexity don't make me put this in the data
+#So targetting for team draw 2 is {"location":"deck","who":{},"index":{"count":"random3","insert":"random"}}
+#But this is good.
+#So Aliases generate a list
+#Random all would be. Well you really wouldn't do random location. so it would be random person and random index at worst
+#This selection logic and multiples leads to a list of [{"location":"hand","who":"jason","index":2}]
+#So do we need 2 functions? Or just one. I think just one. Just pass the alias all the way down?
+#Each section has an alias which is resolved when retrieved.
+#Ultimately what I need is a list of endpoints
+#Problem is it could have randomization or multiple
+#target list is the result
+#resolved during call_actions
 
 #Maybe make this an action?
 def kill_card(card):
     move(card,"discard")
-
 
 #JSON
 def load(a):
@@ -189,13 +289,12 @@ def load(a):
 def create_random_card(card_name):
     cards_table[card_name] = {}
     card = cards_table[card_name]
-    card["stability"] = random.randint(1,9)
+    card["health"] = random.randint(1,9)
     card["cost"] = random.randint(1,9)
     card["triggers"] = {}
     for x in range(random.randint(1,9)):
         trigger, triggerData = random.choice(list(random_table["triggers"].items()))
         card["triggers"][trigger] = create_random_trigger(triggerData)
-        print(trigger, triggerData)
     return card
 
 def create_random_trigger(trigger):
@@ -204,49 +303,43 @@ def create_random_trigger(trigger):
     if "progress" in trigger:
         trigger["progress"] = random.randint(1,9)
 
-def create_random_actoin(action):
+def create_random_action(action):
     return "hey"
 
-#adventure_table = load({"file":"json/adventure.json"})
+#GLOBALS
 random_table = load({"file":"json/random.json"})
 decks_table = load({"file":"json/decks.json"})
 cards_table = load({"file":"json/cards.json"})
 players_default = load({"file":"json/players.json"})
 team_default = load({"file":"json/teams.json"})
-teams_table = {}
 teams_list = ["good","evil"]
-game_table = {"tick_duration":0.5,"tick_value":1,"running":0, "loser":""}
-players_table = {}
+game_table = load({"file":"json/game.json"})
+teams_table = game_table["teams"]
+players_table = game_table["players"]
 local_players_table = {}
-#COMMUNICATIONS
-#adventure = "intro"
 current_id = 1
-message_queue = {}
-loser = ""
-log_message = {}
-player_percents = []
-
-def log(action):
-    target = action["owner"]
-    amount = int(action["amount"])
-    action = action["action"]
-    log = {target:Counter({action:amount})}
-    merge(log_message, log, strategy=Strategy.ADDITIVE)
 
 def saveBattle():
         with open('json/decks.json', 'w') as f:
             json.dump(decks_table,f)
 
+def apply_damage(team, damage):
+    teams_table[team]["health"] -= max(damage - teams_table[team]["armor"], 0)
+    if teams_table[team]["health"] <= 0 and (not loser):
+        #Make this a lose game function
+        game_table["loser"] = team
+        reset_state()
 
-
-def remove_broken_cards(team_data):
-    cards = team_data["board"]
+def remove_broken_cards(cards):
     for card in cards:
         if card:
-            if card["stability"] <= 0:
-                kill_card(card)
-
-
+            if card["health"] <= 0:
+                loser = game_table["loser"]
+                if card["location"] == "base" and (not loser):
+                    game_table["loser"] = card["team"]
+                    reset_state()
+                else:
+                    kill_card(card)
 
 def get_card_index(board):
     for index, card in enumerate(board):
@@ -259,51 +352,6 @@ def get_empty_index(board):
         if not card:
             return index
     return None
-
-#Flow hand to board
-def play_card(card,card_index):
-    username = card["owner"]
-    if players_table[username]["gold"] >= card["cost"]:
-        game_table["running"] = 1
-        players_table[username]["gold"] -= card["cost"]
-        #TODO replace with index targetting
-        #TODO make index targetting smart to go to an opening after you play a card or go to index 1 if all full. This way targetting is clear and can be manual if you want
-        move(card,"board",card_index)
-        #Team set here so you can play against yourself
-        call_triggers(card, "enter")
-
-#Flow deck to hand
-#Flow of discard to deck
-def deal(username):
-    player_data = players_table[username]
-    deck = player_data["deck"]
-    player_discard = player_data["discard"]
-    hand = player_data["hand"]
-    if len(deck) <= 0:
-        for card in player_discard:
-            move(card,"deck")
-        random.shuffle(deck)
-    empty_hand_index = get_empty_index(hand)
-    if len(deck) > 0 and empty_hand_index is not None:
-        card = deck[-1]
-        move(card,"hand",empty_hand_index)
-
-def discard(username):
-    player_data = players_table[username]
-    hand = player_data["hand"]
-    card_index = get_card_index(hand)
-    if card_index is not None:
-        card = hand[card_index]
-        move(card,"discard")
-
-def draw(count, target):
-    usernames = get_targets(target)
-    for username in usernames:
-        for i in range(abs(count)):
-            if count < 0:
-                discard(username)
-            else:
-                deal(username)
 
 #Back bone of flow
 def move(card, to, index = -1):
@@ -331,10 +379,10 @@ def move(card, to, index = -1):
             if card in player_data[card_location]:
                 player_data[card_location].remove(card)
             else:
-                print("SOMETHING ELSE MOVED THE CARD SOMEHOW")
-                print(card)
-                print(to)
-                print(index)
+                log("SOMETHING ELSE MOVED THE CARD SOMEHOW")
+                log(card)
+                log(to)
+                log(index)
 
     card["location"] = to
     card["index"] = index
@@ -342,31 +390,33 @@ def move(card, to, index = -1):
     if to == "discard":
         refresh_card(card)
 
-def board_tick():
+def location_tick():
     for team, team_data in teams_table.items():
-        for card in team_data["board"]:
-            if card:
-                call_triggers(card,"timer")
+        for location, location_data in team_data.items():
+            for card in location_data:
+                if card:
+                    call_triggers(card,"timer")
 
 async def tick():
     while True:
         await asyncio.sleep(game_table["tick_duration"])
         if game_table.get("reset"):
             game_table["reset"] = 0
-            await update_state()
+            await update_state(local_players_table.keys())
         if game_table["running"]:
             for player in list(players_table):
                 if players_table.get(player).get("quit"):
                     del players_table[player]
-            board_tick()
-            team_tick()
+            location_tick()
             ai_tick()
-            await update_state()
+            await update_state(local_players_table.keys())
             #Done here so that the client gets full states
             for team, team_data in teams_table.items():
-                remove_broken_cards(team_data)
+                for location, cards in team_data.items():
+                    remove_broken_cards(cards)
+
 def remove_quit_players(team_data):
-            del players_table[player]
+    del players_table[player]
 
 def tick_rate():
     return game_table["tick_duration"]*game_table["tick_value"]
@@ -385,46 +435,31 @@ def ai_tick():
             card_to_index = get_empty_index(get_board(player))
             if card_from_index is not None and card_to_index is not None:
                 card = hand[card_from_index]
-                play_card(card,card_to_index)
-
-def team_tick():
-    for team, team_data in teams_table.items():
-        team_data["income_timer"] += tick_rate()
-        team_data["draw_timer"] += tick_rate()
-        #overdraw needed for if the timer loops
-        if team_data["draw_timer"] >= team_data["draw_seconds"]:
-            team_data["draw_timer"] -= team_data["draw_seconds"]
-            draw(1,team)
-        if team_data["income_timer"] >= team_data["income_seconds"]:
-            team_data["income_timer"] -= team_data["income_seconds"]
-            income(1,team)
-
+                play_action(card, {"to":card_to_index})
 
 def reset_teams():
     for team in list(teams_table.keys()):
         initialize_team(team)
 
 def initialize_team(team):
-    teams_table[team] = copy.deepcopy(team_default)
-    team_data = teams_table[team]
-    team_data["income_timer"] = 0
-    team_data["draw_timer"] = 0
+    game_table["teams"][team] = copy.deepcopy(team_default)
+    #Need to add a card to base
+    game_table["teams"][team]["base"][0] = initialize_card(team, "", "base",team)
 
 def initialize_teams(teams):
     for team in teams:
         initialize_team(team)
 
 def reset_state():
-    global loser
     reset_teams()
     for username in list(players_table.keys()):
         load_deck(username)
-        draw(3,username)
+        call_action({"action":"draw", "target":"my-deck3"},{"owner":username})
+    loser = game_table["loser"]
+    game_table["text"][loser] = "Defeat... &#x2639;"
+    game_table["text"][get_enemy_team(loser)] = "Victory! &#128512;"
+    game_table["loser"] = ""
 
-    teams_table[loser]["text"] = "Defeat... &#x2639;"
-    teams_table[get_enemy_team(loser)]["text"] = "Victory! &#128512;"
-
-    loser = ""
     game_table["reset"] = 1
 
 def get_unique_id():
@@ -437,22 +472,31 @@ def get_unique_name():
     return cards_table["current_name"]
 
 def refresh_card(card):
-    baby_card = copy.deepcopy(cards_table[card["name"]])
-    card["triggers"] = baby_card["triggers"]
-    card["max_stability"] = baby_card["stability"]
-    card["stability"] = baby_card["stability"]
+    try:
+        baby_card = copy.deepcopy(cards_table[card["name"]])
+        card["triggers"] = baby_card["triggers"]
+        card["max_health"] = baby_card["health"]
+        card["health"] = baby_card["health"]
+    except KeyError:
+        pass
 
-def initialize_card(card_name,username):
+def initialize_card(card_name,username="",location="deck",team=""):
     baby_card = {}
     baby_card = copy.deepcopy(cards_table[card_name])
     if not("title" in baby_card.keys()):
         baby_card["title"] = card_name
     baby_card["name"] = card_name
-    baby_card["owner"] = username
+    if username:
+        baby_card["owner"] = username
     baby_card["id"] = get_unique_id()
-    baby_card["location"] = "deck"
+    baby_card["location"] = location
+    if team:
+        baby_card["team"] = team
+    else:
+        baby_card["team"] = get_team(username)
     refresh_card(baby_card)
     return baby_card
+
 #Need an add card
 def load_deck(username,deck_type="beginner"):
     players_table[username].update(copy.deepcopy(players_default))
@@ -464,57 +508,26 @@ def load_deck(username,deck_type="beginner"):
         deck.append(baby_card)
     players_table[username]["deck"] = deck
     players_table[username]["discard"] = []
+    players_table[username]["tent"][0] = initialize_card("player", username, "tent")
 
-def get_targets(target = ""):
-    if isinstance(target, list):
-        return target
-    target_list = []
-    #Target team
-    if is_team(target):
-        for player in list(players_table.keys()):
-            if target == get_team(player):
-                target_list.append(player)
-    #target player
-    elif target in list(players_table.keys()):
-        target_list.append(target)
-    #target everyone
-    else:
-        for player in list(players_table.keys()):
-            target_list.append(player)
-    return target_list
 
 def is_team(target = ""):
     if target in list(teams_table.keys()):
         return True
 
-def income(count, target):
-    usernames = get_targets(target)
-    for username in usernames:
-        players_table[username]["gold"] += count
-        players_table[username]["gold"] = max(0, players_table[username]["gold"])
-        players_table[username]["gold"] = min(players_table[username]["gold_limit"], players_table[username]["gold"])
+async def update_state(players):
+    for player in players:
+        if player in local_players_table:
+            await local_players_table[player]["socket"].send(str({"game_table":game_table,"me":player}))
 
-def apply_damage(team, damage):
-    teams_table[team]["health"] -= max(damage - teams_table[team]["armor"], 0)
-    global loser
-    if teams_table[team]["health"] <= 0 and (not loser):
-        #Make this a lose game function
-        loser = team
-        reset_state()
+def strip_keys_copy(keys, table):
+    copied_table = copy.deepcopy(table)
+    for key in keys:
+        copied_table.pop(key, None)
 
-async def release_message():
-    global message_queue
-    for username in list(message_queue.keys()):
-        if local_players_table.get(username):
-            await local_players_table[username]["socket"].send(str(message_queue[username]))
-    message_queue = {}
-
-def queue_message(message, target = "", method = Strategy.REPLACE):
-    global message_queue
-    target_list = get_targets(target)
-    for player in target_list:
-        message_queue.setdefault(player,{})
-        merge(message_queue[player], message, strategy = method)
+#ACTIONS
+def owner_card(owner):
+    return game_table["players"][owner]["tent"][0]
 
 def get_team(username):
     return players_table[username]["team"]
@@ -530,24 +543,6 @@ def get_enemy_team(team):
 
 def initialize_time():
     timer_handle = asyncio.create_task(tick())
-    
-def strip_keys_copy(keys, table):
-    copied_table = copy.deepcopy(table)
-    for key in keys:
-        copied_table.pop(key, None)
-
-async def update_state(targets = ""):
-    strip = ["deck","discard","socket","team"]
-    strip_keys_copy(strip, players_table)
-    queue_message({"game_table":game_table},targets)
-    queue_message({"teams_table":teams_table},targets)
-    queue_message({"evil":teams_table["evil"]["board"]},targets)
-    queue_message({"good":teams_table["good"]["board"]},targets)
-    target_list = get_targets(targets)
-    for player in target_list:
-        queue_message({"player_state":players_table[player]},player)
-        queue_message({"hand":players_table[player]["hand"]},player)
-    await release_message()
 
 def card_from(card_id, cards):
     for card in cards:
@@ -558,28 +553,29 @@ def card_from(card_id, cards):
 async def new_client_connected(client_socket, path):
     username = add_player("good", 0)
     local_players_table[username] = {"socket":client_socket}
-    await update_state(username)
+    await update_state([username])
 
     #try:
     while True:
         card_json_message = await client_socket.recv()
         card_json = json.loads(card_json_message)
-        print("Client sent:", card_json)
+        log("Client sent:", card_json)
         if ("id" in card_json.keys()):
             await handle_play(username,card_json)
         if (card_json.get("command")):
             globals()[card_json["command"]](username)
             if card_json.get("command") == "quit":
                 break;
+            await update_state(local_players_table.keys())
 
     #except Exception as e:
-    #    print("Client quit:", username)
-    #    print(e)
+    #    log("Client quit:", username)
+    #    log(e)
     #    del local_players_table[username]
     #    del players_table[username]
 
 def pause(username):
-    print(username + " paused")
+    log(username + " paused")
     if game_table["running"]:
         game_table["running"] = 0
     else:
@@ -595,16 +591,15 @@ def save_random_cards(username):
         json.dump(cards_table,f)
 
 def join_evil(username):
-    print(username + " joined evil")
+    log(username + " joined evil")
     players_table[username]["team"] = "evil"
 
 def join_good(username):
-    print(username + " joined good")
+    log(username + " joined good")
     players_table[username]["team"] = "good"
 
 def reset_game(username):
-    global loser
-    loser = "good"
+    game_table["loser"] = "good"
     reset_state()
 
 def add_ai_evil(username):
@@ -624,28 +619,26 @@ def remove_ai(username):
 
 def add_player(team,ai):
     username = "player" + str(get_unique_id())
-    print("Player Added: "+username)
+    log("Player Added: "+username)
     players_table[username] = {"team":team,"ai":ai}
     load_deck(username)
-    draw(3,username)
+    call_action({"action":"draw", "target":"my-deck3"},{"owner":username})
     return username
 
 async def handle_play(username,card_json):
     team = get_team(username)
     card_id = int(card_json["id"])
     card_index = int(card_json["index"])
-    #Get card from id
     card = card_from(card_id, players_table[username]["hand"])
-    print(card_json)
     if card:
-        play_card(card,card_index)
+        play_action(card,{"to":card_index})
 
-    await update_state()
+    await update_state(local_players_table.keys())
 
 async def start_server():
-    print("Server started!")
-    initialize_time()
+    log("Server started!")
     initialize_teams(teams_list)
+    initialize_time()
     await websockets.serve(new_client_connected, "localhost", 12345)
 
 if __name__ == '__main__':

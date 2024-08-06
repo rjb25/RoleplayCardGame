@@ -1,48 +1,71 @@
 {
     "current_name": 0,
-    "shield":{"stability":3,
+    "shield":{"health":3,
         "cost":0,
         "triggers":{
-            "enter":[
-                {"actions":[
-                    {"action":"protect","target":"team","amount":1}
-                ]}
-            ],
             "timer": [
                 {"goal":10, "progress":0, "actions":[
-                    {"action":"finish","target":"self"}
-                ]}
-            ], 
-            "exit":[
-                {"actions":[
-                    {"action":"protect","target":"team","amount":-1}
+                    {"action":"discard","target":"self"}
                 ]}
             ]
         }
     },
 
-    "bomb":{"stability":3,
+    "bomb":{"health":3,
         "cost":10,
         "triggers":{
             "timer": [
-                {"goal":12, "progress":0, "actions":[
-                    {"action":"damage","target":"enemy_team","amount":3},
-                    {"action":"finish","target":"self"}
+                {"goal":1, "progress":0, "actions":[
+                    {"action":"damage","target":"enemy_base","amount":3},
+                    {"action":"discard","target":"self"}
                 ]}
             ]
         }
     },
 
     "attack":{
-        "stability":3,
+        "health":3,
         "cost":4,
         "triggers": {
             "timer": [
                 {"goal":2, "progress":0, "actions":[
-                    {"action":"destabilize","target":"across","amount":1}
+                    {"action":"damage","target":"across","amount":1}
                 ]},
                 {"goal":10, "progress":0, "actions":[
-                    {"action":"finish","target":"self"}
+                    {"action":"discard","target":"self"}
+                ]}
+            ]
+        }
+    },
+    "player":{
+        "gold":10,
+        "gold_limit":50,
+        "triggers":{}
+    },
+    "good":{
+        "health":10,
+        "cost":0,
+        "triggers": {
+            "timer": [
+                {"goal":1, "progress":0, "actions":[
+                    {"action":"income","target":"allies","amount":1}
+                ]},
+                {"goal":1, "progress":0, "actions":[
+                    {"action":"draw","target":"team-decks", "amount":1}
+                ]}
+            ]
+        }
+    },
+    "evil":{
+        "health":3,
+        "cost":0,
+        "triggers": {
+            "timer": [
+                {"goal":1, "progress":0, "actions":[
+                    {"action":"income","target":"allies","amount":1}
+                ]},
+                {"goal":5, "progress":0, "actions":[
+                    {"action":"draw","target":"team-decks", "amount":1}
                 ]}
             ]
         }

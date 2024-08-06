@@ -1,4 +1,9 @@
 {
-    "evil":{"base":[0],"board":[0,0,0,0,0],"lightning":[0]},
-    "good":{"base":[0],"board":[0,0,0,0,0],"lightning":[0]}
+    "teams":{},
+    "tick_duration":0.5,
+    "tick_value":1,
+    "running":0, 
+    "loser":"",
+    "players":{},
+    "text":{}
 }

@@ -23,7 +23,7 @@
         "protect":{"amount":"random","target":["team"],"not-target":""},
         "destabilize":{"amount":"random","target":["random","self","across"],"not-target":""},
         "damage":{"amount":"random","target":["team"],"not-target":""},
-        "finish":{"amount":"random","target":["self"],"not-target":""}
+        "discard":{"amount":"random","target":["self"],"not-target":""}
     },
     "targets":["random","team","self","enemy_team","across"]
 }
