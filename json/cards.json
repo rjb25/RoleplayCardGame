@@ -7,6 +7,11 @@
                 {"goal":10, "progress":0, "actions":[
                     {"action":"discard","target":"self"}
                 ]}
+            ],
+            "effect": [
+                {"actions":[
+                    {"action":"protect","target":"ally_base","amount":1}
+                ]}
             ]
         }
     },
@@ -15,7 +20,7 @@
         "cost":10,
         "triggers":{
             "timer": [
-                {"goal":1, "progress":0, "actions":[
+                {"goal":12, "progress":0, "actions":[
                     {"action":"damage","target":"enemy_base","amount":3},
                     {"action":"discard","target":"self"}
                 ]}
@@ -37,6 +42,46 @@
             ]
         }
     },
+    "loot":{
+        "health":3,
+        "cost":4,
+        "triggers": {
+            "timer": [
+                {"goal":2, "progress":0, "actions":[
+                    {"action":"damage","target":"across","amount":1}
+                ]},
+                {"goal":10, "progress":0, "actions":[
+                    {"action":"damage","target":"enemy_base","amount":3},
+                    {"action":"discard","target":"self"}
+                ]}
+            ],
+            "enter": [
+                {"actions":[
+                    {"action":"income","target":"enemies","amount":-1}
+                ]}
+            ]
+        }
+    },
+    "draw":{
+        "health":3,
+        "cost":4,
+        "triggers": {
+            "timer": [
+                {"goal":2, "progress":0, "actions":[
+                    {"action":"draw","target":"my_deck","targs":{"amount":2}}
+                ]},
+                {"goal":10, "progress":0, "actions":[
+                    {"action":"damage","target":"enemy_base","amount":3},
+                    {"action":"discard","target":"self"}
+                ]}
+            ],
+            "enter": [
+                {"actions":[
+                    {"action":"income","target":"enemies","amount":-1}
+                ]}
+            ]
+        }
+    },
     "player":{
         "gold":10,
         "gold_limit":50,
@@ -50,14 +95,14 @@
                 {"goal":1, "progress":0, "actions":[
                     {"action":"income","target":"allies","amount":1}
                 ]},
-                {"goal":1, "progress":0, "actions":[
-                    {"action":"draw","target":"team-decks", "amount":1}
+                {"goal":5, "progress":0, "actions":[
+                    {"action":"draw","target":"team_decks", "amount":1}
                 ]}
             ]
         }
     },
     "evil":{
-        "health":3,
+        "health":10,
         "cost":0,
         "triggers": {
             "timer": [
@@ -65,7 +110,7 @@
                     {"action":"income","target":"allies","amount":1}
                 ]},
                 {"goal":5, "progress":0, "actions":[
-                    {"action":"draw","target":"team-decks", "amount":1}
+                    {"action":"draw","target":"team_decks", "amount":1}
                 ]}
             ]
         }

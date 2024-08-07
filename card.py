@@ -28,6 +28,7 @@
 #Update javascript to match new zones
 #Make the team a card, but in another sector
 #TODO 
+#Fix effects
 #Make while triggers, maybe they add something something in a pre tick. The "effect" section is then wiped on tick cleanup
 #Change protect to add temporary health on a timer. Maybe a blue line below healthbar
 #Then a grey bar for flat armor below that?
@@ -115,16 +116,26 @@ def draw_action(target, action = 0, card = 0):
     empty_hand_index = get_empty_index(hand)
     if not (empty_hand_index is None):
         move(target,"hand",empty_hand_index)
+    #Reshuffle if deck empty
     if len(deck) <= 0:
         for discarded in player_discard:
             move(discarded,"deck")
         random.shuffle(deck)
 
 def damage_action(target, action, card = 0):
-    target["health"] -= action["amount"]
+    damage = action["amount"] 
+    try:
+        damage = max(0, damage - target["effects"]["armor"])
+    except KeyError:
+        print("no armor")
+        pass
+    target["health"] -= damage
 
 def protect_action(target, action, card = 0):
-    target["armor"] += action["amount"]
+    if target["effects"].get("armor"):
+        target["effects"]["armor"] += action["amount"]
+    else:
+        target["effects"]["armor"] = action["amount"]
 
 def find_triggers_with_action_name(card, action):
     triggers = []
@@ -203,15 +214,15 @@ def targetting(target, card = 0):
                 if team != card["team"]:
                     paths.append({"location":"base","who":team})
 
-        elif target_alias == "team-decks":
+        elif target_alias == "team_decks":
             for player, player_data in players_table.items():
                 if player_data["team"] == card["team"]:
                     paths.append({"location":"deck","who":player,"index":-1})
 
-        elif target_alias == "my-deck":
+        elif target_alias == "my_deck":
             paths.append({"location":"deck","who":card["owner"],"index":-1})
 
-        elif target_alias == "my-deck3":
+        elif target_alias == "my_deck3":
             paths.append({"location":"deck","who":card["owner"],"index":[-1,-2,-3]})
 
         elif target_alias == "random":
@@ -249,6 +260,10 @@ def targetting(target, card = 0):
                 if target:
                     targets.append(target)
         except KeyError:
+            print("KEY ERROR")
+            print(path)
+            print(target)
+            print(card)
             pass
         except IndexError:
             print("INDEX ERROR")
@@ -333,6 +348,7 @@ def apply_damage(team, damage):
 def remove_broken_cards(cards):
     for card in cards:
         if card:
+            card["effects"] = {}
             if card["health"] <= 0:
                 loser = game_table["loser"]
                 if card["location"] == "base" and (not loser):
@@ -397,6 +413,13 @@ def location_tick():
                 if card:
                     call_triggers(card,"timer")
 
+def effect_tick():
+    for team, team_data in teams_table.items():
+        for location, location_data in team_data.items():
+            for card in location_data:
+                if card:
+                    call_triggers(card,"effect")
+
 async def tick():
     while True:
         await asyncio.sleep(game_table["tick_duration"])
@@ -407,6 +430,7 @@ async def tick():
             for player in list(players_table):
                 if players_table.get(player).get("quit"):
                     del players_table[player]
+            effect_tick()
             location_tick()
             ai_tick()
             await update_state(local_players_table.keys())
@@ -454,7 +478,7 @@ def reset_state():
     reset_teams()
     for username in list(players_table.keys()):
         load_deck(username)
-        call_action({"action":"draw", "target":"my-deck3"},{"owner":username})
+        call_action({"action":"draw", "target":"my_deck3"},{"owner":username})
     loser = game_table["loser"]
     game_table["text"][loser] = "Defeat... &#x2639;"
     game_table["text"][get_enemy_team(loser)] = "Victory! &#128512;"
@@ -475,6 +499,7 @@ def refresh_card(card):
     try:
         baby_card = copy.deepcopy(cards_table[card["name"]])
         card["triggers"] = baby_card["triggers"]
+        card["effects"] = {}
         card["max_health"] = baby_card["health"]
         card["health"] = baby_card["health"]
     except KeyError:
@@ -622,7 +647,7 @@ def add_player(team,ai):
     log("Player Added: "+username)
     players_table[username] = {"team":team,"ai":ai}
     load_deck(username)
-    call_action({"action":"draw", "target":"my-deck3"},{"owner":username})
+    call_action({"action":"draw", "target":"my_deck3"},{"owner":username})
     return username
 
 async def handle_play(username,card_json):
