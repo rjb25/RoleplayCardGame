@@ -27,6 +27,7 @@
 #Add zones for tent and base so cards can target them just like they would other cards
 #Update javascript to match new zones
 #Make the team a card, but in another sector
+#TODO WARN DEAR GOD DO NOT REFACTOR IN A WAY THAT IS NOT BITE SIZED EVER AGAIN
 #TODO 
 #Fix effects
 #Make while triggers, maybe they add something something in a pre tick. The "effect" section is then wiped on tick cleanup
@@ -87,9 +88,31 @@ import shlex
 import copy
 import time
 from itertools import takewhile
-def log(*words):
-    for word in words:
-        print(word)
+#TRIGGERS
+#Could make this a general progress trigger that gets passed an amount eventually
+def timer_trigger(timer, card = 0):
+    seconds_passed = timer.get("progress")
+    print(timer)
+    if timer["progress"] >= timer["goal"]:
+        timer["progress"] -= timer["goal"]
+        for action in timer["actions"]:
+            call_action(action, card)
+    #The change comes after so the client gets a chance to see the progress
+    timer["progress"] += tick_rate()
+
+def standard_trigger(event, card = 0):
+    for action in event["actions"]:
+        call_action(action, card)
+
+#ACTIONS
+def standard_action(target,action,card=0):
+    try:
+        targets = call_target(action["target"],card)
+        for target in targets:
+            target[action["function"]] += action["amount"]
+    except KeyError:
+        print("Failed standard action")
+        pass
 
 def play_action(target,action,card=0):
     username = target["owner"]
@@ -109,18 +132,19 @@ def income_action(target, action, card = 0):
     target["gold"] = min(target["gold_limit"], target["gold"])
 
 def draw_action(target, action = 0, card = 0):
-    player_data = players_table[target["owner"]]
+    player_data = players_table[card["owner"]]
     deck = player_data["deck"]
     player_discard = player_data["discard"]
     hand = player_data["hand"]
-    empty_hand_index = get_empty_index(hand)
-    if not (empty_hand_index is None):
-        move(target,"hand",empty_hand_index)
-    #Reshuffle if deck empty
-    if len(deck) <= 0:
-        for discarded in player_discard:
-            move(discarded,"deck")
-        random.shuffle(deck)
+    for i in range(action["amount"]):
+        empty_hand_index = get_empty_index(hand)
+        if not (empty_hand_index is None):
+            move(deck[-1],"hand",empty_hand_index)
+        #Reshuffle if deck empty
+        if len(deck) <= 0:
+            for discarded in player_discard:
+                move(discarded,"deck")
+            random.shuffle(deck)
 
 def damage_action(target, action, card = 0):
     damage = action["amount"] 
@@ -137,104 +161,15 @@ def protect_action(target, action, card = 0):
     else:
         target["effects"]["armor"] = action["amount"]
 
-def find_triggers_with_action_name(card, action):
-    triggers = []
-    for trigger in card["triggers"]:
-        for action in trigger["actions"]:
-            if "action_name" == action["action"]:
-                triggers.append(trigger)
-                continue
-
-#TRIGGERS
-#Could make this a general progress trigger that gets passed an amount eventually
-def timer_trigger(card, timer):
-    seconds_passed = timer.get("progress")
-    if timer["progress"] >= timer["goal"]:
-        timer["progress"] -= timer["goal"]
-        for action in timer["actions"]:
-            call_action(action, card)
-    #The change comes after so the client gets a chance to see the progress
-    timer["progress"] += tick_rate()
-
-def standard_trigger(card, event):
-    for action in event["actions"]:
-        call_action(action, card)
-
-#CORE
-def call_action(action, card = 0):
-    function_name = action["action"]+"_action"
-    targets = targetting(action["target"], card)
-    for target in targets:
-        globals()[function_name](target, action, card)
-
-def call_triggers(card, event_type):
-    events = card["triggers"].get(event_type)
-    if events:
-        for event in events:
-            function_name = event_type + "_trigger";
-            if function_name in globals():
-                globals()[function_name](card, event)
-            else:
-                standard_trigger(card, event)
-
-#Kind of messy, but it at least puts all the messy in one place
-def targetting(target, card = 0):
-    if not isinstance(target, list):
-        target_aliases = [target]
-    else:
-        target_aliases = target
-
+#TARGETS
+def allies_target(card):
     paths = []
-    for target_alias in target_aliases:
-        if target_alias == "self":
-            who = ""
-            if card["location"] in ["base","board"]:
-                who = card["team"]
-            else:
-                who = card["owner"]
-            paths.append({"location":card["location"],"who":who,"index":card["index"]})
+    for player, player_data in players_table.items():
+        if player_data["team"] == card["team"]:
+            paths.append({"location":"tent","who":player})
+    return seek(paths)
 
-        elif target_alias == "allies":
-            for player, player_data in players_table.items():
-                if player_data["team"] == card["team"]:
-                    paths.append({"location":"tent","who":player})
-
-        elif target_alias == "enemies":
-            for player in players_table.keys():
-                if player_data["team"] != card["team"]:
-                    paths.append({"location":"tent","who":player})
-
-        elif target_alias == "ally_base":
-            for team in teams_table.keys():
-                if team == card["team"]:
-                    paths.append({"location":"base","who":team})
-
-        elif target_alias == "enemy_base":
-            for team in teams_table.keys():
-                if team != card["team"]:
-                    paths.append({"location":"base","who":team})
-
-        elif target_alias == "team_decks":
-            for player, player_data in players_table.items():
-                if player_data["team"] == card["team"]:
-                    paths.append({"location":"deck","who":player,"index":-1})
-
-        elif target_alias == "my_deck":
-            paths.append({"location":"deck","who":card["owner"],"index":-1})
-
-        elif target_alias == "my_deck3":
-            paths.append({"location":"deck","who":card["owner"],"index":[-1,-2,-3]})
-
-        elif target_alias == "random":
-            for team in teams_table.keys():
-                if team != card["team"]:
-                    paths.append({"location":"board","who":team})
-
-        elif target_alias == "across":
-            for team in teams_table.keys():
-                if team != card["team"]:
-                    paths.append({"location":card["location"],"who":team,"index":card["index"]})
-
+def seek(paths):
     for path in paths:
         if path["location"] in ["board","base"]:
             path["region"] = "teams"
@@ -272,6 +207,93 @@ def targetting(target, card = 0):
             print(card)
             pass
     return targets
+
+def targetting(action, card = 0):
+    paths = []
+    target = action["target"]
+    #This is how I would handle other targetting types. Finally you can also just add special-target: etc and pass that on as needed. Targetting is where things need to get messy. Just use all the methods
+    specific = action.get("specific")
+    paths.append(specfic)
+    if not isinstance(target, list):
+        target_aliases = [target]
+    else:
+        target_aliases = target
+
+    for target_alias in target_aliases:
+        if target_alias == "self":
+            paths.append(card)
+
+        elif target_alias == "allies":
+            for player, player_data in players_table.items():
+                if player_data["team"] == card["team"]:
+                    paths.append({"location":"tent","who":player})
+
+        elif target_alias == "enemies":
+            for player in players_table.keys():
+                if player_data["team"] != card["team"]:
+                    paths.append({"location":"tent","who":player})
+
+        elif target_alias == "ally_base":
+            for team in teams_table.keys():
+                if team == card["team"]:
+                    paths.append({"location":"base","who":team})
+
+        elif target_alias == "enemy_base":
+            for team in teams_table.keys():
+                if team != card["team"]:
+                    paths.append({"location":"base","who":team})
+
+        elif target_alias == "team_decks":
+            for player, player_data in players_table.items():
+                if player_data["team"] == card["team"]:
+                    paths.append({"location":"deck","who":player,"index":-1})
+
+        elif target_alias == "my_deck":
+            paths.append({"location":"deck","who":card["owner"],"index":-1})
+
+        elif target_alias == "my_deck2":
+            #These should really be functions unto themselves with arguments
+            paths.append({"location":"deck","who":card["owner"],"index":[-1,-2]})
+
+        elif target_alias == "my_deck3":
+            paths.append({"location":"deck","who":card["owner"],"index":[-1,-2,-3]})
+
+        elif target_alias == "random":
+            for team in teams_table.keys():
+                if team != card["team"]:
+                    paths.append({"location":"board","who":team})
+
+        elif target_alias == "across":
+            for team in teams_table.keys():
+                if team != card["team"]:
+                    paths.append({"location":card["location"],"who":team,"index":card["index"]})
+
+    return seek(paths)
+
+#CORE
+def call_triggers(card, event_type):
+    events = card["triggers"].get(event_type)
+    if events:
+        for event in events:
+            function_name = event_type + "_trigger";
+            if function_name in globals():
+                globals()[function_name](event, card)
+            else:
+                standard_trigger(event, card)
+
+def call_action(action, card):
+    function_name = action["action"]+"_action"
+    if action.get("target"):
+        targets = targetting(action["target"], card)
+        for target in targets:
+            globals()[function_name](target, action, card)
+    else:
+            globals()[function_name](0, action, card)
+
+#I'm reconsidering targetting as something that is merely passed to the action as information so the coding can happen "Last minute" to remain flexible
+def call_target(target,card = 0):
+    function_name = target+"_target"
+    globals()[function_name](target, card)
 
 #Ultimately this is a card in spot simulator. location, who, index. All have their aliases.
 #These aliases could  have selection logic and multiples
@@ -478,7 +500,7 @@ def reset_state():
     reset_teams()
     for username in list(players_table.keys()):
         load_deck(username)
-        call_action({"action":"draw", "target":"my_deck3"},{"owner":username})
+        draw_action(0,{"amount":3},{"owner":username})
     loser = game_table["loser"]
     game_table["text"][loser] = "Defeat... &#x2639;"
     game_table["text"][get_enemy_team(loser)] = "Victory! &#128512;"
@@ -550,9 +572,17 @@ def strip_keys_copy(keys, table):
     for key in keys:
         copied_table.pop(key, None)
 
-#ACTIONS
 def owner_card(owner):
     return game_table["players"][owner]["tent"][0]
+
+def find_triggers_with_action_name(card, action):
+    triggers = []
+    for trigger in card["triggers"]:
+        for action in trigger["actions"]:
+            if "action_name" == action["action"]:
+                triggers.append(trigger)
+                continue
+
 
 def get_team(username):
     return players_table[username]["team"]
@@ -647,8 +677,14 @@ def add_player(team,ai):
     log("Player Added: "+username)
     players_table[username] = {"team":team,"ai":ai}
     load_deck(username)
-    call_action({"action":"draw", "target":"my_deck3"},{"owner":username})
+    draw_action(0,{"amount":3},{"owner":username})
     return username
+
+def log(*words):
+    for word in words:
+        print(word)
+
+
 
 async def handle_play(username,card_json):
     team = get_team(username)
