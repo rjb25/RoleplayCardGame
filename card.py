@@ -30,6 +30,7 @@
 #TODO WARN DEAR GOD DO NOT REFACTOR IN A WAY THAT IS NOT BITE SIZED EVER AGAIN
 #TODO 
 #Fix effects
+#Have a random card shop as a rare reward. With end game cards expected to come from random draws.
 #Make while triggers, maybe they add something something in a pre tick. The "effect" section is then wiped on tick cleanup
 #Change protect to add temporary health on a timer. Maybe a blue line below healthbar
 #Then a grey bar for flat armor below that?
@@ -90,7 +91,7 @@ import time
 from itertools import takewhile
 #TRIGGERS
 #Could make this a general progress trigger that gets passed an amount eventually
-def timer_trigger(timer, card = 0):
+def timer_trigger(timer, card):
     seconds_passed = timer.get("progress")
     print(timer)
     if timer["progress"] >= timer["goal"]:
@@ -100,84 +101,266 @@ def timer_trigger(timer, card = 0):
     #The change comes after so the client gets a chance to see the progress
     timer["progress"] += tick_rate()
 
-def standard_trigger(event, card = 0):
+def standard_trigger(event, card):
     for action in event["actions"]:
         call_action(action, card)
 
-#ACTIONS
-def standard_action(target,action,card=0):
-    try:
-        targets = call_target(action["target"],card)
-        for target in targets:
-            target[action["function"]] += action["amount"]
-    except KeyError:
-        print("Failed standard action")
-        pass
+def play_action(action,card):
+    #How do I handle default target here?
+    targets = targetting(action, card)
+    seek(preseek(
+    for target in targets:
+        username = target["owner"]
+        owner = owner_card(username)
+        if owner["gold"] >= target["cost"]:
+            game_table["running"] = 1
+            owner["gold"] -= target["cost"]
+            move(target,"board",action["to"])
+            #This should really just be in move
+            call_triggers(target, "enter")
+            #This should really just be in move. Could have a trigger for purchase
+            #This function is actually a combo ov value action, logic, and move action. As such it should call the other actions to keep code dry
 
-def play_action(target,action,card=0):
-    username = target["owner"]
-    owner = owner_card(username)
-    if owner["gold"] >= target["cost"]:
-        game_table["running"] = 1
-        owner["gold"] -= target["cost"]
-        move(target,"board",action["to"])
-        call_triggers(target, "enter")
+def discard_action(action, card):
+    targets = targetting(action, card)
+    for target in targets:
+        move(target,"discard")
 
-def discard_action(target, action = 0, card = 0):
-    move(target,"discard")
+def income_action(action, card):
+    targets = targetting(action, card)
+    for target in targets:
+        target["gold"] += action["amount"]
+        target["gold"] = max(0, target["gold"])
+        target["gold"] = min(target["gold_limit"], target["gold"])
+#MAIN FUNCTIONS:
+#Effect action, type as parameter, with duration amount etc as parameters
+#Play action
+#Move action
+#Value action, with certain values having checks they run. Like if gold, check gold_limit. If health, check armor effect. Any value check resist effect. If any of these values apply this effect etc. One change function for math values.
+#If a card spawns other cards, that is a different story
+#Play action would call value action with the amount
+#Play is really just play
 
-def income_action(target, action, card = 0):
-    target["gold"] += action["amount"]
-    target["gold"] = max(0, target["gold"])
-    target["gold"] = min(target["gold_limit"], target["gold"])
-
-def draw_action(target, action = 0, card = 0):
+def draw_action(action, card):
+    #refactor this so it's actually targetting the top card
+    #need a standard target
+    #TAKE ADVANTAGE OF LAST MINUTE TARGETTING for default target
+    #targets = targetting(action, card)
+    #for target in targets:
     player_data = players_table[card["owner"]]
     deck = player_data["deck"]
     player_discard = player_data["discard"]
     hand = player_data["hand"]
     for i in range(action["amount"]):
+        targets = []
+        if not action.get("target"):
+        #Maybe have index be a reduce function.
+        #Layered targetting. Target 1, target 2. Then defaults on those.
+        #Whos
+        #Locations
+        #Indexes
+        #For Whos a 
+        #Damage function. Index "card" reduce.
+        #draw function. Locations deck, discard
+        #target 1. Locations deck, discard. Whos many players. index first 3 
+        #What do you run the reduce on. All the players and locations squished. Like most expensive card play to field. Or play all most expensive cards to field. If you put ally-deck in location it puts all ally decks into a list. You could pull from this list the highest card. Or you could pull from
+        #target 2. Index "empty" reduce.
+        #Location can have
+        #Do not do the whole alias thing, just write full targetting for every card then have defaults. Still do the whole alias thing. If you need to change it in the future it means less to change.
+        #For draw
+        #Ally-decks is a location that would populate
+        #target1 {"who":["Nemesis,Friend"], "where":["deck"], "how", "which"}
+        #Who returns a couple dicts based on an alias. Checking both teams and players.
+        #Who [{[][][][]},{[][][][]},{[][][][]},{[][][][]}]
+        #Where [{[]},{[]},{},{[],[]}]
+        #How [[]]
+        #Which [x,y]
+        #Target runs who where how which on action and card. leaving input available to action if desired.
+            #for section in how(where(who(targets))):
+                #which(section)
+                #Do not return a list of cards, return a list of how to find the cards.
+                #Then run execute. You could run execute after if you wanted them to see the selected first.
+                #Building a shopping list
+        #Where returns all sections from all dicts if they contain that section.
+        #Just have who and where be lists containing items or lists
+        #That way the action knows to split if it wants. Call reduce on each generated list. That is a section of targetting. Removes the need for how.
+        #Add handling for location list and who list, as well as nested lists. Add reduce instead of index. Reduce args.
+        #This provides a target list or series of lists and items.
+        #Do I actually need things like damage now? Since draw just turned into move
+            action["target"] = {"location":"deck","who":"card","index":-1}            
+        targets = targetting(action, card)
+        for target in targets:
+            empty_hand_index = get_empty_index(hand)
+            if not (empty_hand_index is None):
+                move(target,"hand",empty_hand_index)
+            if len(deck) <= 0:
+                for discarded in player_discard:
+                    move(discarded,"deck")
+                random.shuffle(deck)
+            #Reshuffle if deck empty
+
+def drew_action(action, card):
+    targets = targetting(action, card)
+    for target in targets:
         empty_hand_index = get_empty_index(hand)
         if not (empty_hand_index is None):
-            move(deck[-1],"hand",empty_hand_index)
-        #Reshuffle if deck empty
-        if len(deck) <= 0:
-            for discarded in player_discard:
-                move(discarded,"deck")
-            random.shuffle(deck)
+            move(target,"hand",empty_hand_index)
 
-def damage_action(target, action, card = 0):
-    damage = action["amount"] 
-    try:
-        damage = max(0, damage - target["effects"]["armor"])
-    except KeyError:
-        print("no armor")
-        pass
-    target["health"] -= damage
+def damage_action(action, card):
+    targets = targetting(action, card)
+    for target in targets:
+        damage = action["amount"] 
+        try:
+            damage = max(0, damage - target["effects"]["armor"])
+        except KeyError:
+            print("no armor")
+            pass
+        target["health"] -= damage
 
-def protect_action(target, action, card = 0):
-    if target["effects"].get("armor"):
-        target["effects"]["armor"] += action["amount"]
-    else:
-        target["effects"]["armor"] = action["amount"]
+def protect_action(action, card):
+    targets = targetting(action, card)
+    for target in targets:
+        if target["effects"].get("armor"):
+            target["effects"]["armor"] += action["amount"]
+        else:
+            target["effects"]["armor"] = action["amount"]
 
 #TARGETS
-def allies_target(card):
-    paths = []
-    for player, player_data in players_table.items():
-        if player_data["team"] == card["team"]:
-            paths.append({"location":"tent","who":player})
-    return seek(paths)
+#Targetting layers are functions that are named and accept parameters
+#Functions like deck 3
+#I need a standard target for each action
+#Need multiple and nested methods of targetting.
+#If you ever need to add args, just add them as a part of the action with the same name like allies_args. Then string fetch them.
 
-def seek(paths):
-    for path in paths:
+#Layers of targetting. Action defaults like draw where 
+#Make a dictionary of paths
+#Action default location, who and index
+#If you don't want default specify.
+
+#May want to have access to all 3 of these steps in actions to optimize. Looking at draw, you could preseek once
+def lookup_seek():
+    for card, card_data in cards_table.items():
+        if action.get("triggers"):
+            for trigger, trigger_data in card_data["triggers"].items():
+                if trigger.get("actions"):
+                    for action in trigger["actions"]:
+                        targets = action["target"]
+                        if not isinstance(targets, list):
+                            targets = [targets]
+                        paths = []
+                        for target in targets:
+                            if type(target) == str:
+                                #This is not meant to be here TODO Move to seek
+                                paths.append(targets_table[target])
+                            elif type(target) == dict:
+                                paths.append(target)
+                            else:
+                               log("OOPSY target isn't string or dict") 
+                               log(target) 
+                        action["target"] = paths
+
+def bak_lookup_seek(action, card):
+    target_aliases = ""
+    if action.get("target"):
+        target = action["target"]
+
+        if not isinstance(target, list):
+            target_aliases = [target]
+        else:
+            target_aliases = target
+        
+        paths = []
+        for target_alias in target_aliases:
+            if type(target_alias) == str:
+                if target_alias == "self":
+                    paths.append(card)
+                else:
+                    paths.append(targets_table[target_alias])
+            elif type(target_alias) == dict:
+                paths.append(target_alias)
+            else:
+               log("OOPSY target isn't string or dict") 
+               log(target_alias) 
+
+        return seek(pre_seek(paths))
+
+def weakest_reduce():
+    #This could accept a list of targets, then return the one with the least health, so you have target which is a list of cards, then you have reduce which picks from those cards. Gives you a target weakest, or target weakest enemy.
+    return
+
+#Many possible locations, board and hand for full discard. Many whos Many locations. You need a who for each location. Have a targetting dict. Which reduce is a dict. containing a function name.
+#This all as opposed to having the actions themselves just do all the shit. Including targetting. Would mean an action for every new target type.
+#Worst case I can still do things like that.
+#
+def pre_seek(action, card):
+    new_paths = []
+    #4 things result in a card: region, who, location, index
+    #but 4 is derived from 3 since region and who are sort of the same
+    #targetting will be a dictionary lookup if it's a keyword. Or directly a location,who,index. Plus a reduce if desired.
+    for path in action["target"]:
+        if path.get("title"):
+            new_paths.append(path)
+            continue
+        if path.get("index") && path["index"] == "card":
+            path["index"] = card["index"]
+        if path["location"] == "card":
+            path["location"] = card["location"]
         if path["location"] in ["board","base"]:
             path["region"] = "teams"
         else:
             path["region"] = "players"
+        if path["who"] == "enemy":
+            if path["region"] == "teams":
+                for team in teams_table.keys():
+                    new_path = path.copy()
+                    if team != card["team"]:
+                        new_path["who"] = team
+                        new_paths.append(new_path)
+            elif path["region"] == "players":
+                for player in players_table.keys():
+                    new_path = path.copy()
+                    if player_data["team"] != card["team"]:
+                        new_path["who"] = player
+                        new_paths.append(new_path)
+        elif path["who"] == "ally":
+            if path["region"] == "teams":
+                for team in teams_table.keys():
+                    new_path = path.copy()
+                    if team == card["team"]:
+                        new_path["who"] = team
+                        new_paths.append(new_path)
+            elif path["region"] == "players":
+                for player in players_table.keys():
+                    new_path = path.copy()
+                    if player_data["team"] == card["team"]:
+                        new_path["who"] = player
+                        new_paths.append(new_path)
+        elif path["who"] == "all":
+            if path["region"] == "teams":
+                for team in teams_table.keys():
+                    new_path = path.copy()
+                    new_path["who"] = team
+                    new_paths.append(new_path)
+            elif path["region"] == "players":
+                for player in players_table.keys():
+                    new_path = path.copy()
+                    new_path["who"] = player
+                    new_paths.append(new_path)
+        if path["who"] == "card":
+            if path["region"] == "players":
+                path["who"] == card["owner"]
+            elif path["region"] == "teams":
+                path["who"] == card["team"]
+        else:
+            new_path["who"] = path["who"]
+    return new_paths
 
+def seek(paths):
+    #Check if path is a card
     targets = []
     for path in paths:
+        if path.get("title"):
+            continue
         try:
             if "index" in path:
                 indices = []
@@ -197,78 +380,12 @@ def seek(paths):
         except KeyError:
             print("KEY ERROR")
             print(path)
-            print(target)
-            print(card)
             pass
         except IndexError:
             print("INDEX ERROR")
             print(path)
-            print(target)
-            print(card)
             pass
     return targets
-
-def targetting(action, card = 0):
-    paths = []
-    target = action["target"]
-    #This is how I would handle other targetting types. Finally you can also just add special-target: etc and pass that on as needed. Targetting is where things need to get messy. Just use all the methods
-    specific = action.get("specific")
-    paths.append(specfic)
-    if not isinstance(target, list):
-        target_aliases = [target]
-    else:
-        target_aliases = target
-
-    for target_alias in target_aliases:
-        if target_alias == "self":
-            paths.append(card)
-
-        elif target_alias == "allies":
-            for player, player_data in players_table.items():
-                if player_data["team"] == card["team"]:
-                    paths.append({"location":"tent","who":player})
-
-        elif target_alias == "enemies":
-            for player in players_table.keys():
-                if player_data["team"] != card["team"]:
-                    paths.append({"location":"tent","who":player})
-
-        elif target_alias == "ally_base":
-            for team in teams_table.keys():
-                if team == card["team"]:
-                    paths.append({"location":"base","who":team})
-
-        elif target_alias == "enemy_base":
-            for team in teams_table.keys():
-                if team != card["team"]:
-                    paths.append({"location":"base","who":team})
-
-        elif target_alias == "team_decks":
-            for player, player_data in players_table.items():
-                if player_data["team"] == card["team"]:
-                    paths.append({"location":"deck","who":player,"index":-1})
-
-        elif target_alias == "my_deck":
-            paths.append({"location":"deck","who":card["owner"],"index":-1})
-
-        elif target_alias == "my_deck2":
-            #These should really be functions unto themselves with arguments
-            paths.append({"location":"deck","who":card["owner"],"index":[-1,-2]})
-
-        elif target_alias == "my_deck3":
-            paths.append({"location":"deck","who":card["owner"],"index":[-1,-2,-3]})
-
-        elif target_alias == "random":
-            for team in teams_table.keys():
-                if team != card["team"]:
-                    paths.append({"location":"board","who":team})
-
-        elif target_alias == "across":
-            for team in teams_table.keys():
-                if team != card["team"]:
-                    paths.append({"location":card["location"],"who":team,"index":card["index"]})
-
-    return seek(paths)
 
 #CORE
 def call_triggers(card, event_type):
@@ -283,17 +400,8 @@ def call_triggers(card, event_type):
 
 def call_action(action, card):
     function_name = action["action"]+"_action"
-    if action.get("target"):
-        targets = targetting(action["target"], card)
-        for target in targets:
-            globals()[function_name](target, action, card)
-    else:
-            globals()[function_name](0, action, card)
+    globals()[function_name](action, card)
 
-#I'm reconsidering targetting as something that is merely passed to the action as information so the coding can happen "Last minute" to remain flexible
-def call_target(target,card = 0):
-    function_name = target+"_target"
-    globals()[function_name](target, card)
 
 #Ultimately this is a card in spot simulator. location, who, index. All have their aliases.
 #These aliases could  have selection logic and multiples
@@ -347,6 +455,8 @@ def create_random_action(action):
 random_table = load({"file":"json/random.json"})
 decks_table = load({"file":"json/decks.json"})
 cards_table = load({"file":"json/cards.json"})
+targets_table = load({"file":"json/targets.json"})
+lookup_seek(cards_table)
 players_default = load({"file":"json/players.json"})
 team_default = load({"file":"json/teams.json"})
 teams_list = ["good","evil"]
@@ -359,25 +469,6 @@ current_id = 1
 def saveBattle():
         with open('json/decks.json', 'w') as f:
             json.dump(decks_table,f)
-
-def apply_damage(team, damage):
-    teams_table[team]["health"] -= max(damage - teams_table[team]["armor"], 0)
-    if teams_table[team]["health"] <= 0 and (not loser):
-        #Make this a lose game function
-        game_table["loser"] = team
-        reset_state()
-
-def remove_broken_cards(cards):
-    for card in cards:
-        if card:
-            card["effects"] = {}
-            if card["health"] <= 0:
-                loser = game_table["loser"]
-                if card["location"] == "base" and (not loser):
-                    game_table["loser"] = card["team"]
-                    reset_state()
-                else:
-                    kill_card(card)
 
 def get_card_index(board):
     for index, card in enumerate(board):
@@ -392,6 +483,8 @@ def get_empty_index(board):
     return None
 
 #Back bone of flow
+#If index not specified gind empty index
+#Move action will look for a destination paramater much like amount.
 def move(card, to, index = -1):
     card_owner = card["owner"]
     card_location = card["location"]
@@ -412,6 +505,13 @@ def move(card, to, index = -1):
     elif card_location == "hand":
         if player_data:
             player_data[card_location][card["index"]] = 0
+    elif card_location == "deck":
+        deck = player_data["deck"]
+        player_discard = player_data["discard"]
+        if len(deck) <= 0:
+            for discarded in player_discard:
+                move(discarded,"deck")
+            random.shuffle(deck)
     else:
         if player_data:
             if card in player_data[card_location]:
@@ -435,12 +535,47 @@ def location_tick():
                 if card:
                     call_triggers(card,"timer")
 
+#Effect tick is really a pre tick.
+        #An effect can be applied to a card that is not in play, but it shouldn't be an effect with expiration tick.
+        #Effects are a list of dicts with expirations.
+        #Get effect looks for all entries of that type.
+        #I want to get all items by expiration for fast removal
+        #Or all items by type for fast reading.
+        #[{"effect":"armor", "duration":"tick", "amount":1, "type":"sum"}]
+        #Get effect, calls all the effects in a list
+        #Could just do : {"armor":[[1,"tick"]]}
+        #You could just have effect apply, then simply on move of the card that is causing effect remove effect. But then where is that list stored. In effected? How do you know which one to remove? You could simply give a pointer out, then on move remove the pointer.
 def effect_tick():
     for team, team_data in teams_table.items():
         for location, location_data in team_data.items():
             for card in location_data:
                 if card:
                     call_triggers(card,"effect")
+
+#Cleanup is really just a post tick.
+def cleanup_tick():
+    for team, team_data in teams_table.items():
+        for location, cards in team_data.items():
+            for card in cards:
+                if card:
+                    card["effects"] = {}
+                    if card["health"] <= 0:
+                        loser = game_table["loser"]
+                        if card["location"] == "base" and (not loser):
+                            game_table["loser"] = card["team"]
+                            reset_state()
+                        else:
+                            kill_card(card)
+
+def ai_tick():
+    for player, player_data in players_table.items():
+        if player_data["ai"]:
+            hand = player_data["hand"]
+            card_from_index = get_card_index(hand)
+            card_to_index = get_empty_index(get_board(player))
+            if card_from_index is not None and card_to_index is not None:
+                card = hand[card_from_index]
+                play_action(card, {"to":card_to_index})
 
 async def tick():
     while True:
@@ -452,14 +587,12 @@ async def tick():
             for player in list(players_table):
                 if players_table.get(player).get("quit"):
                     del players_table[player]
+            #Effects happen first since they are things that are removeable. They are added at start, removed at end
             effect_tick()
             location_tick()
             ai_tick()
             await update_state(local_players_table.keys())
-            #Done here so that the client gets full states
-            for team, team_data in teams_table.items():
-                for location, cards in team_data.items():
-                    remove_broken_cards(cards)
+            cleanup_tick()
 
 def remove_quit_players(team_data):
     del players_table[player]
@@ -473,15 +606,6 @@ def safe_get(l, idx, default=0):
     except IndexError: 
         return default
 
-def ai_tick():
-    for player, player_data in players_table.items():
-        if player_data["ai"]:
-            hand = player_data["hand"]
-            card_from_index = get_card_index(hand)
-            card_to_index = get_empty_index(get_board(player))
-            if card_from_index is not None and card_to_index is not None:
-                card = hand[card_from_index]
-                play_action(card, {"to":card_to_index})
 
 def reset_teams():
     for team in list(teams_table.keys()):
@@ -500,7 +624,7 @@ def reset_state():
     reset_teams()
     for username in list(players_table.keys()):
         load_deck(username)
-        draw_action(0,{"amount":3},{"owner":username})
+        draw_action({"amount":3},{"owner":username})
     loser = game_table["loser"]
     game_table["text"][loser] = "Defeat... &#x2639;"
     game_table["text"][get_enemy_team(loser)] = "Victory! &#128512;"
@@ -677,7 +801,7 @@ def add_player(team,ai):
     log("Player Added: "+username)
     players_table[username] = {"team":team,"ai":ai}
     load_deck(username)
-    draw_action(0,{"amount":3},{"owner":username})
+    draw_action({"amount":3},{"owner":username})
     return username
 
 def log(*words):
