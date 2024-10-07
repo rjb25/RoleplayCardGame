@@ -96,7 +96,7 @@
                     {"action":"income","target":"allies","amount":1}
                 ]},
                 {"goal":5, "progress":0, "actions":[
-                    {"action":"draw","target":"team_decks", "amount":1}
+                    {"action":"draw", "amount":1}
                 ]}
             ]
         }

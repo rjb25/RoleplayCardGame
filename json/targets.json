@@ -1,0 +1,7 @@
+{
+    "enemy_base":{"locations":["base"],"entities":["enemy"]},
+    "across":{"locations":["card"],"who":["enemy"],"index":"card"},
+    "self":{"location":["card"],"who":["card"],"index":"card"},
+    "allies":{"location":["tent"],"who":["ally"]},
+    "ally_base":{"location":["base"],"who":["ally"]}
+}

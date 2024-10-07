@@ -126,6 +126,11 @@ def discard_action(action, card):
     for target in targets:
         move(target,"discard")
 
+def diskard_action(action, card):
+    targets = targetting(action, card)
+    for target in targets:
+        move(target,"discard")
+
 def income_action(action, card):
     targets = targetting(action, card)
     for target in targets:
@@ -207,7 +212,7 @@ def drew_action(action, card):
             move(target,"hand",empty_hand_index)
 
 def damage_action(action, card):
-    targets = targetting(action, card)
+    targets = targetting(action, card)[0]
     for target in targets:
         damage = action["amount"] 
         try:
@@ -217,8 +222,24 @@ def damage_action(action, card):
             pass
         target["health"] -= damage
 
+def vampire_action(action, card):
+    victims = targetting(action, card)
+    monsters = targetting(action, card)
+    for victim, monster in zip(victims,monsters):
+        steal = action["amount"] 
+        victim["health"] -= damage
+        monster["health"] += damage
+        #Modify value function for damage and health that checks max, checks alive and adds to a cleanup list.
+        #Replace below with get effect which searches effect list
+        try:
+            damage = max(0, damage - target["effects"]["armor"])
+        except KeyError:
+            print("no armor")
+            pass
+        target["health"] -= damage
+
 def protect_action(action, card):
-    targets = targetting(action, card)
+    targets = targetting(action, card)[0]
     for target in targets:
         if target["effects"].get("armor"):
             target["effects"]["armor"] += action["amount"]
@@ -238,7 +259,7 @@ def protect_action(action, card):
 #If you don't want default specify.
 
 #May want to have access to all 3 of these steps in actions to optimize. Looking at draw, you could preseek once
-def lookup_seek():
+def card_target_alias():
     for card, card_data in cards_table.items():
         if action.get("triggers"):
             for trigger, trigger_data in card_data["triggers"].items():
@@ -259,31 +280,6 @@ def lookup_seek():
                                log(target) 
                         action["target"] = paths
 
-def bak_lookup_seek(action, card):
-    target_aliases = ""
-    if action.get("target"):
-        target = action["target"]
-
-        if not isinstance(target, list):
-            target_aliases = [target]
-        else:
-            target_aliases = target
-        
-        paths = []
-        for target_alias in target_aliases:
-            if type(target_alias) == str:
-                if target_alias == "self":
-                    paths.append(card)
-                else:
-                    paths.append(targets_table[target_alias])
-            elif type(target_alias) == dict:
-                paths.append(target_alias)
-            else:
-               log("OOPSY target isn't string or dict") 
-               log(target_alias) 
-
-        return seek(pre_seek(paths))
-
 def weakest_reduce():
     #This could accept a list of targets, then return the one with the least health, so you have target which is a list of cards, then you have reduce which picks from those cards. Gives you a target weakest, or target weakest enemy.
     return
@@ -292,6 +288,82 @@ def weakest_reduce():
 #This all as opposed to having the actions themselves just do all the shit. Including targetting. Would mean an action for every new target type.
 #Worst case I can still do things like that.
 #
+#Why would an action have multiple target dicts? The whole point of many fold entity and locations is that you can target many  in one. What you really get is one target group per target.
+#Targetting is designed to take a single target. So the action can call targetting on each of the target lists that it might need.
+def targetting(action, card):
+    for target_recipe in action["target"]:
+        target_planned = zone_alias(target_recipe, card)
+        zones = zoning(target_recipe,target_planned)
+        for zone in zones:
+            standard_index(zone)
+    #Are you really just returning target groups? You could be calling the action on many different target groups
+    #Example return [group1,group2]
+    #I could either reduce from all players or reuce to get 1 from every player
+    #Many locations or entities is really about how things are sent to reduce. Reduce always returns a list of card sets.
+    return target_groups
+
+#returns a list of lists. So for every entity grab every location, and either squish or do not squish them. This is a list of lists.
+def get_allies(card):
+    result = []
+    for team in teams_table.keys():
+        if team == card["team"]:
+            result.append(team)
+    for player, player_data in players_table.items():
+        if player_data["team"] == card["team"]:
+            result.append(player)
+    return result
+
+def get_enemies(card):
+    result = []
+    for team in teams_table.keys():
+        if team != card["team"]:
+            result.append(team)
+    for player, player_data in players_table.items():
+        if player_data["team"] != card["team"]:
+            result.append(player)
+    return result
+
+def get_all(card):
+    result = []
+    for team in teams_table.keys():
+        result.append(team)
+    for player, player_data in players_table.items():
+        result.append(player)
+    return result
+
+def zone_alias(target_recipe, card):
+    target_plan = {"entities":[], "locations":[]}
+    entities = target_recipe["entities"]
+    for entity in entities:
+        method = "append"
+        if type(entity) == str:
+            method = "extend"
+        elif type(entity) == list:
+            method = "append"
+        match entity:
+            case "enemy":
+                getattr(target_plan["entities"], method)(get_enemies(card))
+            case "ally":
+                getattr(target_plan["entities"], method)(get_allies(card))
+            case "all":
+                getattr(target_plan["entities"], method)(get_allies(card))
+            case _:
+                log("case unknown")
+
+    locations = target_recipe["locations"]
+    for entity in entities:
+        method = "append"
+        if type(entity) == str:
+            method = "extend"
+        elif type(entity) == list:
+            method = "append"
+
+
+def zoning(target_recipe, target_planned):
+    return target_groups
+
+def standard_reduce:
+
 def pre_seek(action, card):
     new_paths = []
     #4 things result in a card: region, who, location, index
@@ -309,6 +381,7 @@ def pre_seek(action, card):
             path["region"] = "teams"
         else:
             path["region"] = "players"
+            #What I want is a function that accepts a bunch of whos and locations and returns a list. These are the reduce functions
         if path["who"] == "enemy":
             if path["region"] == "teams":
                 for team in teams_table.keys():
@@ -456,7 +529,7 @@ random_table = load({"file":"json/random.json"})
 decks_table = load({"file":"json/decks.json"})
 cards_table = load({"file":"json/cards.json"})
 targets_table = load({"file":"json/targets.json"})
-lookup_seek(cards_table)
+card_target_alias(cards_table)
 players_default = load({"file":"json/players.json"})
 team_default = load({"file":"json/teams.json"})
 teams_list = ["good","evil"]
