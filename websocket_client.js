@@ -8,7 +8,6 @@ var target = 0;
 socketname = "visually-popular-iguana.ngrok-free.app";
 //These need to be variables
 buttonContainers = ["#enemy_base_container","#situations_container", "#ally_base_container", "#plans_container", "#tent_container","#cards_container"];
-buttonContainerRegions = ["teams","teams","teams","teams","players","players"];
 buttonContainerLocations = ["base","board","base","board","tent","hand"];
 buttonContainerNames = [enemy_team,enemy_team,my_team,my_team,"me","me"];
 menuButtons = ["save_random_cards","add_random_card","quit","remove_ai","reset_game","pause","add_ai_evil","add_ai_good","join_good","join_evil"];
@@ -261,12 +260,12 @@ function createSlots(container, length){
     }
 }
 
-function updateSlots(container,messageJson, name, region, local){
+function updateSlots(container, messageJson, name, local){
     newCards = []
     if (name == "me"){
         name = messageJson["me"]
     }
-    newCards = messageJson["game_table"][region][name][local];
+    newCards = messageJson["game_table"]["entities"][name][local];
     newCards.forEach((newCard,i) => {
             slot = container.childNodes[i];
             oldCardButton = slot.querySelector(".card");
@@ -313,13 +312,12 @@ document.addEventListener('DOMContentLoaded', function(){
             if(firstUpdate){
                 changeBackground("black");
                 buttonContainers.forEach(function (container,index){ 
-                    region = buttonContainerRegions[index]
                     name = buttonContainerNames[index]
                     local = buttonContainerLocations[index]
                     if (name == "me"){
                         name = messageJson["me"]
                     }
-                    length = messageJson["game_table"][region][name][local].length;
+                    length = messageJson["game_table"]["entities"][name][local].length;
                     createSlots(fetch(container),length);
                 });
                 menuButtons.forEach(makeMenuButton);
@@ -327,7 +325,7 @@ document.addEventListener('DOMContentLoaded', function(){
             }
             //console.log(JSON.stringify(messageJson));
             buttonContainers.forEach(function (container,index){ 
-                updateSlots(fetch(container),messageJson,buttonContainerNames[index],buttonContainerRegions[index],buttonContainerLocations[index]);
+                updateSlots(fetch(container),messageJson,buttonContainerNames[index],buttonContainerLocations[index]);
             });
 
             //Myself

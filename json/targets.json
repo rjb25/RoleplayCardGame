@@ -1,7 +1,13 @@
 {
-    "enemy_base":{"locations":["base"],"entities":["enemy"]},
-    "across":{"locations":["card"],"who":["enemy"],"index":"card"},
-    "self":{"location":["card"],"who":["card"],"index":"card"},
-    "allies":{"location":["tent"],"who":["ally"]},
-    "ally_base":{"location":["base"],"who":["ally"]}
+    "enemy_base":{"locations":["base"],"entities":"enemy"},
+    "across":{"locations":["card"],"entities":"enemy","cards":"card"},
+    "self":{"locations":["card"],"entities":"card","cards":"card"},
+    "allies":{"locations":["tent"],"entities":"ally"},
+    "enemies":{"locations":["tent"],"entities":"enemy"},
+    "ally_base":{"locations":["base"],"entities":"ally"},
+    "my_deck":{"locations":["discard","deck"],"entities":"card","cards":"amount"},
+    "my_hand":{"locations":["hand"],"entities":"card","cards":"amount"},
+    "ally_deck":{"locations":["discard","deck"],"entities":"allies","cards":"amount"},
+    "ally_hand":{"locations":["hand"],"entities":"allies","cards":"amount"},
+    "all_cards":{"locations":["hand"],"entities":"allies","cards":"amount"}
 }

@@ -1,5 +1,7 @@
 {
-    "teams":{},
+    "entities":{},
+    "effects_list":[],
+    "effects_dict":{},
     "tick_duration":0.5,
     "tick_value":1,
     "running":0, 

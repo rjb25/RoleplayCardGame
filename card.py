@@ -29,7 +29,30 @@
 #Make the team a card, but in another sector
 #TODO WARN DEAR GOD DO NOT REFACTOR IN A WAY THAT IS NOT BITE SIZED EVER AGAIN
 #TODO 
-#Fix effects
+#EFFECTS
+#Effects global and card based with triggers. Effects contain a target if global. Effects are calculated before round and applied to cards
+#Handle defence effect not working if card was spawned in during play. This would simply be a matter of applying effect to card while it's in hand
+
+#TRIGGER
+#Creation of triggers that disappear after one use
+#Maybe an N times trigger? Uses attribute on triggers
+#Then a trigger flag that says no really, remove this after it's used for tracking effects
+
+#EVENTS
+#Need triggers that can be subscribed to like on ally cards die. I suppose I could add triggers to ally cards, but that seems weird.
+#I would need a place to store subscription functions and parameters, then a way to call that list of functions
+
+#TICK
+#Maybe balance it so which team is called first in order is randomized
+#Do not orgaize this. Let it be chaos
+
+#DISCARD
+
+#SHOP
+
+#Health ticks down version
+
+
 #Have a random card shop as a rare reward. With end game cards expected to come from random draws.
 #Make while triggers, maybe they add something something in a pre tick. The "effect" section is then wiped on tick cleanup
 #Change protect to add temporary health on a timer. Maybe a blue line below healthbar
@@ -69,7 +92,6 @@
 import asyncio
 from collections import Counter
 import websockets
-from mergedeep import merge, Strategy
 import sys
 import requests
 import functools
@@ -89,68 +111,378 @@ import shlex
 import copy
 import time
 from itertools import takewhile
-        #Enemies alias is an issue since I cannot specify if it is grouped or not
-    #We had [[self], [enemies]] and []
-    #What I need is a list of entities each paired with a location. Or many paired to a single location.
-    #                       split         joined
-    #At this point we have [player1, [player3, player4]]
-    #for each of the above I want you to grab all these things [[deck],[discard],[hand,board]]
-    #This gives [[p1deck], [p1discard], [p1handboard], [p3deck p4deck], [p3discard p4discard], [p3handboard, p4handboard] ]
-    #All these get passed to reduce to give
-    # target1 [card card card card card card card] to action
-    #For each of these individuals we need locations which can be parallel
-    #We just need what to check from them. Reduce will have to deal with the many fors
-    #Or we could fetch those locations from each section and combine them to make
-    #[[deck],[discard],[hand,board]]
+#Create self destructing trigger flag. Once called it removes itself
+#Could make an action that accepts a trigger, then marks it as dead. Overly complicated. Flag is fine
+#TARGETS
+def card_target_alias():
+    for card, card_data in cards_table.items():
+        if card_data and card_data.get("triggers"):
+            for trigger_type, trigger_list in card_data["triggers"].items():
+                for trigger in trigger_list:
+                    if trigger.get("actions"):
+                        for action in trigger["actions"]:
+                            if not action.get("target"):
+                                continue
+                            targets = action["target"]
+                            if not isinstance(targets, list):
+                                targets = [targets]
+                            paths = []
+                            for target in targets:
+                                if type(target) == str:
+                                    paths.append(targets_table[target])
+                                elif type(target) == dict:
+                                    paths.append(target)
+                                else:
+                                   log("OOPSY target isn't string or dict") 
+                                   log(target) 
+                            action["target"] = paths
+
+
+#For all target groups get each groups cards
+def get_target_groups(action, card):
+    #If the action doesn't have a target, quit
+    if not action.get("target"):
+        return []
+    target_groups = []
+    #Target could be a card. It could be a multiple recipes for finding a card
+    target_recipes = action["target"]
+    #If the target is a card instead of a list of recipes, then return that card as a target group
+    if type(target_recipes) == dict:
+        target_groups.append([target_recipes])
+    else:
+        for target_alias in action["target"]:
+            #If the target recipe is an alias fetch it's definition from the table
+            #Resolve target alias to get single recipe
+            target_recipe =
+            if type(target_alias) == str:
+                target_alias = targets_table[target_recipe]
+            # If a single recipe just a card
+            if "id" in target_recipe:
+                target_groups.append([target_recipe])
+            else:
+                #If behaving like normal, then get the target group
+                target_groups.append(get_target_group(target_recipe, action, card))
+    return target_groups
+
+#For each target group get cards
+def get_target_group(target_recipe, action, card):
+    selected_entities = []
+    #String needs to map to one entity set
+    #No combining strings etc. Too annoying
+    entities = target_recipe["entities"]
+    #Main division here is between select from all entities combined zones, or select one from each entity.
+    #Entity set could be an alias, or a list of aliases, or a list of actual entities
+    for entity_set in entities:
+        #If entity is an alias, identify which entities are needed from that alias
+        if type(entity_set) == str:
+            entities
+            selected_entities.append(get_entities(entity_set, card))
+        if type(entity_set) == list:
+            sub_selected_entities = []
+            for entity in entity_set:
+                sub_selected_entities.extend(get_entities(entity,card))
+            selected_entities.append(sub_selected_entities)
+        elif type(entity_set) == dict:
+            selected_entities.append(entity_set)
+
+    #Selected zones is a list of joined or unjoined zones
+    selected_zones = []
+    locations_lists = target_recipe["locations"]
+    for entity in selected_entities:
+        for locations_list in locations_lists:
+            if type(entity) == dict:
+                selected_zones.extend(get_locations(entity,locations_list,card))
+            elif type(entity) == list:
+                sub_selected_zones = []
+                for ent in entity:
+                    sub_selected_zones.extend(get_locations(ent,locations_list,card))
+                selected_zones.append(sub_selected_zones)
+
+    selected_cards = []
+    select_function = target_recipe["cards"]
+    args = target_recipe.get("args")
+    for zone in selected_zones:
+        #Slot level effects
+        #Make zones a list of slots instead of a list of cards
+        #I would be adding slots, which is a lot of complexity, just for what? Easier time coding targetting?
+        #You could just instead have select return a card with {"index":index, "location",`}
+        selected_cards.extend(get_cards(zone, select_function, args, action, card))
+    print("selected_cards")
+    print(selected_cards)
+    return selected_cards
+
+#Returns a list of entities based on an alias
+#I feel like I need a type that is either value, list of values, list of aliases, alias
+def get_entities(entity_alias, card):
+    entities = []
+    #If entity is already an entity
+    if entity.get("type"):
+
+    match entity_alias:
+        #Aliases handle combined or not
+        case "all":
+            entities.extend(table("entities").values())
+        case "all-joined":
+            entities.append(table("entities").values())
+        case "self" | "card":
+            entities.append(table("entities")[card["owner"]])
+            print("YAY")
+            print(entities)
+        case "enemies":
+            for entity_data in table("entities").values():
+                if entity_data["team"] != card["team"]:
+                    entities.append(entity_data)
+        case "enemies-joined":
+            enemies = []
+            for entity_data in table("entities").values():
+                if entity_data["team"] != card["team"]:
+                    enemies.append(entity_data)
+            entities.append(enemies)
+        case "allies":
+            for entity_data in table("entities").values():
+                if entity_data["team"] == card["team"]:
+                    entities.append(entity_data)
+        case "allies-joined":
+            allies = []
+            for entity_data in table("entities").values():
+                if entity_data["team"] == card["team"]:
+                    allies.append(entity_data)
+            entities.append(allies)
+            return entities
+
+#Returns a list of joined or separate zones which will be selected from
+def get_locations(entity, locations_list, card):
+    selected_zones = []
+    if type(location_list) == str:
+        #Alias_finding turns a location alias into a location or locations
+        #If the locations are to be joined, they are joined in alias finding
+        zones = alias_finding(entity,location_list,card)
+        selected_zones.append(zones)
+    elif type(location_list) == list:
+        for location in location_list:
+            selected_zones.append(alias_finding(entity,location,card))
+    return selected_zones
+
+#Returns a list of cards from the zone
+#Needs the zone, index function and args
+def get_cards(zone, select_function, args, action, card):
+    match select_function:
+        case "all":
+            return zone
+        case "random":
+            return [random.choice(zone)]
+        case "card":
+            return [card]
+        case "amount":
+            amount = action["amount"]
+            return zone[-amount:]
+
+def alias_finding(entity, location, card):
+    if location == "all":
+        return [entity["locations"]]
+    elif location == "card":
+        return entity[card["location"]]
+    else:
+        return entity[location]
+
+
+
 #TRIGGERS
-#Could make this a general progress trigger that gets passed an amount eventually
-def timer_trigger(timer, card):
-    seconds_passed = timer.get("progress")
-    print(timer)
-    if timer["progress"] >= timer["goal"]:
-        timer["progress"] -= timer["goal"]
-        for action in timer["actions"]:
-            call_action(action, card)
-    #The change comes after so the client gets a chance to see the progress
-    timer["progress"] += tick_rate()
+#How do I handle other triggers like on base hurt. Or on anything dies. Or on purchase
+#I can add a trigger event
+#Call triggering on dispatch, with the card as a subscription argument. Do this on enter or on card initialization? When should a card subscribe?
+#Global triggers can look at every card each time on trigger. Or you need a subscribe on enter and unsubscribe on exit
+def triggering(card, event_type):
+    events = card["triggers"].get(event_type)
+    if events:
+        for event in events:
+            match event_type:
+                case "timer":
+                    seconds_passed = timer.get("progress")
+                    print(timer)
+                    if timer["progress"] >= timer["goal"]:
+                        timer["progress"] -= timer["goal"]
+                        for action in timer["actions"]:
+                            acting(action, card)
+                    #The change comes after so the client gets a chance to see the progress
+                    timer["progress"] += tick_rate()
+                case _:
+                    for action in event["actions"]:
+                        acting(action, card)
+            if event.get("once"):
+                events.remove(event)
 
-def standard_trigger(event, card):
-    for action in event["actions"]:
-        call_action(action, card)
+def get_nested(data, keys):
+    for key in keys[:-1]:
+        if key not in data or not isinstance(data[key], dict):
+            return None
+        data = data[key]
 
-def play_action(action,card):
-    #How do I handle default target here?
-    targets = targetting(action, card)
-    seek(preseek(
-    for target in targets:
-        username = target["owner"]
-        owner = owner_card(username)
-        if owner["gold"] >= target["cost"]:
-            game_table["running"] = 1
-            owner["gold"] -= target["cost"]
-            #To should be second target here
-            move(target,"board",action["to"])
-            #This should really just be in move
-            call_triggers(target, "enter")
-            #This should really just be in move. Could have a trigger for purchase
-            #This function is actually a combo ov value action, logic, and move action. As such it should call the other actions to keep code dry
+    return data[keys[-1]]
 
-def discard_action(action, card):
-    targets = targetting(action, card)
-    for target in targets:
-        move(target,"discard")
+def set_nested(data, keys, value):
+    for key in keys[:-1]:
+        if key not in data or not isinstance(data[key], dict):
+            data[key] = {}
+        data = data[key]
 
-def diskard_action(action, card):
-    targets = targetting(action, card)
-    for target in targets:
-        move(target,"discard")
+    data[keys[-1]] = value
 
-def income_action(action, card):
-    targets = targetting(action, card)
-    for target in targets:
-        target["gold"] += action["amount"]
-        target["gold"] = max(0, target["gold"])
-        target["gold"] = min(target["gold_limit"], target["gold"])
+def try_nested(data, keys, value):
+    for key in keys[:-1]:
+        if key not in data or not isinstance(data[key], dict):
+            return
+        data = data[key]
+
+    data[keys[-1]] = value
+
+def append_nested(data, keys, value):
+    for key in keys[:-1]:
+        if key not in data or not isinstance(data[key], dict):
+            data[key] = {}
+        data = data[key]
+
+    if data[keys[-1]]:
+        data[keys[-1]].append(value)
+    else:
+        data[keys[-1]] = [value]
+
+def acting(action, card):
+    targets = get_target_groups(action, card)
+    #Targets will be many lists of tuples with paired lists and indexes
+    match action["action"]:
+        case "play":
+            for played, play_to in zip(targets[0], targets[1]):
+                username = played["owner"]
+                captain = owner_card(username)
+                if captain["gold"] >= played["cost"]:
+                    game_table["running"] = 1
+                    captain["gold"] -= played["cost"]
+                    #targets should actually return a list of indexes and lists so it can allow for assignment of list elements
+                    move(played,play_to)
+                    #Move should remain a function, but it should be called from here
+                    #Hmm this is something to think about. How do you handle nested function calls
+                    #
+                    #Call acting({"action":"move","target"}
+                    #Or just have the core functions be what you call?
+        case "move":
+            #Move is a great example. What the real functions need are a couple targets and parameters
+            #Each target is either a path or a card.
+            print(targets)
+            for played, play_to in zip(targets[0], targets[1]):
+                move(played,play_to)
+        #Targets of effect evaluated relative to movement of casting card
+        case "effect-relative":
+            effect_function = action["effect_function"]
+            target = action["target"]
+            game_table["all_effects"].append({"effect_function":effect_function,"target":target,"card":card})
+            if effect["end"]:
+            #Effect {}
+            #{"action": "effect-relative", "target": ["my_base"], "effect":"armor", "end":"exit", "end-card":"me"}}
+            #
+        #Targets of effect evaluated up front
+        case "effect-stable":
+            effect_function = action["effect_function"]
+            target = action["target"]
+            effected_cards = []
+            #For all of the targets of this action, add the effect
+            for target_groups in get_target_groups(target,card):
+                for target_group in target_groups:
+                    for targetted_card in target_group:
+                        effected_cards.append(targetted_card)
+                        #No card below since the targets are evaluated upfront
+            game_table["all_effect_recipes"].append({"effect_function":effect_function,"target":[effected_cards],"card":""})
+            #Need to add a trigger somewhere that can remove the effect
+        case "vampire":
+            victims = targets[0]
+            monsters = targets[1]
+            for victim, monster in zip(victims,monsters):
+                steal = action["amount"]
+                victim["health"] -= steal
+                monster["health"] += steal
+                #Modify value function for damage and health that checks max, checks alive and adds to a cleanup list.
+                #Modify value also handles effects
+                #Replace below with get effect which searches effect list
+                try:
+                    damage = max(0, steal - victim["effects"]["armor"])
+                except KeyError:
+                    print("no armor")
+                    pass
+                victim["health"] -= steal
+        case "damage":
+            victims = targets[0]
+            for victim in victims:
+                damage = action["amount"]
+                damage = max(0, damage - ["armor"])
+                victim["health"] -= damage
+        case "income":
+            recipients = targets[0]
+            for recipient in recipients:
+                recipient["gold"] += action["amount"]
+                recipient["gold"] = max(0, recipient["gold"])
+                recipient["gold"] = min(recipient["gold_limit"], recipient["gold"])
+        case "clean":
+            recipients = targets[0]
+            for recipient in recipients:
+                recipient["effects"] = {}
+        case "remove_effect":
+            #Triggers remove effect by calling this with the effect
+            print("removed")
+        case "tick":
+            #You could have neighboring cards tick on enter for instance
+            #You could have an event level card that is responsible for ticking everything? No
+            #Would allow changing what gets ticked much more easily
+            print("ticked")
+
+
+#Goes through list of effects and makes a dict which can be referenced by index and effect to get effect a list of operations which can be done to get value
+def effect_sort_func(effect_recipe):
+    match effect_recipe["effect_function"]["function"]:
+        case "add":
+            return 0
+        case "multiply":
+            return 1
+        case "max":
+            return 2
+        case "min":
+            return 2
+
+def effecting():
+    #Not that expensive, could just be run every time get_effect is called. If it's a performance problem, then just move it to pre tick
+    #The fact that effects is a list means you cannot calculate just one card. Can't sort by affected card though since targets can have multiple
+    acting({"action": "clean", "target": ["my_deck", "my_hand"], "amount": 3}, {"owner": username})
+    all_effect_recipes = game_table["all_effect_recipes"]
+    all_effect_recipes.sort(key=effect_sort_func)
+    for effect_recipe in game_table["all_effect_recipes"]:
+        for target_list in targetting(effect_recipe, effect_recipe["card"]):
+            for target in target_list:
+                add_effect(effect_recipe["effect_function"],target)
+
+def add_effect(effect_function, card):
+    effects = card["effects"]
+    effect_name = effect_function["effect_name"]
+    if effect_function["function"] == "add":
+        if effects.get(effect_name):
+            effects[effect_name] += effect_function["value"]
+        else:
+            effects[effect_name] = effect_function["value"]
+
+    if effect_function["function"] == "multiply":
+        if effects.get(effect_name):
+            effects[effect_name] *= effect_function["value"]
+
+    if effect_function["function"] == "max":
+        if effects.get(effect_name):
+            effects[effect_name] = max(effects[effect_name],effect_function["value"])
+
+    if effect_function["function"] == "min":
+        if effects.get(effect_name):
+            effects[effect_name] = min(effects[effect_name],effect_function["value"])
+
+def get_effect(effect_to_get, card):
+    effecting()
+    return get_nested(card, ["effects",effect_to_get])
+
 #MAIN FUNCTIONS:
 #Effect action, type as parameter, with duration amount etc as parameters
 #Play action
@@ -160,275 +492,10 @@ def income_action(action, card):
 #Play action would call value action with the amount
 #Play is really just play
 
-def draw_action(action, card):
-    #refactor this so it's actually targetting the top card
-    #need a standard target
-    #TAKE ADVANTAGE OF LAST MINUTE TARGETTING for default target
-    #targets = targetting(action, card)
-    #for target in targets:
-    player_data = table("players")[card["owner"]]
-    deck = player_data["deck"]
-    player_discard = player_data["discard"]
-    hand = player_data["hand"]
-    for i in range(action["amount"]):
-        targets = []
-        if not action.get("target"):
-        #Maybe have index be a reduce function.
-        #Layered targetting. Target 1, target 2. Then defaults on those.
-        #Whos
-        #Locations
-        #Indexes
-        #For Whos a 
-        #Damage function. Index "card" reduce.
-        #draw function. Locations deck, discard
-        #target 1. Locations deck, discard. Whos many players. index first 3 
-        #What do you run the reduce on. All the players and locations squished. Like most expensive card play to field. Or play all most expensive cards to field. If you put ally-deck in location it puts all ally decks into a list. You could pull from this list the highest card. Or you could pull from
-        #target 2. Index "empty" reduce.
-        #Location can have
-        #Do not do the whole alias thing, just write full targetting for every card then have defaults. Still do the whole alias thing. If you need to change it in the future it means less to change.
-        #For draw
-        #Ally-decks is a location that would populate
-        #target1 {"who":["Nemesis,Friend"], "where":["deck"], "how", "which"}
-        #Who returns a couple dicts based on an alias. Checking both teams and players.
-        #Who [{[][][][]},{[][][][]},{[][][][]},{[][][][]}]
-        #Where [{[]},{[]},{},{[],[]}]
-        #How [[]]
-        #Which [x,y]
-        #Target runs who where how which on action and card. leaving input available to action if desired.
-            #for section in how(where(who(targets))):
-                #which(section)
-                #Do not return a list of cards, return a list of how to find the cards.
-                #Then run execute. You could run execute after if you wanted them to see the selected first.
-                #Building a shopping list
-        #Where returns all sections from all dicts if they contain that section.
-        #Just have who and where be lists containing items or lists
-        #That way the action knows to split if it wants. Call reduce on each generated list. That is a section of targetting. Removes the need for how.
-        #Add handling for location list and who list, as well as nested lists. Add reduce instead of index. Reduce args.
-        #This provides a target list or series of lists and items.
-        #Do I actually need things like damage now? Since draw just turned into move
-            action["target"] = {"location":"deck","who":"card","index":-1}            
-        targets = targetting(action, card)
-        for target in targets:
-            empty_hand_index = get_empty_index(hand)
-            if not (empty_hand_index is None):
-                move(target,"hand",empty_hand_index)
-            if len(deck) <= 0:
-                for discarded in player_discard:
-                    move(discarded,"deck")
-                random.shuffle(deck)
-            #Reshuffle if deck empty
-
-def drew_action(action, card):
-    targets = targetting(action, card)
-    for target in targets:
-        empty_hand_index = get_empty_index(hand)
-        if not (empty_hand_index is None):
-            move(target,"hand",empty_hand_index)
-
-def damage_action(action, card):
-    targets = targetting(action, card)[0]
-    for target in targets:
-        damage = action["amount"] 
-        try:
-            damage = max(0, damage - target["effects"]["armor"])
-        except KeyError:
-            print("no armor")
-            pass
-        target["health"] -= damage
-
-def vampire_action(action, card):
-    victims = targetting(action, card)
-    monsters = targetting(action, card)
-    for victim, monster in zip(victims,monsters):
-        steal = action["amount"] 
-        victim["health"] -= damage
-        monster["health"] += damage
-        #Modify value function for damage and health that checks max, checks alive and adds to a cleanup list.
-        #Replace below with get effect which searches effect list
-        try:
-            damage = max(0, damage - target["effects"]["armor"])
-        except KeyError:
-            print("no armor")
-            pass
-        target["health"] -= damage
-
-def protect_action(action, card):
-    targets = targetting(action, card)[0]
-    for target in targets:
-        if target["effects"].get("armor"):
-            target["effects"]["armor"] += action["amount"]
-        else:
-            target["effects"]["armor"] = action["amount"]
-
-#TARGETS
-#Targetting layers are functions that are named and accept parameters
-#Functions like deck 3
-#I need a standard target for each action
-#Need multiple and nested methods of targetting.
-#If you ever need to add args, just add them as a part of the action with the same name like allies_args. Then string fetch them.
-
-#Layers of targetting. Action defaults like draw where 
-#Make a dictionary of paths
-#Action default location, who and index
-#If you don't want default specify.
-
-#May want to have access to all 3 of these steps in actions to optimize. Looking at draw, you could preseek once
-def card_target_alias():
-    for card, card_data in cards_table.items():
-        if action.get("triggers"):
-            for trigger, trigger_data in card_data["triggers"].items():
-                if trigger.get("actions"):
-                    for action in trigger["actions"]:
-                        targets = action["target"]
-                        if not isinstance(targets, list):
-                            targets = [targets]
-                        paths = []
-                        for target in targets:
-                            if type(target) == str:
-                                #This is not meant to be here TODO Move to seek
-                                paths.append(targets_table[target])
-                            elif type(target) == dict:
-                                paths.append(target)
-                            else:
-                               log("OOPSY target isn't string or dict") 
-                               log(target) 
-                        action["target"] = paths
-
-def weakest_reduce():
-    #This could accept a list of targets, then return the one with the least health, so you have target which is a list of cards, then you have reduce which picks from those cards. Gives you a target weakest, or target weakest enemy.
-    return
-
-#Many possible locations, board and hand for full discard. Many whos Many locations. You need a who for each location. Have a targetting dict. Which reduce is a dict. containing a function name.
-#This all as opposed to having the actions themselves just do all the shit. Including targetting. Would mean an action for every new target type.
-#Worst case I can still do things like that.
-#
-#Why would an action have multiple target dicts? The whole point of many fold entity and locations is that you can target many  in one. What you really get is one target group per target.
-#Targetting is designed to take a single target. So the action can call targetting on each of the target lists that it might need.
-def targetting(action, card):
-    for target_recipe in action["target"]:
-        target_planned = zoning(target_recipe, card)
-        zones = zoning(target_recipe,target_planned)
-        for zone in zones:
-            standard_reduce(zone)
-    return target_groups
-
-def identify(entity, card):
-    result = []
-    match entity:
-        case "all":
-            result.extend(table("entities").values())
-        case "self":
-            result.append(table("entities")[card["owner"]])
-        case "enemies":
-            for entity_data in table("entities").values():
-                if entity_data["team"] != card["team"]:
-                    result.append(entity_data)
-        case "allies":
-            for entity_data in table("entities").values():
-                if entity_data["team"] == card["team"]:
-                    result.append(entity_data)
-    return result
-
-
-def find(entity,location,card):
-                    if type(location) == str:
-                        selected_zones.append(entity[location])
-                    elif type(location) == list:
-                        for 
-                        selected_zones.append(entity[location])
-    if location = string
-    if location == "card":
-        return entity[card["location"]]
-    if location == "all":
-        return ["location"]
-    else:
-        return
-
-    return card["location"]
-
-def zoning(target_recipe, card):
-    selected_entities = []
-    entities = target_recipe["entities"]
-    for entity_set in entities:
-        if type(entity_set) == str:
-                identify(entity_set, card)
-        elif type(entity_set) == list:
-            sub_selected_entities = []
-            for entity in entity_set:
-                sub_selected_entities.extend(identify(entity,card))
-            selected_entities.append(sub_selected_entities)
-
-    selected_zones = []
-    locations = target_recipe["locations"]
-    for entity in selected_entities:
-        for location in locations:
-            if type(entity) == dict:
-                selected_zones.extend(find(entity,location,card))
-            elif type(entity) == list:
-                sub_selected_zones = []
-                for ent in entity:
-                    sub_selected_zones.extend(find(entity,location,card))
-                selected_zones.extend(find(entity,location,card))
-
-    selected_cards = []
-    reduce_function = target_recipe["index"]
-    reduce_args = target_recipe["args"]
-    for zone in selected_zones:
-        selected_cards.extend(globals()[reduce_function+"_reduce"](zone, args))
-    return selected_cards
-
-
-
-def seek(paths):
-    #Check if path is a card
-    targets = []
-    for path in paths:
-        if path.get("title"):
-            continue
-        try:
-            if "index" in path:
-                indices = []
-                #If index is not a list make it a list
-                if not isinstance(path["index"], list):
-                    indices = [path["index"]]
-                else:
-                    indices = path["index"]
-                for index in indices:
-                    target = game_table[path["region"]][path["who"]][path["location"]][index]
-                    if target:
-                        targets.append(target)
-            else:
-                target = random.choice(game_table[path["region"]][path["who"]][path["location"]])
-                if target:
-                    targets.append(target)
-        except KeyError:
-            print("KEY ERROR")
-            print(path)
-            pass
-        except IndexError:
-            print("INDEX ERROR")
-            print(path)
-            pass
-    return targets
-
-#CORE
-def call_triggers(card, event_type):
-    events = card["triggers"].get(event_type)
-    if events:
-        for event in events:
-            function_name = event_type + "_trigger";
-            if function_name in globals():
-                globals()[function_name](event, card)
-            else:
-                standard_trigger(event, card)
-
-def call_action(action, card):
-    function_name = action["action"]+"_action"
-    globals()[function_name](action, card)
 
 #Maybe make this an action?
 def kill_card(card):
-    move(card,"discard")
+    move(card,{"location":"discard"})
 
 #JSON
 def load(a):
@@ -464,7 +531,7 @@ random_table = load({"file":"json/random.json"})
 decks_table = load({"file":"json/decks.json"})
 cards_table = load({"file":"json/cards.json"})
 targets_table = load({"file":"json/targets.json"})
-card_target_alias(cards_table)
+card_target_alias()
 players_default = load({"file":"json/players.json"})
 team_default = load({"file":"json/teams.json"})
 teams_list = ["good","evil"]
@@ -474,11 +541,11 @@ local_players_table = {}
 current_id = 1
 
 def table(entity_type):
-    if entity_type = "entities":
+    if entity_type == "entities":
         return entities_table
     result = {}
     for entity, entity_data in entities_table.items():
-        if entity_data[entity_type] == "team":
+        if entity_data["type"] + "s" == entity_type:
             result[entity] = entity_data
     return result
 
@@ -503,75 +570,71 @@ def get_empty_index(board):
             return index
     return None
 
-#Back bone of flow
-#If index not specified find empty index
-#Move action will look for a destination paramater much like amount.
-def move(card, to, index = -1):
-    card_owner = card["owner"]
+def get_path(path):
+    try: 
+        return game_table[path["entity"]][path["location"]][path["index"]]
+    except IndexError: 
+        log("Invalid destination")
+        log(card)
+        log(to)
+
+def assign_path(path, card):
+    #I do not need set nested since a spot needs to exist for a card
+    #try_nested(game_table,[path["entity"],path["location"],path["index"]],card)
+    try:
+        game_table[path["entity"]][path["location"]][path["index"]] = card
+    except IndexError:
+        log("Invalid destination")
+        log(card)
+        log(to)
+
+def update_path(path, card):
+    card["entity"] = path["entity"]
+    card["location"] = path["location"]
+    card["index"] = path["index"]
+
+def move(card, to):
+    #Check if "to" string allow for defaults
+    if not to.get("location"):
+        to["location"] = card["location"]
+    if not to.get("entity"):
+        to["entity"] = card["entity"]
+    if not to.get("index"):
+        to["index"] = card["index"]
     card_location = card["location"]
-    player_data = table("players").get(card_owner)
-    if to == "board":
-        card["team"] = get_team(card_owner)
-        table("teams")[card["team"]][to][index] = card
-    elif to == "hand":
-        if player_data:
-            player_data[to][index] = card
-    else:
-        if player_data:
-            player_data[to].append(card)
-
+    assign_path(to,card)
+    if to["location"] == "board" and card_location != "board":
+        triggering(card, "enter")
     if card_location == "board":
-        call_triggers(card,"exit")
-        table("teams")[card["team"]][card_location][card["index"]] = 0
-    elif card_location == "hand":
-        if player_data:
-            player_data[card_location][card["index"]] = 0
+        triggering(card,"exit")
     elif card_location == "deck":
+        card_owner = card["owner"]
+        player_data = table("players").get(card_owner)
         deck = player_data["deck"]
-        player_discard = player_data["discard"]
+        discard = player_data["discard"]
         if len(deck) <= 0:
-            for discarded in player_discard:
-                move(discarded,"deck")
+            for discarded in discard:
+                move(discarded,{"location":"deck"})
             random.shuffle(deck)
-    else:
-        if player_data:
-            if card in player_data[card_location]:
-                player_data[card_location].remove(card)
-            else:
-                log("SOMETHING ELSE MOVED THE CARD SOMEHOW")
-                log(card)
-                log(to)
-                log(index)
-
-    card["location"] = to
-    card["index"] = index
-
     if to == "discard":
         refresh_card(card)
+    update_path(path,card)
+
 
 def location_tick():
     for team, team_data in table("teams").items():
         for location, location_data in team_data.items():
             for card in location_data:
                 if card:
-                    call_triggers(card,"timer")
+                    triggering(card,"timer")
 
-#Effect tick is really a pre tick.
-        #An effect can be applied to a card that is not in play, but it shouldn't be an effect with expiration tick.
-        #Effects are a list of dicts with expirations.
-        #Get effect looks for all entries of that type.
-        #I want to get all items by expiration for fast removal
-        #Or all items by type for fast reading.
-        #[{"effect":"armor", "duration":"tick", "amount":1, "type":"sum"}]
-        #Get effect, calls all the effects in a list
-        #Could just do : {"armor":[[1,"tick"]]}
-        #You could just have effect apply, then simply on move of the card that is causing effect remove effect. But then where is that list stored. In effected? How do you know which one to remove? You could simply give a pointer out, then on move remove the pointer.
+#I like the list of dicts for effects best with methods to retrieve
 def effect_tick():
     for team, team_data in table("teams").items():
         for location, location_data in team_data.items():
             for card in location_data:
                 if card:
-                    call_triggers(card,"effect")
+                    triggering(card,"effect")
 
 #Cleanup is really just a post tick.
 def cleanup_tick():
@@ -647,7 +710,7 @@ def reset_state():
     reset_teams()
     for username in list(table("players").keys()):
         load_deck(username)
-        draw_action({"amount":3},{"owner":username})
+        acting({"action":"move","target":["my_deck","my_hand"],"amount":3},{"owner":username})
     loser = game_table["loser"]
     game_table["text"][loser] = "Defeat... &#x2639;"
     game_table["text"][get_enemy_team(loser)] = "Victory! &#128512;"
@@ -712,7 +775,10 @@ def is_team(target = ""):
 async def update_state(players):
     for player in players:
         if player in local_players_table:
-            await local_players_table[player]["socket"].send(str({"game_table":game_table,"me":player}))
+            out_table = copy.deepcopy(game_table)
+            out_table["players"] = table("players")
+            out_table["teams"] = table("teams")
+            await local_players_table[player]["socket"].send(str({"game_table":out_table,"me":player}))
 
 def strip_keys_copy(keys, table):
     copied_table = copy.deepcopy(table)
@@ -762,9 +828,9 @@ async def new_client_connected(client_socket, path):
         card_json_message = await client_socket.recv()
         card_json = json.loads(card_json_message)
         log("Client sent:", card_json)
-        if ("id" in card_json.keys()):
+        if "id" in card_json.keys():
             await handle_play(username,card_json)
-        if (card_json.get("command")):
+        if card_json.get("command"):
             globals()[card_json["command"]](username)
             if card_json.get("command") == "quit":
                 break;
@@ -824,14 +890,12 @@ def add_player(team,ai):
     log("Player Added: "+username)
     entities_table[username] = {"type":"player","team":team,"ai":ai}
     load_deck(username)
-    draw_action({"amount":3},{"owner":username})
+    acting({"action":"move","target":["my_deck","my_hand"],"amount":3},{"owner":username})
     return username
 
 def log(*words):
     for word in words:
         print(word)
-
-
 
 async def handle_play(username,card_json):
     team = get_team(username)

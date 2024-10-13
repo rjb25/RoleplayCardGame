@@ -68,7 +68,7 @@
         "triggers": {
             "timer": [
                 {"goal":2, "progress":0, "actions":[
-                    {"action":"draw","target":"my_deck","targs":{"amount":2}}
+                    {"action":"move","target":["my_deck","my_hand"],"args":{"amount":2}}
                 ]},
                 {"goal":10, "progress":0, "actions":[
                     {"action":"damage","target":"enemy_base","amount":3},
@@ -96,7 +96,7 @@
                     {"action":"income","target":"allies","amount":1}
                 ]},
                 {"goal":5, "progress":0, "actions":[
-                    {"action":"draw", "amount":1}
+                    {"action":"move","target":["ally_deck","ally_hand"],"args":{"amount":1}}
                 ]}
             ]
         }
@@ -110,7 +110,7 @@
                     {"action":"income","target":"allies","amount":1}
                 ]},
                 {"goal":5, "progress":0, "actions":[
-                    {"action":"draw","target":"team_decks", "amount":1}
+                    {"action":"move","target":["ally_deck","ally_hand"],"args":{"amount":1}}
                 ]}
             ]
         }
