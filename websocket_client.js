@@ -317,7 +317,7 @@ document.addEventListener('DOMContentLoaded', function(){
                     if (name == "me"){
                         name = messageJson["me"]
                     }
-                    length = messageJson["game_table"]["entities"][name][local].length;
+                    length = messageJson["game_table"]["entities"][name]["locations"][local].length;
                     createSlots(fetch(container),length);
                 });
                 menuButtons.forEach(makeMenuButton);

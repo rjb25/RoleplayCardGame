@@ -1,8 +1,18 @@
 {
     "gold":10,
     "gold_limit":50,
-    "hand":[0,0,0,0,0],
-    "deck":[],
-    "discard":[],
-    "tent":[0]
+    "locations": {
+        "hand": [
+            0,
+            0,
+            0,
+            0,
+            0
+        ],
+        "deck": [],
+        "discard": [],
+        "tent": [
+            0
+        ]
+    }
 }

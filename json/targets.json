@@ -9,5 +9,5 @@
     "my_hand":{"locations":["hand"],"entities":"card","cards":"amount"},
     "ally_deck":{"locations":["discard","deck"],"entities":"allies","cards":"amount"},
     "ally_hand":{"locations":["hand"],"entities":"allies","cards":"amount"},
-    "all_cards":{"locations":["hand"],"entities":"allies","cards":"amount"}
+    "all":{"locations":["all"],"entities":"all","cards":"all"}
 }
