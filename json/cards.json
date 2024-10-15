@@ -68,11 +68,11 @@
         "triggers": {
             "timer": [
                 {"goal":2, "progress":0, "actions":[
-                    {"action":"move","target":["my_deck"],"to":{"location": "hand","index": "append"},"amount":2}
+                    {"action":"move","target":"my_deck","to":{"location": "hand","index": "append"},"amount":2}
                 ]},
                 {"goal":10, "progress":0, "actions":[
                     {"action":"damage","target":"enemy_base","amount":3},
-                    {"action":"discard","target":"self"}
+                    {"action":"move","target":"self","to": {"location": "discard","index": "append","entity": "owner"}}
                 ]}
             ],
             "enter": [

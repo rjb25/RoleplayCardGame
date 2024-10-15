@@ -260,12 +260,12 @@ function createSlots(container, length){
     }
 }
 
-function updateSlots(container, messageJson, name, local){
+function updateSlots(container, messageJson, name, location){
     newCards = []
     if (name == "me"){
         name = messageJson["me"]
     }
-    newCards = messageJson["game_table"]["entities"][name][local];
+    newCards = messageJson["game_table"]["entities"][name]["locations"][location];
     newCards.forEach((newCard,i) => {
             slot = container.childNodes[i];
             oldCardButton = slot.querySelector(".card");
@@ -317,6 +317,8 @@ document.addEventListener('DOMContentLoaded', function(){
                     if (name == "me"){
                         name = messageJson["me"]
                     }
+                    console.log(name)
+                    console.log(messageJson["game_table"]["entities"])
                     length = messageJson["game_table"]["entities"][name]["locations"][local].length;
                     createSlots(fetch(container),length);
                 });
@@ -334,7 +336,7 @@ document.addEventListener('DOMContentLoaded', function(){
             me = messageJson["me"];
             mContainer = fetch("#messages_container");
             mContainer.message = messageJson;
-            playerState = gameState["players"][me]["tent"][0];
+            playerState = gameState["entities"][me]["locations"]["tent"][0];
             mContainer.playerState = playerState
 
             messageText = gameState["text"][my_team];
