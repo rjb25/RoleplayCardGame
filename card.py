@@ -117,6 +117,7 @@ from itertools import takewhile
 #Gets a list of card groups for targetting. Target group 1,2,3 etc
 # acting({"action": "move", "target": ["my_deck", "my_hand"], "amount": 3}, {"owner": username})
 
+#Should never return 0s
 def get_target_groups(action, card):
     #If the action doesn't have a target, quit
     if not action.get("target"):
@@ -124,6 +125,9 @@ def get_target_groups(action, card):
         return []
 
     target_group_aliases = action["target"]
+    #If it just wants to target itself, return card
+    #if target_group_aliases == "self":
+        #return [[card]]
     #If target_group_aliases is just a card
     if type(target_group_aliases) == dict and "id" in target_group_aliases.keys():
         return [[target_group_aliases]]
@@ -157,6 +161,7 @@ def get_target_group(target_recipe, action, card):
         entity_aliases = [entity_aliases]
     #Main division here is between select from all entities combined zones, or select one from each entity.
     #Entity set could be an alias, or a list of aliases, or a list of actual entities
+
     for entity_alias in entity_aliases:
         selected_entity_groups.extend(resolve_entity_alias(entity_alias, card))
 
@@ -196,9 +201,11 @@ def resolve_entity_alias(entity_alias, card):
         case "all-joined":
             all_entities = [table("entities").values()]
             entities.append(all_entities)
-        case "self" | "card" | "owner":
+        case "card":
+            entities.append([table("entities")[card["entity"]]])
+        case "owner":
             entities.append([table("entities")[card["owner"]]])
-        case "enemies":
+        case "enemies" | "enemy":
             for entity_data in table("entities").values():
                 if entity_data["team"] != card["team"]:
                     entities.append([entity_data])
@@ -208,10 +215,8 @@ def resolve_entity_alias(entity_alias, card):
                 if entity_data["team"] != card["team"]:
                     enemies.append(entity_data)
             entities.append(enemies)
-        case "allies":
+        case "allies" | "ally":
             for entity_data in table("entities").values():
-                print("WHAT")
-                print_json(entity_data)
                 if entity_data["team"] == card["team"]:
                     entities.append([entity_data])
         case "allies-joined":
@@ -226,9 +231,12 @@ def resolve_entity_alias(entity_alias, card):
 def resolve_location_alias(entity, location_alias, card):
     match location_alias:
         case "all":
-            return [listify(entity["locations"].values())]
+            locations = [entity["locations"].values()]
+            return [locations]
         case "all_joined":
-            return [entity["locations"].values()]
+            locations = [entity["locations"].values()]
+            joined = sum(locations, [])
+            return joined
         case "card":
             if card["location"] in entity["locations"]:
                 return [entity["locations"][card["location"]]]
@@ -247,16 +255,27 @@ def resolve_location_alias(entity, location_alias, card):
 #Returns a list of cards from the zone
 #Needs the zone, index function and args
 def get_cards(zone, select_function, args, action, card):
+    #Aborts if zone is empty
+    if not zone:
+        return []
+    #Removes empty from zones to select from
+    actual_zone = [i for i in zone if i]
     match select_function:
         case "all":
-            return zone
+            return actual_zone
         case "random":
-            return [random.choice(zone)]
+            return [random.choice(actual_zone)]
         case "card":
-            return [card]
+            if card["index"] < len(zone) and zone[card["index"]]:
+                return [zone[card["index"]]]
+            else:
+                return []
         case "amount":
             amount = action["amount"]
-            return zone[-amount:]
+            return actual_zone[-amount:]
+        case _:
+        #Case for if an literal index is passed
+            return [zone[select_function]]
 
 #TRIGGERS
 #How do I handle other triggers like on base hurt. Or on anything dies. Or on purchase
@@ -289,7 +308,7 @@ def get_nested(data, keys):
             return None
         data = data[key]
 
-    return data[keys[-1]]
+    return data.get(keys[-1])
 
 def set_nested(data, keys, value):
     for key in keys[:-1]:
@@ -410,7 +429,7 @@ def acting(action, card =""):
             victims = targets[0]
             for victim in victims:
                 damage = action["amount"]
-                damage = max(0, damage - ["armor"])
+                #damage = max(0, damage - victim["effects"]["armor"])
                 victim["health"] -= damage
         case "income":
             recipients = targets[0]
@@ -483,7 +502,8 @@ def get_effect(effect_to_get, card):
 
 #Maybe make this an action?
 def kill_card(card):
-    move(card,{"location":"discard","index":"append"})
+    acting({"action": "move", "target": card, "to": {"entity":"owner","location": "discard", "index": "append"}},
+           card)
 
 #JSON
 def load(a):
@@ -585,10 +605,14 @@ def move_defaults(card, to):
 #Cards are actual cards
 #Tos are empty spaces, they can be more vague
 def move_card(card, to):
-    to_location = get_nested(game_table, ["entities", to["entity"], "locations", to["location"]])
+    to_entity = to["entity"]
+    if to_entity == "owner":
+        to_entity = card["owner"]
+    to_location = get_nested(game_table, ["entities", to_entity, "locations", to["location"]])
     card_location = get_nested(game_table, ["entities", card["entity"], "locations", card["location"]])
     to_static = to["location"] in static_lists
     card_static = card["location"] in static_lists
+    card_index = card.get("index")
     if to["index"] == "append":
         #To an array
         if to_static:
@@ -596,13 +620,11 @@ def move_card(card, to):
             #If there's an empty slot
             if to_available is not None:
                 to_location[to_available] = card
-                card["location"] = to["location"]
                 #Add index
                 card["index"] = to_available
         #To a list
         else:
             to_location.append(card)
-            card["location"] = to["location"]
             #Remove index
             if "index" in card.keys():
                 del card["index"]
@@ -617,9 +639,12 @@ def move_card(card, to):
             if "index" in card.keys():
                 del card["index"]
     if card_static:
-        card_location[card["index"]] = 0
+        card_location[card_index] = 0
     else:
         card_location.remove(card)
+
+    card["location"] = to["location"]
+    card["entity"] = to_entity
 
 #Hmm this shouldn't be called after updating the card location
 def move_triggers(card, to, card_was, card_is):
@@ -667,12 +692,10 @@ def ai_tick():
     #Could be refactored to just run play_action
     for player, player_data in table("players").items():
         if player_data["ai"]:
-            hand = player_data["locations"]["hand"]
-            card_from_index = get_card_index(hand)
-            card_to_index = get_empty_index(get_board(player))
-            if card_from_index is not None and card_to_index is not None:
-                card = hand[card_from_index]
-                play_action(card, {"to":card_to_index})
+            acting(
+                {"action": "play", "target": ["my_hand"], "to": {"entity":player_data["team"],"location": "board", "index": "append"}, "amount": 1}
+                ,{"owner":player}
+            )
 
 async def tick():
     while True:
@@ -944,11 +967,14 @@ def log(*words):
         print(word)
 
 async def handle_play(username,card_json):
-    team = get_team(username)
+    card_id = int(card_json["id"])
     card_index = int(card_json["index"])
-    card = game_table["entities"][username]["locations"]["hand"][card_index]
+    # Get card from id
+    card = card_from(card_id, table("players")[username]["locations"]["hand"])
+    team = get_team(username)
+
     if card:
-        acting({"action": "play", "target": card, "to": {"entity":team, "location":"board", "index": "append"}})
+        acting({"action": "play", "target": card, "to": {"entity":team, "location":"board", "index": card_index}})
 
     await update_state(local_players_table.keys())
 

@@ -5,7 +5,7 @@
         "triggers":{
             "timer": [
                 {"goal":10, "progress":0, "actions":[
-                    {"action":"discard","target":"self"}
+                    {"action":"move","target":"self","to": {"location": "discard","index": "append","entity": "owner"}}
                 ]}
             ],
             "effect": [
@@ -22,7 +22,7 @@
             "timer": [
                 {"goal":12, "progress":0, "actions":[
                     {"action":"damage","target":"enemy_base","amount":3},
-                    {"action":"discard","target":"self"}
+                    {"action":"move","target":"self","to": {"location": "discard","index": "append","entity": "owner"}}
                 ]}
             ]
         }
@@ -37,7 +37,7 @@
                     {"action":"damage","target":"across","amount":1}
                 ]},
                 {"goal":10, "progress":0, "actions":[
-                    {"action":"discard","target":"self"}
+                    {"action":"move","target":"self","to": {"location": "discard","index": "append","entity": "owner"}}
                 ]}
             ]
         }
@@ -52,7 +52,7 @@
                 ]},
                 {"goal":10, "progress":0, "actions":[
                     {"action":"damage","target":"enemy_base","amount":3},
-                    {"action":"discard","target":"self"}
+                    {"action":"move","target":"self","to": {"location": "discard","index": "append","entity": "owner"}}
                 ]}
             ],
             "enter": [
