@@ -8,9 +8,10 @@
                     {"action":"move","target":"self","to": {"location": "discard","index": "append","entity": "owner"}}
                 ]}
             ],
-            "effect": [
+            "enter": [
                 {"actions":[
-                    {"action":"protect","target":"ally_base","amount":1}
+                    {"action":"effect","target":"ally_base","amount":1},
+                    {"action": "effect-relative", "target": ["my_base"], "effect_function":{"name":"armor","function":"add","value":1}, "end_trigger":"exit"}
                 ]}
             ]
         }
@@ -37,6 +38,7 @@
                     {"action":"damage","target":"across","amount":1}
                 ]},
                 {"goal":10, "progress":0, "actions":[
+                    {"action":"damage","target":"enemy_base","amount":1},
                     {"action":"move","target":"self","to": {"location": "discard","index": "append","entity": "owner"}}
                 ]}
             ]

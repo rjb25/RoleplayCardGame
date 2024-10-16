@@ -5,6 +5,7 @@
     "allies":{"location":"tent","entity":"allies"},
     "enemies":{"location":"tent","entity":"enemy"},
     "ally_base":{"location":"base","entity":"allies"},
+    "my_base":{"location":"base","entity":"allies"},
     "my_deck":{"location":[["discard","deck"]],"entity":"owner","index":"amount"},
     "my_hand":{"location":"hand","entity":"owner","index":"amount"},
     "ally_deck":{"location":[["discard","deck"]],"entity":"allies","index":"amount"},

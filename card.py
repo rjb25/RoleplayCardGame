@@ -172,6 +172,8 @@ def get_target_group(target_recipe, action, card):
         location_aliases = [location_aliases]
 
     for entity_group in selected_entity_groups:
+        print("ent")
+        print(entity_group)
         joined_entity = {"locations":{}}
         for entity in entity_group:
             for location_key in entity["locations"].keys():
@@ -196,10 +198,10 @@ def resolve_entity_alias(entity_alias, card):
     match entity_alias:
         #Aliases handle combined or not
         case "all":
-            all_entities = listify(table("entities").values())
-            entities.extend(all_entities)
+            for entity in table("entities").values():
+                entities.append([entity])
         case "all-joined":
-            all_entities = [table("entities").values()]
+            all_entities = [list(table("entities").values())]
             entities.append(all_entities)
         case "card":
             entities.append([table("entities")[card["entity"]]])
@@ -210,6 +212,7 @@ def resolve_entity_alias(entity_alias, card):
                 if entity_data["team"] != card["team"]:
                     entities.append([entity_data])
         case "enemies-joined":
+            #Odd that swords hurt themselves if you join enemy team after playing TODO
             enemies = []
             for entity_data in table("entities").values():
                 if entity_data["team"] != card["team"]:
@@ -225,16 +228,18 @@ def resolve_entity_alias(entity_alias, card):
                 if entity_data["team"] == card["team"]:
                     allies.append(entity_data)
             entities.append(allies)
+    print("entities")
+    print(entities)
     return entities
 
 #Returns a list of joined or separate card lists which will be selected from
 def resolve_location_alias(entity, location_alias, card):
     match location_alias:
         case "all":
-            locations = [entity["locations"].values()]
+            locations = [list(entity["locations"].values())]
             return [locations]
         case "all_joined":
-            locations = [entity["locations"].values()]
+            locations = [list(entity["locations"].values())]
             joined = sum(locations, [])
             return joined
         case "card":
@@ -262,6 +267,8 @@ def get_cards(zone, select_function, args, action, card):
     actual_zone = [i for i in zone if i]
     match select_function:
         case "all":
+            print("zony")
+            print(actual_zone)
             return actual_zone
         case "random":
             return [random.choice(actual_zone)]
@@ -371,7 +378,7 @@ def acting(action, card =""):
                 move(card,destination)
         case "effect_relative":
             # end trigger stored on casting card
-            # {"action": "effect-relative", "target": ["my_base"], "effect_function":{"name":"armor","function":"add","value":1}, "end_trigger":"exit", "end_holder":"me"}}
+            #{"action": "effect-relative", "target": ["my_base"], "effect_function":{"name":"armor","function":"add","value":1}, "end_trigger":"exit"}
             effect_function = action["effect_function"]
             target = action["target"]
             effect = {"effect_function":effect_function,"target":target,"index":card}
@@ -408,7 +415,9 @@ def acting(action, card =""):
             game_table["all_effect_recipes"].append(effect)
         case "clean":
             recipients = targets[0]
+            print("recipe")
             for recipient in recipients:
+                print(recipient)
                 recipient["effects"] = {}
         case "remove_effect":
             all_effect_recipes = game_table["all_effect_recipes"]
@@ -429,7 +438,14 @@ def acting(action, card =""):
             victims = targets[0]
             for victim in victims:
                 damage = action["amount"]
-                #damage = max(0, damage - victim["effects"]["armor"])
+                armor = get_effect("armor", victim)
+                damage = max(0, damage - armor)
+                print("dam")
+                print(damage)
+                print("armor")
+                print(armor)
+                print("vic")
+                print_json(victim)
                 victim["health"] -= damage
         case "income":
             recipients = targets[0]
@@ -454,7 +470,7 @@ def effect_sort_func(effect_recipe):
 def effecting():
     #Not that expensive, could just be run every time get_effect is called. If it's a performance problem, then just move it to pre tick
     #The fact that effects is a list means you cannot calculate just one card. Can't sort by affected card though since targets can have multiple
-    acting({"action": "clean", "target": ["all"]}, {"owner": username})
+    acting({"action": "clean", "target": ["all"]})
     all_effect_recipes = game_table["all_effect_recipes"]
     all_effect_recipes.sort(key=effect_sort_func)
     for effect_recipe in all_effect_recipes:
@@ -651,6 +667,7 @@ def move_triggers(card, to, card_was, card_is):
     card_location = card_was
     to_location = card_is
     if to_location == "board" and card_location != "board":
+        card["team"] = get_team(card["owner"])
         triggering(card, "enter")
     if card_location == "board":
         triggering(card,"exit")
@@ -683,7 +700,7 @@ def cleanup_tick():
                     if card["health"] <= 0:
                         loser = game_table["loser"]
                         if card["location"] == "base" and (not loser):
-                            game_table["loser"] = card["team"]
+                            game_table["loser"] = get_team(card["owner"])
                             reset_state()
                         else:
                             kill_card(card)
@@ -745,7 +762,7 @@ def initialize_team(team):
                                     }
     #Need to add a card to base
     game_table["entities"][team]["team"] = team
-    game_table["entities"][team]["locations"]["base"][0] = initialize_card(team, "", "base",team)
+    game_table["entities"][team]["locations"]["base"][0] = initialize_card(team, team, "base")
 
 def initialize_teams(teams):
     for team in teams:
@@ -782,8 +799,7 @@ def refresh_card(card):
     except KeyError:
         pass
 
-def initialize_card(card_name,username="",location="deck",team=""):
-    baby_card = {}
+def initialize_card(card_name,username="",location="deck"):
     baby_card = copy.deepcopy(cards_table[card_name])
     if not("title" in baby_card.keys()):
         baby_card["title"] = card_name
@@ -791,13 +807,9 @@ def initialize_card(card_name,username="",location="deck",team=""):
     if username:
         baby_card["owner"] = username
         baby_card["entity"] = username
+    baby_card["team"] = get_team(username)
     baby_card["id"] = get_unique_id()
     baby_card["location"] = location
-    if team:
-        baby_card["team"] = team
-        baby_card["entity"] = team
-    else:
-        baby_card["team"] = get_team(username)
     refresh_card(baby_card)
     return baby_card
 
@@ -842,7 +854,7 @@ def find_triggers_with_action_name(card, action):
                 continue
 
 def get_team(username):
-    return table("players")[username]["team"]
+    return game_table["entities"][username]["team"]
 
 def get_board(username):
     return table("teams")[get_team(username)]["locations"]["board"]
@@ -875,24 +887,24 @@ async def new_client_connected(client_socket, path):
     local_players_table[username] = {"socket":client_socket}
     await update_state([username])
 
-    #try:
-    while True:
-        card_json_message = await client_socket.recv()
-        card_json = json.loads(card_json_message)
-        log("Client sent:", card_json)
-        if "id" in card_json.keys():
-            await handle_play(username,card_json)
-        if card_json.get("command"):
-            globals()[card_json["command"]](username)
-            if card_json.get("command") == "quit":
-                break;
-            await update_state(local_players_table.keys())
+    try:
+        while True:
+            card_json_message = await client_socket.recv()
+            card_json = json.loads(card_json_message)
+            log("Client sent:", card_json)
+            if "id" in card_json.keys():
+                await handle_play(username,card_json)
+            if card_json.get("command"):
+                globals()[card_json["command"]](username)
+                if card_json.get("command") == "quit":
+                    break;
+                await update_state(local_players_table.keys())
 
-    #except Exception as e:
-    #    log("Client quit:", username)
-    #    log(e)
-    #    del local_players_table[username]
-    #    del players_table[username]
+    except Exception as e:
+        log("Client quit:", username)
+        log(e)
+        del local_players_table[username]
+        del game_table["entities"][username]
 
 def pause(username):
     log(username + " paused")
