@@ -625,12 +625,13 @@ def move_card(card, to):
     if to["index"] == "append":
         #To an array
         if to_static:
-            to_available = get_empty_index(to_location)
-            #If there's an empty slot
-            if to_available is not None and to_location is not None:
-                to_location[to_available] = card
-                #Add index
-                card["index"] = to_available
+            if to_location is not None:
+                to_available = get_empty_index(to_location)
+                #If there's an empty slot
+                if to_available is not None:
+                    to_location[to_available] = card
+                    #Add index
+                    card["index"] = to_available
         #To a list
         else:
             if to_location is not None:
