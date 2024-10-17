@@ -604,11 +604,11 @@ def move(card, to):
     move_triggers(card,to,card_was,card_is)
 
 def move_defaults(card, to):
-    if not to.get("location"):
-        to["location"] = card["location"]
-    if not to.get("entity"):
+    if "entity" not in to.keys():
         to["entity"] = card["entity"]
-    if not to.get("index"):
+    if "location" not in to.keys():
+        to["location"] = card["location"]
+    if "index" not in to.keys():
         to["index"] = card["index"]
 
 #Cards are actual cards
@@ -627,13 +627,14 @@ def move_card(card, to):
         if to_static:
             to_available = get_empty_index(to_location)
             #If there's an empty slot
-            if to_available is not None:
+            if to_available is not None and to_location is not None:
                 to_location[to_available] = card
                 #Add index
                 card["index"] = to_available
         #To a list
         else:
-            to_location.append(card)
+            if to_location is not None:
+                to_location.append(card)
             #Remove index
             if "index" in card.keys():
                 del card["index"]
@@ -641,7 +642,8 @@ def move_card(card, to):
         log("across")
     # Index is actual number
     else:
-        to_location[to["index"]] = card
+        if to_location is not None:
+            to_location[to["index"]] = card
         if to_static:
             card["index"] = to["index"]
         else:

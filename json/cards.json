@@ -97,7 +97,7 @@
                     {"action":"income","target":"allies","amount":1}
                 ]},
                 {"goal":5, "progress":0, "actions":[
-                    {"action":"move","target":["ally_deck"],"to":{"location": "hand","index": "append"},"amount":1}
+                    {"action":"move","target":["ally_deck"],"to":{"entity":"owner","location": "hand","index": "append"},"amount":1}
                 ]}
             ]
         }
