@@ -10,8 +10,7 @@
             ],
             "enter": [
                 {"actions":[
-                    {"action":"effect","target":"ally_base","amount":1},
-                    {"action": "effect-relative", "target": ["my_base"], "effect_function":{"name":"armor","function":"add","value":1}, "end_trigger":"exit"}
+                    {"action": "effect_relative", "target": ["my_base"], "effect_function":{"name":"armor","function":"add","value":1}, "end_trigger":"exit"}
                 ]}
             ]
         }

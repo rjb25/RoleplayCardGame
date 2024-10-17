@@ -1,7 +1,6 @@
 {
     "entities":{},
-    "effects_list":[],
-    "effects_dict":{},
+    "all_effect_recipes":[],
     "tick_duration":0.5,
     "tick_value":1,
     "running":0, 
