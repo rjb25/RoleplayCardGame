@@ -6,5 +6,6 @@
     "running":0, 
     "loser":"",
     "players":{},
-    "text":{}
+    "text":{},
+    "reset": 0
 }

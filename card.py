@@ -551,15 +551,14 @@ targets_table = load({"file":"json/targets.json"})
 teams_list = ["good","evil"]
 static_lists = ["hand","board","tent","base"]
 game_table = load({"file":"json/game.json"})
-entities_table = game_table["entities"]
 local_players_table = {}
 current_id = 1
 
 def table(entity_type):
     if entity_type == "entities":
-        return entities_table
+        return game_table["entities"]
     result = {}
-    for entity, entity_data in entities_table.items():
+    for entity, entity_data in game_table["entities"].items():
         if entity_data["type"] + "s" == entity_type:
             result[entity] = entity_data
     return result
@@ -719,7 +718,7 @@ async def tick():
         if game_table["running"]:
             for player in list(table("players")):
                 if table("players").get(player).get("quit"):
-                    del entities_table[player]
+                    del game_table["entities"][player]
             #Effects happen first since they are things that are removeable. They are added at start, removed at end
             location_tick()
             ai_tick()
@@ -727,7 +726,7 @@ async def tick():
             cleanup_tick()
 
 def remove_quit_players(team_data):
-    del entities_table[player]
+    del game_table["entities"][player]
 
 def tick_rate():
     return game_table["tick_duration"]*game_table["tick_value"]
@@ -737,11 +736,6 @@ def safe_get(l, idx, default=0):
         return l[idx] 
     except IndexError: 
         return default
-
-
-def reset_teams():
-    for team in list(table("teams").keys()):
-        initialize_team(team)
 
 def initialize_situation():
     set_nested(game_table,["entities","situation"],{"team":"gaia","type":"gaia","locations":{"events":[]}})
@@ -764,16 +758,21 @@ def initialize_teams(teams):
     for team in teams:
         initialize_team(team)
 
+def initialize_players():
+    for username, value in local_players_table.items():
+        add_player(value["team"],0,username)
+
 def reset_state():
-    reset_teams()
-    for username in list(table("players").keys()):
-        load_deck(username)
-        acting({"action":"move","target":["my_deck"], "to":{"location":"hand","index":"append"},"amount":3},{"owner":username})
+    global game_table
     loser = game_table["loser"]
+    game_table = load({"file": "json/game.json"})
+    initialize_teams(teams_list)
+    initialize_players()
+    initialize_situation()
     game_table["text"][loser] = "Defeat... &#x2639;"
     game_table["text"][get_enemy_team(loser)] = "Victory! &#128512;"
     game_table["loser"] = ""
-
+    game_table["running"] = 0
     game_table["reset"] = 1
 
 def get_unique_id():
@@ -900,27 +899,27 @@ def card_from(card_id, cards):
 
 async def new_client_connected(client_socket, path):
     username = add_player("good", 0)
-    local_players_table[username] = {"socket":client_socket}
+    local_players_table[username] = {"socket":client_socket, "team":"good"}
     await update_state([username])
 
-    #try:
-    while True:
-        card_json_message = await client_socket.recv()
-        card_json = json.loads(card_json_message)
-        log("Client sent:", card_json)
-        if "id" in card_json.keys():
-            await handle_play(username,card_json)
-        if card_json.get("command"):
-            globals()[card_json["command"]](username)
-            if card_json.get("command") == "quit":
-                break;
-            await update_state(local_players_table.keys())
+    try:
+        while True:
+            card_json_message = await client_socket.recv()
+            card_json = json.loads(card_json_message)
+            log("Client sent:", card_json)
+            if "id" in card_json.keys():
+                await handle_play(username,card_json)
+            if card_json.get("command"):
+                globals()[card_json["command"]](username)
+                if card_json.get("command") == "quit":
+                    break;
+                await update_state(local_players_table.keys())
 
-    #except Exception as e:
-    #    log("Client quit:", username)
-    #    log(e)
-    #    del local_players_table[username]
-    #    del game_table["entities"][username]
+    except websockets.ConnectionClosed as e:
+        log("Client quit:", username)
+        log(e)
+        del local_players_table[username]
+        del game_table["entities"][username]
 
 def pause(username):
     log(username + " paused")
@@ -941,10 +940,12 @@ def save_random_cards(username):
 def join_evil(username):
     log(username + " joined evil")
     table("players")[username]["team"] = "evil"
+    local_players_table[username]["team"] = "evil"
 
 def join_good(username):
     log(username + " joined good")
     table("players")[username]["team"] = "good"
+    local_players_table[username]["team"] = "good"
 
 def reset_game(username):
     game_table["loser"] = "good"
@@ -965,10 +966,12 @@ def remove_ai(username):
         if player_data["ai"]:
             player_data["quit"] = 1
 
-def add_player(team,ai):
-    username = "player" + str(get_unique_id())
+def add_player(team,ai,name = ""):
+    username = name
+    if not name:
+        username = "player" + str(get_unique_id())
     log("Player Added: "+username)
-    entities_table[username] = {
+    game_table["entities"][username] = {
         "type":"player",
         "team":team,
         "ai":ai,
