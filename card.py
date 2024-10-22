@@ -104,7 +104,6 @@ import traceback
 from functools import reduce
 from operator import getitem
 from collections import defaultdict
-import tkinter as tk
 import argparse
 import re
 import shlex
