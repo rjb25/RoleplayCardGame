@@ -7,10 +7,10 @@ var running = false;
 var target = 0;
 socketname = "visually-popular-iguana.ngrok-free.app";
 //These need to be variables
-buttonContainers = ["#enemy_base_container","#situations_container", "#ally_base_container", "#plans_container", "#tent_container","#cards_container"];
-buttonContainerLocations = ["base","board","base","board","tent","hand"];
-buttonContainerNames = [enemy_team,enemy_team,my_team,my_team,"me","me"];
-menuButtons = ["save_random_cards","add_random_card","quit","remove_ai","reset_game","pause","add_ai_evil","add_ai_good","join_good","join_evil"];
+buttonContainers = ["#enemy_base_container","#situations_container", "#ally_base_container", "#plans_container", "#tent_container","#cards_container","#discard_container"];
+buttonContainerLocations = ["base","board","base","board","tent","hand","discard"];
+buttonContainerNames = [enemy_team,enemy_team,my_team,my_team,"me","me","me"];
+menuButtons = ["remove_ai","reset_game","pause","add_ai_evil","add_ai_good","join_good","join_evil","game_log"];
 //This is what you run if you want to reconnect to server
 //socketname = prompt("WebSocketURL no http://")
 const websocketClient = new WebSocket("wss://"+socketname);
@@ -22,13 +22,13 @@ function join_good(){
     console.log("goodness")
     my_team = "good"
     enemy_team = "evil"
-    buttonContainerNames = [enemy_team,enemy_team,my_team,my_team,"me","me"];
+    buttonContainerNames = [enemy_team,enemy_team,my_team,my_team,"me","me","me"];
 }
 function join_evil(){
     console.log("evilness")
     my_team = "evil"
     enemy_team = "good"
-    buttonContainerNames = [enemy_team,enemy_team,my_team,my_team,"me","me"];
+    buttonContainerNames = [enemy_team,enemy_team,my_team,my_team,"me","me","me"];
 }
 function allowDrop(ev) {
   ev.preventDefault();
@@ -53,13 +53,14 @@ function drop(ev) {
     target = findAncestor(nestedTarget, "slot");
     container = findAncestor(nestedTarget, "playable");
     if(container) {
-        play(cardId,target.getAttribute("spot"));
+        play(cardId,target.getAttribute("spot"),target.getAttribute("location"));
     }
 }
-function play(cardId,targ){
+function play(cardId,targ, locat){
     websocketClient.send( JSON.stringify({
         id: cardId,
-        index: targ
+        index: targ,
+        location: locat
     }));
 };
 function changeBackground(color) {
@@ -246,10 +247,11 @@ function generateCardButton(card){
     return cardButton;
 }
 
-function createSlots(container, length){
+function createSlots(container, length, location){
     for (let i = 0; i < length; i++){
         slot = document.createElement("div");
         slot.setAttribute("spot", i);
+        slot.setAttribute("location", location);
         slot.classList.add("slot");
         slot.setAttribute("ondrop","drop(event)");
         slot.setAttribute("ondragover","allowDrop(event)");
@@ -265,7 +267,22 @@ function updateSlots(container, messageJson, name, location){
     if (name == "me"){
         name = messageJson["me"]
     }
-    newCards = messageJson["game_table"]["entities"][name]["locations"][location];
+    try{
+        newCards = messageJson["game_table"]["entities"][name]["locations"][location];
+    } catch (e) {
+        console.log("yi")
+        console.log(buttonContainerNames)
+        console.log(e)
+        console.log(messageJson)
+        console.log(messageJson["game_table"]["entities"])
+        console.log(name)
+        console.log(location)
+        console.log("kes")
+    }
+    if (location == "discard"){
+        newCards = [];
+    }
+
     newCards.forEach((newCard,i) => {
             slot = container.childNodes[i];
             oldCardButton = slot.querySelector(".card");
@@ -317,10 +334,11 @@ document.addEventListener('DOMContentLoaded', function(){
                     if (name == "me"){
                         name = messageJson["me"]
                     }
-                    console.log(name)
-                    console.log(messageJson["game_table"]["entities"])
                     length = messageJson["game_table"]["entities"][name]["locations"][local].length;
-                    createSlots(fetch(container),length);
+                    if (container == "#discard_container"){
+                        length = 1;
+                    }
+                    createSlots(fetch(container),length, local);
                 });
                 menuButtons.forEach(makeMenuButton);
                 firstUpdate = 0;

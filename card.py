@@ -354,6 +354,7 @@ def extend_nested(data, keys, value):
 def acting(action, card =""):
     targets = get_target_groups(action, card)
     destinations = action.get("to")
+    #try:
     match action["action"]:
         case "play":
             for played in targets[0]:
@@ -377,10 +378,10 @@ def acting(action, card =""):
             #{"action": "effect-relative", "target": ["my_base"], "effect_function":{"name":"armor","function":"add","value":1}, "end_trigger":"exit"}
             effect_function = action["effect_function"]
             target = action["target"]
-            effect = {"effect_function":effect_function,"target":target, "card":card}
-            append_nested(card,["triggers",action["end_trigger"]],{"actions": [{"action":"remove_effect","effect":effect}]})
+            effect = {"effect_function":effect_function,"target":target, "card_id":card["id"], "id": get_unique_id()}
+            id_table[effect["id"]] = effect
+            append_nested(card,["triggers",action["end_trigger"]],{"actions": [{"action":"remove_effect","effect_id":effect["id"]}]})
             game_table["all_effect_recipes"].append(effect)
-            effecting()
         case "effect_target":
             # end trigger stored on effected card
             effect_function = action["effect_function"]
@@ -389,22 +390,24 @@ def acting(action, card =""):
             for target_groups in get_target_groups(target,card):
                 for target_group in target_groups:
                     for targetted_card in target_group:
-                        effect = {"effect_function": effect_function, "target": [targetted_card], "card": ""}
-                        append_nested(targetted_card, ["triggers", action["end_trigger"]],{"action": "remove_effect", "effect": effect})
+                        effect = {"effect_function": effect_function, "target": [targetted_card], "id":get_unique_id()}
+                        id_table[effect["id"]] = effect
+                        append_nested(targetted_card, ["triggers", action["end_trigger"]],{"action": "remove_effect", "effect_id": effect["id"]})
                         game_table["all_effect_recipes"].append(effect)
                         #No card below since the targets are evaluated upfront
         case "effect_positional":
             #Need to add a trigger somewhere that can remove the effect
             effect_function = action["effect_function"]
             target = action["target"]
-            effect = {"effect_function":effect_function,"target":target,"card":card}
+            effect = {"effect_function":effect_function,"target":target, "id":get_unique_id()}
+            id_table[effect["id"]] = effect
             #You would need to add a card to game events with just the trigger for removal
             append_nested(game_table,["entities","situation","events"],
                              {
                                        "triggers": {
                                            action["end_trigger"]: [
                                                {"actions": [
-                                                   {"action": "remove_effect", "effect": effect}
+                                                   {"action": "remove_effect", "effect_id": effect["id"]}
                                                ]}
                                            ]
                                        }
@@ -416,7 +419,8 @@ def acting(action, card =""):
                 recipient["effects"] = {}
         case "remove_effect":
             all_effect_recipes = game_table["all_effect_recipes"]
-            all_effect_recipes.remove(action["effect"])
+            all_effect_recipes.remove(id_table[action["effect_id"]])
+            del id_table[action["effect_id"]]
         case "vampire":
             victims = targets[0]
             monsters = targets[1]
@@ -445,6 +449,8 @@ def acting(action, card =""):
         case _:
             log("Not sure what action that is:")
             log(action["action"])
+    #except IndexError:
+        #log("TARGETS NOT AVAILABLE")
 
 
 #Goes through list of effects and makes a dict which can be referenced by index and effect to get effect a list of operations which can be done to get value
@@ -466,7 +472,7 @@ def effecting():
     all_effect_recipes = game_table["all_effect_recipes"]
     all_effect_recipes.sort(key=effect_sort_func)
     for effect_recipe in all_effect_recipes:
-        for target_list in get_target_groups(effect_recipe, effect_recipe["card"]):
+        for target_list in get_target_groups(effect_recipe, id_table.get(effect_recipe["card_id"])):
             for target in target_list:
                 add_effect(effect_recipe["effect_function"],target)
 
@@ -550,6 +556,7 @@ targets_table = load({"file":"json/targets.json"})
 teams_list = ["good","evil"]
 static_lists = ["hand","board","tent","base"]
 game_table = load({"file":"json/game.json"})
+id_table = {}
 local_players_table = {}
 current_id = 1
 
@@ -603,7 +610,8 @@ def move(card, to):
 
 def move_defaults(card, to):
     if "entity" not in to.keys():
-        to["entity"] = card["entity"]
+        print(card["owner"])
+        to["entity"] = card["owner"]
     if "location" not in to.keys():
         to["location"] = card["location"]
     if "index" not in to.keys():
@@ -642,6 +650,12 @@ def move_card(card, to):
     # Index is actual number
     else:
         if to_location is not None:
+            if to_location[to["index"]]:
+                #If card at location, discard it
+                move(to_location[to["index"]],{"location":"discard","index":"append"})
+                #acting({"action": "move", "target": to_location[to["index"]],
+                        #"to": {"location": "discard", "index": "append"}})
+
             to_location[to["index"]] = card
         if to_static:
             card["index"] = to["index"]
@@ -663,7 +677,7 @@ def move_triggers(card, to, card_was, card_is):
     if to_location == "board" and card_location != "board":
         card["team"] = get_team(card["owner"])
         triggering(card, "enter")
-    if card_location == "board":
+    if card_location == "board" and to_location != "board":
         triggering(card,"exit")
     elif card_location == "deck":
         card_owner = card["owner"]
@@ -761,10 +775,14 @@ def initialize_players():
     for username, value in local_players_table.items():
         add_player(value["team"],0,username)
 
-def reset_state():
+def reset_state(victory = 0):
     global game_table
     loser = game_table["loser"]
+    #Get progressive ais from game_table and run add_player if not a reset_game call
+    #Simply grab how the ai progresses from a json table. Then load that new deck
     game_table = load({"file": "json/game.json"})
+    global id_table
+    id_table = {}
     initialize_teams(teams_list)
     initialize_players()
     initialize_situation()
@@ -803,6 +821,7 @@ def initialize_card(card_name,username="",location="deck"):
         baby_card["entity"] = username
     baby_card["team"] = get_team(username)
     baby_card["id"] = get_unique_id()
+    id_table[baby_card["id"]] = baby_card
     baby_card["location"] = location
     refresh_card(baby_card)
     return baby_card
@@ -829,7 +848,7 @@ async def update_state(players):
             out_table = copy.deepcopy(game_table)
             out_table["players"] = table("players")
             out_table["teams"] = table("teams")
-            out_table = remove_circular_refs(copy.deepcopy(out_table))
+            #out_table = remove_circular_refs(copy.deepcopy(out_table))
             await local_players_table[player]["socket"].send(str({"game_table":out_table,"me":player}))
 
 def strip_keys_copy(keys, table):
@@ -864,9 +883,17 @@ def initialize_time():
     timer_handle = asyncio.create_task(tick())
 
 def print_json(json_message):
-    no_circ = remove_circular_refs(copy.deepcopy(json_message))
+    #no_circ = remove_circular_refs(copy.deepcopy(json_message))
     log(json.dumps(
-        no_circ,
+        json_message,
+        sort_keys=True,
+        indent=4,
+        separators=(',',':')
+    ))
+def log_json(json_message):
+    #no_circ = remove_circular_refs(copy.deepcopy(json_message))
+    log(json.dumps(
+        json_message,
         sort_keys=True,
         indent=4,
         separators=(',',':')
@@ -965,7 +992,7 @@ def remove_ai(username):
         if player_data["ai"]:
             player_data["quit"] = 1
 
-def add_player(team,ai,name = ""):
+def add_player(team,ai,name = "", deck="beginner"):
     username = name
     if not name:
         username = "player" + str(get_unique_id())
@@ -987,7 +1014,8 @@ def add_player(team,ai,name = ""):
             ]
         }
     }
-    load_deck(username)
+    id_table[username] = game_table["entities"][username]
+    load_deck(username,deck)
     acting({"action":"move", "target": "my_deck", "to": {"location": "hand", "index": "append"}, "amount": 3},
            {"owner": username})
     return username
@@ -999,14 +1027,27 @@ def log(*words):
 async def handle_play(username,card_json):
     card_id = int(card_json["id"])
     card_index = int(card_json["index"])
+    card_to = card_json["location"]
     # Get card from id
-    card = card_from(card_id, table("players")[username]["locations"]["hand"])
+    card = id_table[card_id]
     team = get_team(username)
 
-    if card:
+    if card_to == "board":
         acting({"action": "play", "target": card, "to": {"entity":team, "location":"board", "index": card_index}})
+    if card_to == "discard":
+        acting({"action": "move", "target": card, "to": {"entity":card["owner"],"location":"discard", "index": "append"}})
 
     await update_state(local_players_table.keys())
+
+#There's also a full log in javascript message container
+def game_log(username):
+    log_json(game_table)
+    #for key, value in game_table.items():
+    #    if type(value) == dict:
+    #        print(key,value)
+    #    if type(value) == dict:
+    #        print(key,value)
+
 
 async def start_server():
     log("Server started!")
