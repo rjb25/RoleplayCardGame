@@ -27,27 +27,23 @@
 #Add zones for tent and base so cards can target them just like they would other cards
 #Update javascript to match new zones
 #Make the team a card, but in another sector
-#TODO WARN DEAR GOD DO NOT REFACTOR IN A WAY THAT IS NOT BITE SIZED EVER AGAIN
-#TODO 
-#EFFECTS
-#Effects global and card based with triggers. Effects contain a target if global. Effects are calculated before round and applied to cards
-#Handle defence effect not working if card was spawned in during play. This would simply be a matter of applying effect to card while it's in hand
+#Effects that can use targetting.
+#Discard area next to hand
+#Removeable triggers added
 
-#TRIGGER
-#Creation of triggers that disappear after one use
-#Maybe an N times trigger? Uses attribute on triggers
-#Then a trigger flag that says no really, remove this after it's used for tracking effects
+#TODO WARN
+#DEAR GOD DO NOT REFACTOR IN A WAY THAT IS NOT BITE SIZED EVER AGAIN
 
-#EVENTS
+#TODO
+#Progressive enemies
+
+#Events
 #Need triggers that can be subscribed to like on ally cards die. I suppose I could add triggers to ally cards, but that seems weird.
 #I would need a place to store subscription functions and parameters, then a way to call that list of functions
 
 #TICK
 #Maybe balance it so which team is called first in order is randomized
 #Do not orgaize this. Let it be chaos
-
-#DISCARD
-
 #SHOP
 
 #Health ticks down version
@@ -379,7 +375,7 @@ def acting(action, card =""):
             effect_function = action["effect_function"]
             target = action["target"]
             effect = {"effect_function":effect_function,"target":target, "card_id":card["id"], "id": get_unique_id()}
-            id_table[effect["id"]] = effect
+            game_table["ids"][effect["id"]] = effect
             append_nested(card,["triggers",action["end_trigger"]],{"actions": [{"action":"remove_effect","effect_id":effect["id"]}]})
             game_table["all_effect_recipes"].append(effect)
         case "effect_target":
@@ -391,7 +387,7 @@ def acting(action, card =""):
                 for target_group in target_groups:
                     for targetted_card in target_group:
                         effect = {"effect_function": effect_function, "target": [targetted_card], "id":get_unique_id()}
-                        id_table[effect["id"]] = effect
+                        game_table["ids"][effect["id"]] = effect
                         append_nested(targetted_card, ["triggers", action["end_trigger"]],{"action": "remove_effect", "effect_id": effect["id"]})
                         game_table["all_effect_recipes"].append(effect)
                         #No card below since the targets are evaluated upfront
@@ -400,7 +396,7 @@ def acting(action, card =""):
             effect_function = action["effect_function"]
             target = action["target"]
             effect = {"effect_function":effect_function,"target":target, "id":get_unique_id()}
-            id_table[effect["id"]] = effect
+            game_table["ids"][effect["id"]] = effect
             #You would need to add a card to game events with just the trigger for removal
             append_nested(game_table,["entities","situation","events"],
                              {
@@ -419,8 +415,8 @@ def acting(action, card =""):
                 recipient["effects"] = {}
         case "remove_effect":
             all_effect_recipes = game_table["all_effect_recipes"]
-            all_effect_recipes.remove(id_table[action["effect_id"]])
-            del id_table[action["effect_id"]]
+            all_effect_recipes.remove(game_table["ids"][action["effect_id"]])
+            del game_table["ids"][action["effect_id"]]
         case "vampire":
             victims = targets[0]
             monsters = targets[1]
@@ -472,7 +468,7 @@ def effecting():
     all_effect_recipes = game_table["all_effect_recipes"]
     all_effect_recipes.sort(key=effect_sort_func)
     for effect_recipe in all_effect_recipes:
-        for target_list in get_target_groups(effect_recipe, id_table.get(effect_recipe["card_id"])):
+        for target_list in get_target_groups(effect_recipe, game_table["ids"].get(effect_recipe["card_id"])):
             for target in target_list:
                 add_effect(effect_recipe["effect_function"],target)
 
@@ -549,15 +545,13 @@ def create_random_action(action):
     return "hey"
 
 #GLOBALS
+session_table = {"loser":"","ais":{},"players":{},"teams":{"good":{},"evil":{}},"send_reset":1, "level":1, "max_level":5}
 random_table = load({"file":"json/random.json"})
 decks_table = load({"file":"json/decks.json"})
 cards_table = load({"file":"json/cards.json"})
 targets_table = load({"file":"json/targets.json"})
-teams_list = ["good","evil"]
 static_lists = ["hand","board","tent","base"]
 game_table = load({"file":"json/game.json"})
-id_table = {}
-local_players_table = {}
 current_id = 1
 
 def table(entity_type):
@@ -706,10 +700,16 @@ def cleanup_tick():
                 if card:
                     card["effects"] = {}
                     if card["health"] <= 0:
-                        loser = game_table["loser"]
+                        #This 'loser =' is to make sure game didn't already end
+                        loser = session_table["loser"]
                         if card["location"] == "base" and (not loser):
-                            game_table["loser"] = get_team(card["owner"])
-                            reset_state()
+                            if get_team(card["owner"]) == "evil":
+                                if session_table["level"] < session_table["max_level"]:
+                                    session_table["level"] += 1
+                                reset_state()
+                            else:
+                                #session_table["level"] -= 1
+                                reset_state()
                         else:
                             kill_card(card)
 
@@ -725,9 +725,9 @@ def ai_tick():
 async def tick():
     while True:
         await asyncio.sleep(game_table["tick_duration"])
-        if game_table.get("reset"):
-            game_table["reset"] = 0
-            await update_state(local_players_table.keys())
+        if session_table.get("send_reset"):
+            session_table["send_reset"] = 0
+            await update_state(session_table["players"].keys())
         if game_table["running"]:
             for player in list(table("players")):
                 if table("players").get(player).get("quit"):
@@ -735,7 +735,7 @@ async def tick():
             #Effects happen first since they are things that are removeable. They are added at start, removed at end
             location_tick()
             ai_tick()
-            await update_state(local_players_table.keys())
+            await update_state(session_table["players"].keys())
             cleanup_tick()
 
 def remove_quit_players(team_data):
@@ -754,48 +754,81 @@ def initialize_situation():
     set_nested(game_table,["entities","situation"],{"team":"gaia","type":"gaia","locations":{"events":[]}})
 
 def initialize_team(team):
-    game_table["entities"][team] = {"type": "team",
-                                    "team": team,
-                                    "locations":{
-                                    "base": [0],
-                                    "board": [
-                                        0,0,0,0,0
-                                    ]
-                                    }
-                                    }
-    #Need to add a card to base
-    game_table["entities"][team]["team"] = team
-    game_table["entities"][team]["locations"]["base"][0] = initialize_card(team, team, "base")
+    set_nested(game_table,["entities",team],
+               {"type": "team",
+                "team": team,
+                "locations": {
+                    "base": [0],
+                    "board": [
+                        0, 0, 0, 0, 0
+                    ]
+                }
+                }
+               )
+    base_card = ""
+    if team == "evil":
+        #Plus level if you want upgrading team
+        #game_table["entities"][team]["locations"]["base"][0] = initialize_card(team+session_table["level"], team, "base")
+        game_table["entities"][team]["locations"]["base"][0] = initialize_card(team, team, "base")
+    else:
+        game_table["entities"][team]["locations"]["base"][0] = initialize_card(team, team, "base")
 
-def initialize_teams(teams):
-    for team in teams:
+
+def initialize_player(team,ai,username, deck="beginner"):
+    if ai:
+        session_table["ais"][username] = {"team":team}
+        deck = "ai"+str(session_table["level"])
+    game_table["entities"][username] = {
+        "type":"player",
+        "team":team,
+        "ai":ai,
+        "gold": 10,
+        "gold_limit": 50,
+        "locations": {
+            "hand": [
+                0,0,0,0,0
+            ],
+            "deck": [],
+            "discard": [],
+            "tent": [
+                0
+            ]
+        }
+    }
+    load_deck(username, deck)
+    acting({"action":"move", "target": "my_deck", "to": {"location": "hand", "index": "append"}, "amount": 3},
+           {"owner": username})
+
+def initialize_teams():
+    for team in session_table["teams"].keys():
         initialize_team(team)
 
 def initialize_players():
-    for username, value in local_players_table.items():
-        add_player(value["team"],0,username)
+    for username, value in session_table["players"].items():
+        initialize_player(value["team"],0,username)
 
-def reset_state(victory = 0):
-    global game_table
-    loser = game_table["loser"]
-    #Get progressive ais from game_table and run add_player if not a reset_game call
-    #Simply grab how the ai progresses from a json table. Then load that new deck
-    game_table = load({"file": "json/game.json"})
-    global id_table
-    id_table = {}
-    initialize_teams(teams_list)
-    initialize_players()
+def initialize_ais():
+    for username, value in session_table["ais"].items():
+        initialize_player(value["team"],1,username)
+
+def initialize_game():
     initialize_situation()
-    game_table["text"][loser] = "Defeat... &#x2639;"
-    game_table["text"][get_enemy_team(loser)] = "Victory! &#128512;"
-    game_table["loser"] = ""
-    game_table["running"] = 0
-    game_table["reset"] = 1
+    initialize_teams()
+    initialize_players()
+    initialize_ais()
+
+def reset_state():
+    #Clear game
+    global game_table
+    game_table = load({"file": "json/game.json"})
+    #Progress game from session data
+    initialize_game()
+    session_table["send_reset"] = 1
 
 def get_unique_id():
     global current_id
     current_id += 1
-    return current_id
+    return str(current_id)
 
 def get_unique_name():
     cards_table["current_name"] += 1
@@ -821,7 +854,7 @@ def initialize_card(card_name,username="",location="deck"):
         baby_card["entity"] = username
     baby_card["team"] = get_team(username)
     baby_card["id"] = get_unique_id()
-    id_table[baby_card["id"]] = baby_card
+    game_table["ids"][baby_card["id"]] = baby_card
     baby_card["location"] = location
     refresh_card(baby_card)
     return baby_card
@@ -844,12 +877,12 @@ def is_team(target = ""):
 
 async def update_state(players):
     for player in players:
-        if player in local_players_table:
+        if player in session_table["players"]:
             out_table = copy.deepcopy(game_table)
             out_table["players"] = table("players")
             out_table["teams"] = table("teams")
             #out_table = remove_circular_refs(copy.deepcopy(out_table))
-            await local_players_table[player]["socket"].send(str({"game_table":out_table,"me":player}))
+            await session_table["players"][player]["socket"].send(str({"game_table":out_table,"me":player}))
 
 def strip_keys_copy(keys, table):
     copied_table = copy.deepcopy(table)
@@ -924,8 +957,9 @@ def card_from(card_id, cards):
     return {}
 
 async def new_client_connected(client_socket, path):
-    username = add_player("good", 0)
-    local_players_table[username] = {"socket":client_socket, "team":"good"}
+    username = "player" + get_unique_id()
+    initialize_player("good", 0, username)
+    session_table["players"][username] = {"socket":client_socket, "team":"good"}
     await update_state([username])
 
     try:
@@ -939,12 +973,12 @@ async def new_client_connected(client_socket, path):
                 globals()[card_json["command"]](username)
                 if card_json.get("command") == "quit":
                     break;
-                await update_state(local_players_table.keys())
+                await update_state(session_table["players"].keys())
 
     except websockets.ConnectionClosed as e:
         log("Client quit:", username)
         log(e)
-        del local_players_table[username]
+        del session_table["players"][username]
         del game_table["entities"][username]
 
 def pause(username):
@@ -966,22 +1000,30 @@ def save_random_cards(username):
 def join_evil(username):
     log(username + " joined evil")
     table("players")[username]["team"] = "evil"
-    local_players_table[username]["team"] = "evil"
+    session_table["players"][username]["team"] = "evil"
 
 def join_good(username):
     log(username + " joined good")
     table("players")[username]["team"] = "good"
-    local_players_table[username]["team"] = "good"
+    session_table["players"][username]["team"] = "good"
 
 def reset_game(username):
-    game_table["loser"] = "good"
+    session_table["loser"] = "good"
     reset_state()
 
-def add_ai_evil(username):
-    add_player("evil",1)
+def win_game(username):
+    session_table["loser"] = "evil"
+    if session_table["level"] < session_table["max_level"]:
+        session_table["level"] += 1
+    reset_state()
 
-def add_ai_good(username):
-    add_player("good",1)
+def add_ai_evil(use):
+    username = "ai" + get_unique_id()
+    initialize_player("evil",1,username)
+
+def add_ai_good(use):
+    username = "ai" + get_unique_id()
+    initialize_player("good",1,username)
 
 def quit(username):
     table("entities")[username]["quit"] = 1
@@ -992,44 +1034,17 @@ def remove_ai(username):
         if player_data["ai"]:
             player_data["quit"] = 1
 
-def add_player(team,ai,name = "", deck="beginner"):
-    username = name
-    if not name:
-        username = "player" + str(get_unique_id())
-    log("Player Added: "+username)
-    game_table["entities"][username] = {
-        "type":"player",
-        "team":team,
-        "ai":ai,
-        "gold": 10,
-        "gold_limit": 50,
-        "locations": {
-            "hand": [
-                0,0,0,0,0
-            ],
-            "deck": [],
-            "discard": [],
-            "tent": [
-                0
-            ]
-        }
-    }
-    id_table[username] = game_table["entities"][username]
-    load_deck(username,deck)
-    acting({"action":"move", "target": "my_deck", "to": {"location": "hand", "index": "append"}, "amount": 3},
-           {"owner": username})
-    return username
 
 def log(*words):
     for word in words:
         print(word)
 
 async def handle_play(username,card_json):
-    card_id = int(card_json["id"])
+    card_id = card_json["id"]
     card_index = int(card_json["index"])
     card_to = card_json["location"]
     # Get card from id
-    card = id_table[card_id]
+    card = game_table["ids"][card_id]
     team = get_team(username)
 
     if card_to == "board":
@@ -1037,7 +1052,7 @@ async def handle_play(username,card_json):
     if card_to == "discard":
         acting({"action": "move", "target": card, "to": {"entity":card["owner"],"location":"discard", "index": "append"}})
 
-    await update_state(local_players_table.keys())
+    await update_state(session_table["players"].keys())
 
 #There's also a full log in javascript message container
 def game_log(username):
@@ -1051,8 +1066,7 @@ def game_log(username):
 
 async def start_server():
     log("Server started!")
-    initialize_situation()
-    initialize_teams(teams_list)
+    reset_state()
     initialize_time()
     await websockets.serve(new_client_connected, "localhost", 12345)
 

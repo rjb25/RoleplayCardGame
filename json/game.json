@@ -7,5 +7,6 @@
     "loser":"",
     "players":{},
     "text":{},
-    "reset": 0
+    "reset": 0,
+    "ids": {}
 }
