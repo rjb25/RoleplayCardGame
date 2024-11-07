@@ -30,12 +30,14 @@
 #Effects that can use targetting.
 #Discard area next to hand
 #Removeable triggers added
+#Progressive enemies
+#Session table and reset
 
 #TODO WARN
 #DEAR GOD DO NOT REFACTOR IN A WAY THAT IS NOT BITE SIZED EVER AGAIN
 
 #TODO
-#Progressive enemies
+#Shop and trash zone
 
 #Events
 #Need triggers that can be subscribed to like on ally cards die. I suppose I could add triggers to ally cards, but that seems weird.
@@ -47,8 +49,6 @@
 #SHOP
 
 #Health ticks down version
-
-
 #Have a random card shop as a rare reward. With end game cards expected to come from random draws.
 #Make while triggers, maybe they add something something in a pre tick. The "effect" section is then wiped on tick cleanup
 #Change protect to add temporary health on a timer. Maybe a blue line below healthbar
@@ -773,11 +773,25 @@ def initialize_team(team):
     else:
         game_table["entities"][team]["locations"]["base"][0] = initialize_card(team, team, "base")
 
+#def populate_shop(username):
+    #game_table["entities"][username] = {
+
 
 def initialize_player(team,ai,username, deck="beginner"):
+    #Session needs to hold players/entities, not ais and players.
+    deck_to_load = []
     if ai:
-        session_table["ais"][username] = {"team":team}
+        session_table["players"][username] = {"team":team,"ai":ai}
         deck = "ai"+str(session_table["level"])
+        deck_to_load = decks_table[deck]
+    else:
+        if session_table["players"][username].get("deck"):
+            deck_to_load = session_table["players"][username]["deck"]
+        else:
+            deck_to_load = decks_table[deck]
+            # This way shop can add cards to a players recurring deck
+            session_table["players"][username]["deck"] = deck_to_load
+
     game_table["entities"][username] = {
         "type":"player",
         "team":team,
@@ -790,14 +804,19 @@ def initialize_player(team,ai,username, deck="beginner"):
             ],
             "deck": [],
             "discard": [],
+            "shop": [0,0,0],
             "tent": [
                 0
             ]
         }
     }
-    load_deck(username, deck)
+    #Initialize some cards to the shop on player startup
+    #baby_card = initialize_card(card_name, username)
+    load_deck(username, deck_to_load)
     acting({"action":"move", "target": "my_deck", "to": {"location": "hand", "index": "append"}, "amount": 3},
            {"owner": username})
+
+
 
 def initialize_teams():
     for team in session_table["teams"].keys():
@@ -819,6 +838,7 @@ def initialize_game():
 
 def reset_state():
     #Clear game
+    session_table["send_reset"] = 1
     global game_table
     game_table = load({"file": "json/game.json"})
     #Progress game from session data
@@ -860,8 +880,7 @@ def initialize_card(card_name,username="",location="deck"):
     return baby_card
 
 #Need an add card
-def load_deck(username,deck_type="beginner"):
-    deck_to_load = decks_table[deck_type]
+def load_deck(username, deck_to_load):
     random.shuffle(deck_to_load)
     deck = []
     for card_name in deck_to_load:
@@ -958,8 +977,8 @@ def card_from(card_id, cards):
 
 async def new_client_connected(client_socket, path):
     username = "player" + get_unique_id()
-    initialize_player("good", 0, username)
     session_table["players"][username] = {"socket":client_socket, "team":"good"}
+    initialize_player("good", 0, username)
     await update_state([username])
 
     try:

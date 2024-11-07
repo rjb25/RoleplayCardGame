@@ -43,22 +43,32 @@
             ]
         }
     },
+    "attack2":{
+        "health":4,
+        "cost":12,
+        "triggers": {
+            "timer": [
+                {"goal":3, "progress":0, "actions":[
+                    {"action":"damage","target":"across","amount":2}
+                ]},
+                {"goal":20, "progress":0, "actions":[
+                    {"action":"damage","target":"enemy_base","amount":2},
+                    {"action":"move","target":"self","to": {"location": "discard","index": "append","entity": "owner"}}
+                ]}
+            ]
+        }
+    },
     "loot":{
         "health":3,
         "cost":4,
         "triggers": {
             "timer": [
-                {"goal":2, "progress":0, "actions":[
-                    {"action":"damage","target":"across","amount":1}
+                {"goal":1, "progress":0, "actions":[
+                    {"action":"income","target":"allies","amount":1}
                 ]},
                 {"goal":10, "progress":0, "actions":[
-                    {"action":"damage","target":"enemy_base","amount":3},
+                    {"action":"move","target":["ally_deck"],"to":{"entity":"owner","location": "hand","index": "append"},"amount":3},
                     {"action":"move","target":"self","to": {"location": "discard","index": "append","entity": "owner"}}
-                ]}
-            ],
-            "enter": [
-                {"actions":[
-                    {"action":"income","target":"enemies","amount":-1}
                 ]}
             ]
         }
