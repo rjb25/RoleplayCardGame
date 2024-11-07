@@ -6,5 +6,6 @@
     "ai3":["shield","shield","shield","shield","shield","attack","attack","attack","attack","attack","attack","bomb","bomb","bomb"],
     "ai4":["shield","shield","shield","shield","shield","bomb","bomb","bomb","bomb","bomb","bomb","bomb","bomb","bomb"],
     "ai5":["bomb","bomb","bomb","bomb","bomb","attack","attack","attack","attack","attack","attack","bomb","bomb","bomb"],
-    "nathan":["aggression","aggression","draw","draw","draw","attack","attack","attack","loot","loot","loot"]
+    "nathan":["aggression","aggression","draw","draw","draw","attack","attack","attack","loot","loot","loot"],
+    "shop":["attack2","loot","bomb","draw"]
 }

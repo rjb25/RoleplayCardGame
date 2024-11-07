@@ -32,6 +32,7 @@
 #Removeable triggers added
 #Progressive enemies
 #Session table and reset
+#Start using images on cards
 
 #TODO WARN
 #DEAR GOD DO NOT REFACTOR IN A WAY THAT IS NOT BITE SIZED EVER AGAIN
@@ -78,11 +79,9 @@
 #TODO Actions
 #Mirror requres action to mirror as argument and does so. Basically trigger handles action
 #TODO CARD IDEAS
+#Card that freezes income or draw of opponent
 #Card that reflects destabilize back at attacker
 #Card that deals more damage when hurt
-#Start using images on cards
-#Hot potato or cooked grenade cards that start their countdown while in your hand.
-#They cannot select target while in play
 
 #DON'T USE ORDERED DICT SINCE YOU CAN'T CHOOSE INSERTION POINT. JUST USE A LIST WITH REFERENCES TO A MEGA DICT
 import asyncio
@@ -781,7 +780,7 @@ def initialize_player(team,ai,username, deck="beginner"):
     #Session needs to hold players/entities, not ais and players.
     deck_to_load = []
     if ai:
-        session_table["players"][username] = {"team":team,"ai":ai}
+        session_table["ais"][username] = {"team":team,"ai":ai}
         deck = "ai"+str(session_table["level"])
         deck_to_load = decks_table[deck]
     else:
@@ -812,7 +811,12 @@ def initialize_player(team,ai,username, deck="beginner"):
     }
     #Initialize some cards to the shop on player startup
     #baby_card = initialize_card(card_name, username)
+    shop_deck = decks_table["shop"]
+    random.shuffle(shop_deck)
+    for index, slot in enumerate(game_table["entities"][username]["locations"]["shop"]):
+        game_table["entities"][username]["locations"]["shop"][index] = initialize_card(shop_deck[index], username, "shop")
     load_deck(username, deck_to_load)
+
     acting({"action":"move", "target": "my_deck", "to": {"location": "hand", "index": "append"}, "amount": 3},
            {"owner": username})
 
@@ -1064,12 +1068,19 @@ async def handle_play(username,card_json):
     card_to = card_json["location"]
     # Get card from id
     card = game_table["ids"][card_id]
+    card_from = card["location"]
     team = get_team(username)
 
     if card_to == "board":
         acting({"action": "play", "target": card, "to": {"entity":team, "location":"board", "index": card_index}})
     if card_to == "discard":
         acting({"action": "move", "target": card, "to": {"entity":card["owner"],"location":"discard", "index": "append"}})
+    if card_to == "hand":
+        if card_from == "shop":
+            acting({"action": "move", "target": card, "to": {"entity":card["owner"],"location":"hand", "index": card_index}})
+            #TODO, obliterate the leftover cards so they are removed from the card dict. Technically they are still in the shop.
+            session_table["players"][username]["deck"].append(card["title"])
+            game_table["entities"][card["owner"]]["locations"]["shop"] = [0,0,0]
 
     await update_state(session_table["players"].keys())
 

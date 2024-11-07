@@ -140,20 +140,21 @@ function updateCardButton(cardButton,card){
             }
         }
     } else {
-        percent = 100 * card["health"] / card["max_health"] ;
-        health.style.width = Math.max(percent,0) +"%";
-        if (percent > 75){
-            health.style.background = "rgba(0, 255, 0, 0.8)";
-        } else if (percent > 40){
-            health.style.background = "rgba(255, 255, 0, 0.8)";
-        } else if (percent > 0){
-            health.style.background = "rgba(255, 0, 0, 0.8)";
-        } else {
-            if(card["location"] != "tent"){
-                skullImage.style.display = "";
+        if (card["location"] != "shop"){
+            percent = 100 * card["health"] / card["max_health"] ;
+            health.style.width = Math.max(percent,0) +"%";
+            if (percent > 75){
+                health.style.background = "rgba(0, 255, 0, 0.8)";
+            } else if (percent > 40){
+                health.style.background = "rgba(255, 255, 0, 0.8)";
+            } else if (percent > 0){
+                health.style.background = "rgba(255, 0, 0, 0.8)";
+            } else {
+                if(card["location"] != "tent"){
+                    skullImage.style.display = "";
+                }
             }
         }
-
         cost.innerHTML = "";
         cardCoinImage.style.display = "none";
     }

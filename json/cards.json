@@ -67,7 +67,7 @@
                     {"action":"income","target":"allies","amount":1}
                 ]},
                 {"goal":10, "progress":0, "actions":[
-                    {"action":"move","target":["ally_deck"],"to":{"entity":"owner","location": "hand","index": "append"},"amount":3},
+                    {"action":"income","target":"allies","amount":10},
                     {"action":"move","target":"self","to": {"location": "discard","index": "append","entity": "owner"}}
                 ]}
             ]
@@ -75,20 +75,15 @@
     },
     "draw":{
         "health":3,
-        "cost":4,
+        "cost":10,
         "triggers": {
             "timer": [
                 {"goal":2, "progress":0, "actions":[
-                    {"action":"move","target":"my_deck","to":{"location": "hand","index": "append"},"amount":2}
+                    {"action":"move","target":["my_deck"],"to":{"entity":"owner","location": "hand","index": "append"},"amount":1}
                 ]},
                 {"goal":10, "progress":0, "actions":[
-                    {"action":"damage","target":"enemy_base","amount":3},
+                    {"action":"move","target":["my_deck"],"to":{"entity":"owner","location": "hand","index": "append"},"amount":5},
                     {"action":"move","target":"self","to": {"location": "discard","index": "append","entity": "owner"}}
-                ]}
-            ],
-            "enter": [
-                {"actions":[
-                    {"action":"income","target":"enemies","amount":-1}
                 ]}
             ]
         }
