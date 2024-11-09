@@ -33,12 +33,19 @@
 #Progressive enemies
 #Session table and reset
 #Start using images on cards
+#Shop zone
 
 #TODO WARN
 #DEAR GOD DO NOT REFACTOR IN A WAY THAT IS NOT BITE SIZED EVER AGAIN
 
 #TODO
-#Shop and trash zone
+#Add reset session option.
+#Add draw button where you can buy draw more cards
+#Add upgrade card button too maybe?
+#Add different armor
+#Add armor decay?
+#More money means more betterer
+#An an enter armor boost like in slay the spire
 
 #Events
 #Need triggers that can be subscribed to like on ally cards die. I suppose I could add triggers to ally cards, but that seems weird.
@@ -263,11 +270,24 @@ def get_cards(zone, select_function, args, action, card):
             return actual_zone
         case "random":
             return [random.choice(actual_zone)]
+        case "random-slot":
+            selection = random.choice(zone)
+            if selection:
+                return [selection]
+            else:
+                return []
         case "card":
             if card["index"] < len(zone) and zone[card["index"]]:
                 return [zone[card["index"]]]
             else:
                 return []
+        case "fork":
+            indices = [card["index"]-1,card["index"],card["index"]+1]
+            result = []
+            for index in indices:
+                if index < len(zone) and zone[index]:
+                    result.append(zone[index])
+            return result
         case "amount":
             amount = action["amount"]
             return actual_zone[-amount:]
@@ -294,6 +314,7 @@ def triggering(card, event_type):
                             acting(action, card)
                     #The change comes after so the client gets a chance to see the progress
                     timer["progress"] += tick_rate()
+                    #
                 case _:
                     for action in event["actions"]:
                         acting(action, card)
@@ -433,8 +454,17 @@ def acting(action, card =""):
             for victim in victims:
                 damage = action["amount"]
                 armor = get_effect("armor", victim)
+                remaining_shield = negative_remaining_damage = victim["shield"] - damage
+                victim["shield"] = max(remaining_shield, 0)
+                damage = -1 * negative_remaining_damage
                 damage = max(0, damage - armor)
                 victim["health"] -= damage
+        case "shield":
+            victims = targets[0]
+            for victim in victims:
+                shield = action["amount"]
+                victim["shield"] += shield
+                victim["shield"] = min(victim["shield"],victim["max_shield"])
         case "income":
             recipients = targets[0]
             for recipient in recipients:
@@ -544,7 +574,7 @@ def create_random_action(action):
     return "hey"
 
 #GLOBALS
-session_table = {"loser":"","ais":{},"players":{},"teams":{"good":{},"evil":{}},"send_reset":1, "level":1, "max_level":5}
+session_table = {"loser":"","ais":{},"players":{},"teams":{"good":{},"evil":{}},"send_reset":1, "level":1, "max_level":5, "first":1}
 random_table = load({"file":"json/random.json"})
 decks_table = load({"file":"json/decks.json"})
 cards_table = load({"file":"json/cards.json"})
@@ -582,6 +612,18 @@ def get_empty_index(board):
         if not card:
             return index
     return None
+
+
+def get_random_empty_index(board):
+    # Find all indices where the card is empty (falsy)
+    empty_indices = [index for index, card in enumerate(board) if not card]
+
+    # If there are no empty indices, return None
+    if not empty_indices:
+        return None
+
+    # Randomly select one of the empty indices
+    return random.choice(empty_indices)
 
 def get_path(path):
     try: 
@@ -638,8 +680,14 @@ def move_card(card, to):
             #Remove index
             if "index" in card.keys():
                 del card["index"]
-    elif to["index"] == "across":
-        log("across")
+    elif to["index"] == "random":
+        if to_location is not None:
+            to_available = get_random_empty_index(to_location)
+            # If there's an empty slot
+            if to_available is not None:
+                to_location[to_available] = card
+                # Add index
+                card["index"] = to_available
     # Index is actual number
     else:
         if to_location is not None:
@@ -690,6 +738,10 @@ def location_tick():
             for card in location_data:
                 if card:
                     triggering(card,"timer")
+                    #Decay shield
+                    if card.get("shield"):
+                        shield = max(card["shield"]-(math.sqrt(card["shield"])*tick_rate()+0.2)/10,0)
+                        card["shield"] = shield
 
 #Cleanup is really just a post tick.
 def cleanup_tick():
@@ -700,8 +752,11 @@ def cleanup_tick():
                     card["effects"] = {}
                     if card["health"] <= 0:
                         #This 'loser =' is to make sure game didn't already end
-                        loser = session_table["loser"]
-                        if card["location"] == "base" and (not loser):
+                        #loser = session_table["loser"]
+                        if card["location"] == "base":
+                            #Maybe count wins and losses.
+                            #Fix loser here
+                            #loser = session_table["loser"]
                             if get_team(card["owner"]) == "evil":
                                 if session_table["level"] < session_table["max_level"]:
                                     session_table["level"] += 1
@@ -717,7 +772,7 @@ def ai_tick():
     for player, player_data in table("players").items():
         if player_data["ai"]:
             acting(
-                {"action": "play", "target": ["my_hand"], "to": {"entity":player_data["team"],"location": "board", "index": "append"}, "amount": 1}
+                {"action": "play", "target": ["my_hand"], "to": {"entity":player_data["team"],"location": "board", "index": "random"}, "amount": 1}
                 ,{"owner":player}
             )
 
@@ -768,9 +823,9 @@ def initialize_team(team):
     if team == "evil":
         #Plus level if you want upgrading team
         #game_table["entities"][team]["locations"]["base"][0] = initialize_card(team+session_table["level"], team, "base")
-        game_table["entities"][team]["locations"]["base"][0] = initialize_card(team, team, "base")
+        game_table["entities"][team]["locations"]["base"][0] = initialize_card(team, team, "base",0)
     else:
-        game_table["entities"][team]["locations"]["base"][0] = initialize_card(team, team, "base")
+        game_table["entities"][team]["locations"]["base"][0] = initialize_card(team, team, "base",0)
 
 #def populate_shop(username):
     #game_table["entities"][username] = {
@@ -788,8 +843,9 @@ def initialize_player(team,ai,username, deck="beginner"):
             deck_to_load = session_table["players"][username]["deck"]
         else:
             deck_to_load = decks_table[deck]
+            copied_deck = copy.deepcopy(deck_to_load)
             # This way shop can add cards to a players recurring deck
-            session_table["players"][username]["deck"] = deck_to_load
+            session_table["players"][username]["deck"] = copied_deck
 
     game_table["entities"][username] = {
         "type":"player",
@@ -811,10 +867,11 @@ def initialize_player(team,ai,username, deck="beginner"):
     }
     #Initialize some cards to the shop on player startup
     #baby_card = initialize_card(card_name, username)
-    shop_deck = decks_table["shop"]
+    shop_deck = decks_table["shop"+str(session_table["level"])]
     random.shuffle(shop_deck)
     for index, slot in enumerate(game_table["entities"][username]["locations"]["shop"]):
-        game_table["entities"][username]["locations"]["shop"][index] = initialize_card(shop_deck[index], username, "shop")
+        if index < len(shop_deck):
+            game_table["entities"][username]["locations"]["shop"][index] = initialize_card(shop_deck[index], username, "shop",index)
     load_deck(username, deck_to_load)
 
     acting({"action":"move", "target": "my_deck", "to": {"location": "hand", "index": "append"}, "amount": 3},
@@ -865,10 +922,12 @@ def refresh_card(card):
         card["effects"] = {}
         card["max_health"] = baby_card["health"]
         card["health"] = baby_card["health"]
+        baby_card["shield"] = 0
+        baby_card["max_shield"] = 20
     except KeyError:
         pass
 
-def initialize_card(card_name,username="",location="deck"):
+def initialize_card(card_name,username="",location="deck",index=-1):
     baby_card = copy.deepcopy(cards_table[card_name])
     if not("title" in baby_card.keys()):
         baby_card["title"] = card_name
@@ -876,8 +935,13 @@ def initialize_card(card_name,username="",location="deck"):
     if username:
         baby_card["owner"] = username
         baby_card["entity"] = username
+    if index >= 0:
+        baby_card["index"] = index
+
     baby_card["team"] = get_team(username)
     baby_card["id"] = get_unique_id()
+    baby_card["shield"] = 0
+    baby_card["max_shield"] = 20
     game_table["ids"][baby_card["id"]] = baby_card
     baby_card["location"] = location
     refresh_card(baby_card)
@@ -892,7 +956,7 @@ def load_deck(username, deck_to_load):
         deck.append(baby_card)
     set_nested(table("players"),[username,"locations","deck"], deck)
     set_nested(table("players"),[username,"locations","discard"], [])
-    get_nested(table("players"),[username,"locations","tent"])[0] = initialize_card("player", username, "tent")
+    get_nested(table("players"),[username,"locations","tent"])[0] = initialize_card("player", username, "tent", 0)
 
 def is_team(target = ""):
     if target in list(table("teams").keys()):
@@ -981,6 +1045,10 @@ def card_from(card_id, cards):
 
 async def new_client_connected(client_socket, path):
     username = "player" + get_unique_id()
+    if session_table["first"]:
+        session_table["first"] = 0
+        ainame = "ai" + get_unique_id()
+        initialize_player("evil",1,ainame)
     session_table["players"][username] = {"socket":client_socket, "team":"good"}
     initialize_player("good", 0, username)
     await update_state([username])
@@ -1001,8 +1069,10 @@ async def new_client_connected(client_socket, path):
     except websockets.ConnectionClosed as e:
         log("Client quit:", username)
         log(e)
-        del session_table["players"][username]
-        del game_table["entities"][username]
+        if session_table["players"].get(username):
+            del session_table["players"][username]
+        if game_table["entities"].get(username):
+            del game_table["entities"][username]
 
 def pause(username):
     log(username + " paused")
@@ -1032,6 +1102,12 @@ def join_good(username):
 
 def reset_game(username):
     session_table["loser"] = "good"
+    reset_state()
+
+def reset_session(username):
+    global session_table
+    session_table = {"loser": "", "ais": {}, "players": {}, "teams": {"good": {}, "evil": {}}, "send_reset": 1,
+                     "level": 1, "max_level": 5, "first": 1}
     reset_state()
 
 def win_game(username):
@@ -1067,13 +1143,16 @@ async def handle_play(username,card_json):
     card_index = int(card_json["index"])
     card_to = card_json["location"]
     # Get card from id
-    card = game_table["ids"][card_id]
+    card = game_table["ids"].get(card_id)
+    if not card:
+        return
     card_from = card["location"]
     team = get_team(username)
 
-    if card_to == "board":
-        acting({"action": "play", "target": card, "to": {"entity":team, "location":"board", "index": card_index}})
-    if card_to == "discard":
+    if card_to == "board" and card_from == "hand":
+        if not game_table["entities"][team]["locations"]["board"][card_index]:
+            acting({"action": "play", "target": card, "to": {"entity":team, "location":"board", "index": card_index}})
+    if card_to == "discard" and card_from == "hand":
         acting({"action": "move", "target": card, "to": {"entity":card["owner"],"location":"discard", "index": "append"}})
     if card_to == "hand":
         if card_from == "shop":

@@ -30,7 +30,7 @@
 
     "attack":{
         "health":3,
-        "cost":4,
+        "cost":3,
         "triggers": {
             "timer": [
                 {"goal":2, "progress":0, "actions":[
@@ -43,16 +43,50 @@
             ]
         }
     },
+    "fork":{
+        "health":2,
+        "cost":8,
+        "triggers": {
+            "timer": [
+                {"goal":2, "progress":0, "actions":[
+                    {"action":"damage","target":"fork","amount":1}
+                ]},
+                {"goal":10, "progress":0, "actions":[
+                    {"action":"damage","target":"enemy_base","amount":1},
+                    {"action":"move","target":"self","to": {"location": "discard","index": "append","entity": "owner"}}
+                ]}
+            ]
+        }
+    },
+    "tank":{
+        "health":2,
+        "cost":8,
+        "triggers": {
+            "timer": [
+                {"goal":2, "progress":0, "actions":[
+                    {"action":"damage","target":"across","amount":1}
+                ]},
+                {"goal":30, "progress":0, "actions":[
+                    {"action":"move","target":"self","to": {"location": "discard","index": "append","entity": "owner"}}
+                ]}
+            ],
+            "enter": [
+                {"actions":[
+                    {"action": "effect_relative", "target": "self", "effect_function":{"name":"armor","function":"add","value":0.75}, "end_trigger":"exit"}
+                ]}
+            ]
+        }
+    },
     "attack2":{
-        "health":4,
+        "health":8,
         "cost":12,
         "triggers": {
             "timer": [
-                {"goal":3, "progress":0, "actions":[
-                    {"action":"damage","target":"across","amount":2}
+                {"goal":5, "progress":0, "actions":[
+                    {"action":"damage","target":"across","amount":3}
                 ]},
                 {"goal":20, "progress":0, "actions":[
-                    {"action":"damage","target":"enemy_base","amount":2},
+                    {"action":"damage","target":"enemy_base","amount":3},
                     {"action":"move","target":"self","to": {"location": "discard","index": "append","entity": "owner"}}
                 ]}
             ]
@@ -63,11 +97,11 @@
         "cost":4,
         "triggers": {
             "timer": [
-                {"goal":1, "progress":0, "actions":[
+                {"goal":2, "progress":0, "actions":[
                     {"action":"income","target":"allies","amount":1}
                 ]},
-                {"goal":10, "progress":0, "actions":[
-                    {"action":"income","target":"allies","amount":10},
+                {"goal":10, "progress":0, "actions": [
+                    {"action":"income","target":"allies","amount":5},
                     {"action":"move","target":"self","to": {"location": "discard","index": "append","entity": "owner"}}
                 ]}
             ]
@@ -88,13 +122,43 @@
             ]
         }
     },
+    "shield2":{
+        "health":3,
+        "cost":3,
+        "triggers": {
+            "timer": [
+                {"goal":3, "progress":0, "actions":[
+                    {"action":"shield","target":"my_base","amount":0.5}
+                ]},
+                {"goal":10, "progress":0, "actions":[
+                    {"action":"shield","target":"my_base","amount":5},
+                    {"action":"move","target":"self","to": {"location": "discard","index": "append","entity": "owner"}}
+                ]}
+            ]
+        }
+    },
+    "shield3":{
+        "health":3,
+        "cost":12,
+        "triggers": {
+            "timer": [
+                {"goal":5, "progress":3, "actions":[
+                    {"action":"shield","target":"all_in_my_location","amount":4}
+                ]},
+                {"goal":10, "progress":0, "actions":[
+                    {"action":"shield","target":"my_base","amount":10},
+                    {"action":"move","target":"self","to": {"location": "discard","index": "append","entity": "owner"}}
+                ]}
+            ]
+        }
+    },
     "player":{
         "gold":10,
         "gold_limit":50,
         "triggers":{}
     },
     "good":{
-        "health":10,
+        "health":8,
         "cost":0,
         "triggers": {
             "timer": [
@@ -108,7 +172,7 @@
         }
     },
     "evil":{
-        "health":10,
+        "health":8,
         "cost":0,
         "triggers": {
             "timer": [

@@ -10,7 +10,7 @@ socketname = "visually-popular-iguana.ngrok-free.app";
 buttonContainers = ["#enemy_base_container","#situations_container", "#ally_base_container", "#plans_container", "#tent_container","#cards_container","#discard_container","#shop_container"];
 buttonContainerLocations = ["base","board","base","board","tent","hand","discard","shop"];
 buttonContainerNames = [enemy_team,enemy_team,my_team,my_team,"me","me","me","me"];
-menuButtons = ["remove_ai","win_game","reset_game","pause","add_ai_evil","add_ai_good","join_good","join_evil","game_log"];
+menuButtons = ["remove_ai","win_game","reset_game","reset_session","pause","add_ai_evil","add_ai_good","join_good","join_evil","game_log"];
 //This is what you run if you want to reconnect to server
 //socketname = prompt("WebSocketURL no http://")
 const websocketClient = new WebSocket("wss://"+socketname);
@@ -95,7 +95,7 @@ function inspect(slot){
     if(cardButton){
         card = cardButton.card;
         if(card){
-            infoText = "Health: " + card["health"] + "<br>Cost:" + card["cost"] + "<br>";
+            infoText = "Health: " + card["health"] + "<br>Cost:" + card["cost"] + "<br>Shield:" + card["shield"] + "<br>";
             
             triggersText = "";
             Object.entries(card["triggers"]).forEach(([triggerType,events]) => {
@@ -106,10 +106,24 @@ function inspect(slot){
                     }
                     triggersText += "<br>";
                     eventDict["actions"].forEach((action) => {
-                        triggersText += "&nbsp;&nbsp;&nbsp;&nbsp;" + action["action"] + " " + action["target"];
+                        triggersText += "&nbsp;&nbsp;&nbsp;&nbsp;" + action["action"];
+                        if (action["target"]) {
+                            triggersText += " " + action["target"];
+                        }
+                        if (action["to"]) {
+                            if (action["to"]["location"]){
+                                triggersText += " to " + action["to"]["location"];
+                            }
+                        }
+
                         if (action["amount"]) {
                             triggersText += " " + action["amount"];
                         }
+                        //{"action": "effect_relative", "target": "self", "effect_function":{"name":"armor","function":"add","value":0.75}, "end_trigger":"exit"}
+                        if (action["effect_function"]) {
+                            triggersText += " " + action["effect_function"]["function"] + " " + action["effect_function"]["value"] + " " + action["effect_function"]["name"] +  " till " + action["end_trigger"];
+                        }
+
                         triggersText += "<br>";
                     });
                 });
@@ -121,6 +135,7 @@ function inspect(slot){
 function updateCardButton(cardButton,card){
     cardButton.card = card;
     health = cardButton.querySelector(".health");
+    shield = cardButton.querySelector(".shield");
     cardCoinImage = cardButton.querySelector(".coin");
     skullImage = cardButton.querySelector(".skull");
     cost = cardButton.querySelector(".cost");
@@ -154,6 +169,9 @@ function updateCardButton(cardButton,card){
                     skullImage.style.display = "";
                 }
             }
+            percent = 100 * card["shield"] / card["max_shield"] ;
+            shield.style.width = Math.max(percent,0) +"%";
+            shield.style.background = "rgba(30,144,255,0.9)";
         }
         cost.innerHTML = "";
         cardCoinImage.style.display = "none";
@@ -175,7 +193,8 @@ function updateCardButton(cardButton,card){
                 progressBar.style.bottom = currentBottom + "px";
                 currentBottom += height;
                 percent = 100 * eventDict["progress"] / eventDict["goal"] 
-                progressBar.style.width = percent +"%";
+                percent_limit = Math.min(percent,100);
+                progressBar.style.width = percent_limit +"%";
                 color = actionColors[firstAction["action"]];
                 if (!color){
                     color = "white";
@@ -216,9 +235,12 @@ function generateCardButton(card){
 
     health = document.createElement("div");
     health.classList.add("health");
+    shield = document.createElement("div");
+    shield.classList.add("shield");
 
     cardButton.appendChild(cardImage);
     cardButton.appendChild(health);
+    cardButton.appendChild(shield);
     cardButton.appendChild(coinImage);
     cardButton.appendChild(cost);
     cardButton.append(skullImage);

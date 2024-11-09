@@ -1,11 +1,17 @@
 {
     "standard":["aggression","aggression","draw","draw","draw","attack","attack","attack","loot","loot","loot"],
-    "beginner":["shield","shield","shield","shield","shield","attack","attack","attack","attack","attack","attack","bomb","bomb","bomb"],
-    "ai1":["shield","shield","shield","shield","shield","shield","shield","shield","shield","shield"],
-    "ai2":["shield","shield","shield","shield","shield","attack"],
+    "beginner":["attack","attack","attack","attack","attack","attack","attack","attack","attack","attack"],
+    "ai1":["attack","attack","attack","attack","attack","attack","attack","attack","attack","attack"],
+    "ai2":["shield2","shield2","attack","attack","attack","attack","attack"],
     "ai3":["shield","shield","shield","shield","shield","attack","attack","attack","attack","attack","attack","bomb","bomb","bomb"],
     "ai4":["shield","shield","shield","shield","shield","bomb","bomb","bomb","bomb","bomb","bomb","bomb","bomb","bomb"],
     "ai5":["bomb","bomb","bomb","bomb","bomb","attack","attack","attack","attack","attack","attack","bomb","bomb","bomb"],
     "nathan":["aggression","aggression","draw","draw","draw","attack","attack","attack","loot","loot","loot"],
-    "shop":["attack2","loot","bomb","draw"]
+    "shop1":["tank","shield3"],
+    "shop2":["fork"],
+    "shop3":["attack2","loot","bomb","draw","shield2"],
+    "shop4":["attack2","loot","bomb","draw","shield2"],
+    "shop5":["attack2","loot","bomb","draw","shield2"],
+    "shop6":["attack2","loot","bomb","draw","shield2"],
+    "shop7":["attack2","loot","bomb","draw","shield2"]
 }

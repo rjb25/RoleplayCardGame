@@ -66,6 +66,12 @@
   height: 8px;
   position: absolute;
 }
+.shield {
+  font-size: 10px;
+  color: black;
+  height: 4px;
+  position: absolute;
+}
 .picture {
   position: absolute;
     width:100%;
