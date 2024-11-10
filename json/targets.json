@@ -2,6 +2,7 @@
     "enemy_base":{"location":"base","entity":"enemy"},
     "across":{"location":"card","entity":"enemy","index":"card"},
     "fork":{"location":"card","entity":"enemy","index":"fork"},
+    "neighbors":{"location":"card","entity":"card","index":"neighbors"},
     "self":{"location":"card","entity":"card","index":"card"},
     "all_in_my_location":{"location":"card","entity":"card","index":"all"},
     "allies":{"location":"tent","entity":"allies"},

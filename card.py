@@ -34,29 +34,39 @@
 #Session table and reset
 #Start using images on cards
 #Shop zone
+#Add reset session option.
+#Add different armor
+#An an enter armor boost like in slay the spire
+#Add armor decay?
+#When an action finishes, outline the sending card, and  fill in the receiving card
 
 #TODO WARN
 #DEAR GOD DO NOT REFACTOR IN A WAY THAT IS NOT BITE SIZED EVER AGAIN
 
 #TODO
-#Add reset session option.
-#Add draw button where you can buy draw more cards
-#Add upgrade card button too maybe?
-#Add different armor
-#Add armor decay?
-#More money means more betterer
-#An an enter armor boost like in slay the spire
-
+#Allow one card to be trashed per round
+#Readme card
+#Flavor text
+#Flavor images
+#Flavor sound?
+#Pop up menu with choices or a map or something
 #Events
+#This would also allow for a card that reacts to a card being played across from it
 #Need triggers that can be subscribed to like on ally cards die. I suppose I could add triggers to ally cards, but that seems weird.
 #I would need a place to store subscription functions and parameters, then a way to call that list of functions
+
+#TODO MAYBE
+#Add draw button where you can buy draw more cards. This would be done by dragging the tent player to the zone
+#Add upgrade card button too maybe?
+#Health ticks down version
+#Create random cards and allow them to be saved off if good
+
 
 #TICK
 #Maybe balance it so which team is called first in order is randomized
 #Do not orgaize this. Let it be chaos
 #SHOP
 
-#Health ticks down version
 #Have a random card shop as a rare reward. With end game cards expected to come from random draws.
 #Make while triggers, maybe they add something something in a pre tick. The "effect" section is then wiped on tick cleanup
 #Change protect to add temporary health on a timer. Maybe a blue line below healthbar
@@ -69,30 +79,27 @@
 #Bots play to random open slot instead of 12345
 #Make a team health bar near you and on their side for them
 #Make you money bar closer to you on the player icon
-#TODO maybe
-#Create random cards and allow them to be saved off if good
-#TODO SCENARIOS / Bot loadouts. Tutorial bot. Bots sequence on defeat, checks player list for name+1 also contains message relevant to bot
-#Intro, bots have lower draw speed and income
-#Scenario 1.  Daggers from the bot. You have to place your bombs where the daggers are not.
-#Scenario 2.  Daggers and shields from the bot. You have daggers and bombs now
-#Scenario 3.  Daggers and shields from the bot and bombs. You have daggers and bombs and shields.
-#Standard campaign starts with an even fight.
-#Then you have 3 cards to choose from selected from a pool
-#Pool: income draw slow enemy income, slow enemy draw, protect neighbor cards, better versions of bomb cards. Combined cards, like spike shield. or Spiky bomb. Guardian that adds armor to neighbor cards. Card that increases tick rate of neighbor cards.
+
+
 #TODO TRIGGERS
 #On target action - When a target takes and action.... Specify name of action or category. Handled in trigger function.
 #On target trigger - When a target trigger occurs... Specify name of trigger
 #On draw triggers so when you draw the card you get money or something. Or you take damage when you draw the card.
+
 #TODO Actions
 #Mirror requres action to mirror as argument and does so. Basically trigger handles action
+
 #TODO CARD IDEAS
 #Card that freezes income or draw of opponent
 #Card that reflects destabilize back at attacker
 #Card that deals more damage when hurt
+#Pool: income draw slow enemy income, slow enemy draw, protect neighbor cards, better versions of bomb cards. Combined cards, like spike shield. or Spiky bomb. Guardian that adds armor to neighbor cards. Card that increases tick rate of neighbor cards.
 
 #DON'T USE ORDERED DICT SINCE YOU CAN'T CHOOSE INSERTION POINT. JUST USE A LIST WITH REFERENCES TO A MEGA DICT
 import asyncio
 from collections import Counter
+from email.policy import default
+
 import websockets
 import sys
 import requests
@@ -288,6 +295,13 @@ def get_cards(zone, select_function, args, action, card):
                 if index < len(zone) and zone[index]:
                     result.append(zone[index])
             return result
+        case "neighbors":
+            indices = [card["index"]-1,card["index"]+1]
+            result = []
+            for index in indices:
+                if index < len(zone) and zone[index]:
+                    result.append(zone[index])
+            return result
         case "amount":
             amount = action["amount"]
             return actual_zone[-amount:]
@@ -300,6 +314,7 @@ def get_cards(zone, select_function, args, action, card):
 #I can add a trigger event
 #Call triggering on dispatch, with the card as a subscription argument. Do this on enter or on card initialization? When should a card subscribe?
 #Global triggers can look at every card each time on trigger. Or you need a subscribe on enter and unsubscribe on exit
+#For now it can just look at cards on the board
 def triggering(card, event_type):
     events = card["triggers"].get(event_type)
     if events:
@@ -386,6 +401,14 @@ def acting(action, card =""):
             #Each target is either a path or a card.
             cards = targets[0]
             destination = destinations
+            #If destination is just append to entities location, no need to zip
+            for card in cards:
+                move(card,destination)
+        #Card to trash
+        case "trash":
+            #Move is a great example. What the real functions need are a couple targets and parameters
+            #Each target is either a path or a card.
+            cards = targets[0]
             #If destination is just append to entities location, no need to zip
             for card in cards:
                 move(card,destination)
@@ -574,12 +597,13 @@ def create_random_action(action):
     return "hey"
 
 #GLOBALS
-session_table = {"loser":"","ais":{},"players":{},"teams":{"good":{},"evil":{}},"send_reset":1, "level":1, "max_level":5, "first":1}
+default_session_table = {"ais":{},"players":{},"teams":{"good":{"losses":0},"evil":{"losses":0}},"send_reset":1, "level":1, "max_level":5, "first":1, "reward":1}
+session_table = copy.deepcopy(default_session_table)
 random_table = load({"file":"json/random.json"})
 decks_table = load({"file":"json/decks.json"})
 cards_table = load({"file":"json/cards.json"})
 targets_table = load({"file":"json/targets.json"})
-static_lists = ["hand","board","tent","base"]
+static_lists = ["hand","board","tent","base","trash","shop"]
 game_table = load({"file":"json/game.json"})
 current_id = 1
 
@@ -751,14 +775,11 @@ def cleanup_tick():
                 if card:
                     card["effects"] = {}
                     if card["health"] <= 0:
-                        #This 'loser =' is to make sure game didn't already end
-                        #loser = session_table["loser"]
                         if card["location"] == "base":
-                            #Maybe count wins and losses.
-                            #Fix loser here
-                            #loser = session_table["loser"]
+                            session_table["teams"][get_team(card["owner"])]["losses"] += 1
                             if get_team(card["owner"]) == "evil":
                                 if session_table["level"] < session_table["max_level"]:
+                                    session_table["reward"] = 1
                                     session_table["level"] += 1
                                 reset_state()
                             else:
@@ -827,10 +848,6 @@ def initialize_team(team):
     else:
         game_table["entities"][team]["locations"]["base"][0] = initialize_card(team, team, "base",0)
 
-#def populate_shop(username):
-    #game_table["entities"][username] = {
-
-
 def initialize_player(team,ai,username, deck="beginner"):
     #Session needs to hold players/entities, not ais and players.
     deck_to_load = []
@@ -860,6 +877,7 @@ def initialize_player(team,ai,username, deck="beginner"):
             "deck": [],
             "discard": [],
             "shop": [0,0,0],
+            "trash": [0],
             "tent": [
                 0
             ]
@@ -867,11 +885,12 @@ def initialize_player(team,ai,username, deck="beginner"):
     }
     #Initialize some cards to the shop on player startup
     #baby_card = initialize_card(card_name, username)
-    shop_deck = decks_table["shop"+str(session_table["level"])]
-    random.shuffle(shop_deck)
-    for index, slot in enumerate(game_table["entities"][username]["locations"]["shop"]):
-        if index < len(shop_deck):
-            game_table["entities"][username]["locations"]["shop"][index] = initialize_card(shop_deck[index], username, "shop",index)
+    if session_table["reward"]:
+        shop_deck = decks_table["shop"+str(session_table["level"])]
+        random.shuffle(shop_deck)
+        for index, slot in enumerate(game_table["entities"][username]["locations"]["shop"]):
+            if index < len(shop_deck):
+                game_table["entities"][username]["locations"]["shop"][index] = initialize_card(shop_deck[index], username, "shop",index)
     load_deck(username, deck_to_load)
 
     acting({"action":"move", "target": "my_deck", "to": {"location": "hand", "index": "append"}, "amount": 3},
@@ -886,6 +905,7 @@ def initialize_teams():
 def initialize_players():
     for username, value in session_table["players"].items():
         initialize_player(value["team"],0,username)
+    session_table["reward"] = 0
 
 def initialize_ais():
     for username, value in session_table["ais"].items():
@@ -968,8 +988,8 @@ async def update_state(players):
             out_table = copy.deepcopy(game_table)
             out_table["players"] = table("players")
             out_table["teams"] = table("teams")
-            #out_table = remove_circular_refs(copy.deepcopy(out_table))
-            await session_table["players"][player]["socket"].send(str({"game_table":out_table,"me":player}))
+            text = session_table["teams"]
+            await session_table["players"][player]["socket"].send(str({"text":text,"game_table":out_table,"me":player}))
 
 def strip_keys_copy(keys, table):
     copied_table = copy.deepcopy(table)
@@ -1101,17 +1121,16 @@ def join_good(username):
     session_table["players"][username]["team"] = "good"
 
 def reset_game(username):
-    session_table["loser"] = "good"
     reset_state()
 
 def reset_session(username):
     global session_table
-    session_table = {"loser": "", "ais": {}, "players": {}, "teams": {"good": {}, "evil": {}}, "send_reset": 1,
-                     "level": 1, "max_level": 5, "first": 1}
+    session_table = copy.deepcopy(default_session_table)
     reset_state()
 
 def win_game(username):
-    session_table["loser"] = "evil"
+    session_table["reward"] = 1
+    session_table["teams"]["evil"]["losses"] += 1
     if session_table["level"] < session_table["max_level"]:
         session_table["level"] += 1
     reset_state()
@@ -1132,6 +1151,7 @@ def remove_ai(username):
     for player, player_data in table("players").items():
         if player_data["ai"]:
             player_data["quit"] = 1
+            del session_table["ais"][player]
 
 
 def log(*words):
@@ -1148,6 +1168,8 @@ async def handle_play(username,card_json):
         return
     card_from = card["location"]
     team = get_team(username)
+    if card_to == "trash" and card_from == "hand":
+        acting({"action": "trash", "target": card })
 
     if card_to == "board" and card_from == "hand":
         if not game_table["entities"][team]["locations"]["board"][card_index]:

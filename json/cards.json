@@ -10,7 +10,7 @@
             ],
             "enter": [
                 {"actions":[
-                    {"action": "effect_relative", "target": ["my_base"], "effect_function":{"name":"armor","function":"add","value":1}, "end_trigger":"exit"}
+                    {"action": "effect_relative", "target": ["my_base"], "effect_function":{"name":"armor","function":"add","value":0.9}, "end_trigger":"exit"}
                 ]}
             ]
         }
@@ -39,6 +39,11 @@
                 {"goal":10, "progress":0, "actions":[
                     {"action":"damage","target":"enemy_base","amount":1},
                     {"action":"move","target":"self","to": {"location": "discard","index": "append","entity": "owner"}}
+                ]}
+            ],
+            "enter": [
+                {"actions":[
+                    {"action":"damage","target":"across","amount":1}
                 ]}
             ]
         }
@@ -72,7 +77,8 @@
             ],
             "enter": [
                 {"actions":[
-                    {"action": "effect_relative", "target": "self", "effect_function":{"name":"armor","function":"add","value":0.75}, "end_trigger":"exit"}
+                    {"action": "effect_relative", "target": "self", "effect_function":{"name":"armor","function":"add","value":0.75}, "end_trigger":"exit"},
+                    {"action": "effect_relative", "target": "neighbors", "effect_function":{"name":"armor","function":"add","value":0.4}, "end_trigger":"exit"}
                 ]}
             ]
         }
@@ -142,11 +148,11 @@
         "cost":12,
         "triggers": {
             "timer": [
-                {"goal":5, "progress":3, "actions":[
+                {"goal":4, "progress":3, "actions":[
                     {"action":"shield","target":"all_in_my_location","amount":4}
                 ]},
                 {"goal":10, "progress":0, "actions":[
-                    {"action":"shield","target":"my_base","amount":10},
+                    {"action":"shield","target":"my_base","amount":4},
                     {"action":"move","target":"self","to": {"location": "discard","index": "append","entity": "owner"}}
                 ]}
             ]
