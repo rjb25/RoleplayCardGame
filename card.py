@@ -98,8 +98,6 @@
 #DON'T USE ORDERED DICT SINCE YOU CAN'T CHOOSE INSERTION POINT. JUST USE A LIST WITH REFERENCES TO A MEGA DICT
 import asyncio
 from collections import Counter
-from email.policy import default
-
 import websockets
 import sys
 import requests
