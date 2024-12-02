@@ -129,6 +129,12 @@ function inspect(slot){
                 });
             });
             fetch("#inspect_container").innerHTML = infoText + triggersText ;
+            infoImage = new Image();
+            infoImage.draggable = false;
+            //infoImage.classList.add("coin");
+            infoImage.src = "pics/" + card["name"] +"info.png";
+            infoImage.alt = "info";
+            fetch("#inspect_container").appendChild(infoImage);
         }
     }
 }
@@ -341,8 +347,72 @@ function updateSlots(container, messageJson, name, location){
 function fetch(id){
     return document.querySelector(id);
 }
+function draw() {
+   const canvas = document.getElementById("myCanvas");
+   if (!canvas || !canvas.getContext) {
+    return;
+   }
+const ctx = canvas.getContext("2d");
+let cw = (canvas.width = window.innerWidth);
+let ch = (canvas.height = window.innerHeight);
+
+let images = [
+  {
+    url: "pics/coin3.png",
+    x: Math.random() * cw,
+    y: Math.random() * ch,
+    width: 50,
+    height: 50
+  },
+  {
+    url: "https://s3-us-west-2.amazonaws.com/s.cdpn.io/222579/puppy200x200.jpg",
+    x: Math.random() * cw,
+    y: Math.random() * ch,
+    width: 40,
+    height: 40
+  },
+  {
+    url:
+    "https://s3-us-west-2.amazonaws.com/s.cdpn.io/222579/puppyBeagle300.jpg",
+    x: Math.random() * cw,
+    y: Math.random() * ch,
+    width: 60,
+    height: 60
+  }
+];
+
+for (let i = 0; i < images.length; i++) {
+  let y = images[i].y;
+  images[i].img = new Image();
+  images[i].img.src = images[i].url;
+}
+
+function animate() {
+  requestAnimationFrame(animate);
+  // clear the canvas here!
+  ctx.clearRect(0, 0, cw, ch);
+  for (let i = 0; i < images.length; i++) {
+  //update the y value
+    images[i].y -= 1;
+    if (images[i].y < -images[i].height) {
+      images[i].y = window.innerHeight;
+      images[i].x = Math.random() * (canvas.width - 160);
+    }
+    //draw again the image
+    ctx.drawImage(
+      images[i].img,
+      images[i].x,
+      images[i].y,
+      images[i].width,
+      images[i].height
+    );
+  }
+}
+animate();
+}
 
 document.addEventListener('DOMContentLoaded', function(){
+    //draw();
     //HAVE A list of targets under an attack cards with the images of what's being targetted. Pulse green for good things red for bad targets.
     websocketClient.onopen = function(){
         console.log("Client connected!");

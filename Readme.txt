@@ -20,3 +20,9 @@ cd RoleplayCardGame
 python -m venv ./venv
 source ./venv/bin/activate
 pip install -r requirements.txt
+sudo dnf install vim -y
+sudo dnf install tmux -y
+firewall-cmd --permanent --zone=public --add-port=80/tcp
+firewall-cmd --permanent --zone=public --add-port=12345/tcp
+firewall-cmd --permanent --zone=public --add-service=http
+sudo firewall-cmd --reload

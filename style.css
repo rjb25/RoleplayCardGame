@@ -12,6 +12,17 @@
     -moz-border-radius: 5px;
     border-radius: 5px;
 }
+#myCanvas {
+
+  position: fixed;
+
+  z-index: 20;
+  pointer-events: none;
+
+  top: 0;
+
+  left: 0;
+}
 .prevent-select {
   -webkit-user-select: none; /* Safari */
   -ms-user-select: none; /* IE 10 and IE 11 */

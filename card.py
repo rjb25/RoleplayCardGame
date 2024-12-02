@@ -44,6 +44,13 @@
 #DEAR GOD DO NOT REFACTOR IN A WAY THAT IS NOT BITE SIZED EVER AGAIN
 
 #TODO
+#Have damage pass through by default, then certain cards bypass and certain cards do not
+#Random start point on the card. Small image. Quick movement. Also death can show skull moving to discard. Deck that you can pay to draw from. Count on it of how many cards are in deck. Count on discard of how many cards in discard.
+#Canvas, draw an image that moves from a card to a location. Coin for money. Explosion for damage
+#Flavor means it's not automatic and core to the game. It's simply spice on top. So you can send flavor messages. Which will run a gif at a location on the client or play a sound.
+#Add the ability to add flavor text, flavor images and flavor tick actions.
+#Add some kind of label to the sections. Preferrably images
+
 #Allow one card to be trashed per round
 #Readme card
 #Flavor text

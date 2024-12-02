@@ -9,7 +9,9 @@
             b { color: red;}
         </style>
     </head>
-    <body class="prevent-select">
+    <body>
+        <canvas id="myCanvas" height=250 width=500></canvas>
+        <div class="prevent-select">
         <div class="text" id="messages_container"></div>
         <div class="row-container" id="enemy_container">
             <div class="card-container" id="enemy_base_container"></div>
@@ -33,6 +35,7 @@
         <div class="text" id="inspect_container" ></div>
         <script type="application/javascript" src="websocket_client.js"></script>
         <script src="DragDropTouch.js"></script>
+        </div>
     </body>
 </html>
 
