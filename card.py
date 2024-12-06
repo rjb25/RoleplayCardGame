@@ -42,6 +42,7 @@
 
 #TODO WARN
 #DEAR GOD DO NOT REFACTOR IN A WAY THAT IS NOT BITE SIZED EVER AGAIN
+#DEAR GOD DO NOT PLAY GAMES AS RESEARCH IT IS SUCH A WASTE OF TIME
 
 #TODO
 #Have damage pass through by default, then certain cards bypass and certain cards do not
@@ -480,7 +481,9 @@ def acting(action, card =""):
         case "damage":
             victims = targets[0]
             for victim in victims:
+                #Maybe have this set the image too
                 damage = action["amount"]
+                animations.append({"sender": card, "receiver":victim, "size":damage, "image":"pics/bang.png"})
                 armor = get_effect("armor", victim)
                 remaining_shield = negative_remaining_damage = victim["shield"] - damage
                 victim["shield"] = max(remaining_shield, 0)
@@ -491,6 +494,7 @@ def acting(action, card =""):
             victims = targets[0]
             for victim in victims:
                 shield = action["amount"]
+                animations.append({"sender": card, "receiver":victim, "size":shield, "image":"pics/energyshield2.png"})
                 victim["shield"] += shield
                 victim["shield"] = min(victim["shield"],victim["max_shield"])
         case "income":
@@ -569,6 +573,7 @@ def get_effect(effect_to_get, card):
 
 #Maybe make this an action?
 def kill_card(card):
+    animations.append({"sender": card, "receiver": card, "size": 4, "image": "pics/skull.png"})
     acting({"action": "move", "target": card, "to": {"entity":"owner","location": "discard", "index": "append"}},
            card)
 
@@ -602,6 +607,7 @@ def create_random_action(action):
     return "hey"
 
 #GLOBALS
+animations = []
 default_session_table = {"ais":{},"players":{},"teams":{"good":{"losses":0},"evil":{"losses":0}},"send_reset":1, "level":1, "max_level":5, "first":1, "reward":1}
 session_table = copy.deepcopy(default_session_table)
 random_table = load({"file":"json/random.json"})
@@ -947,8 +953,8 @@ def refresh_card(card):
         card["effects"] = {}
         card["max_health"] = baby_card["health"]
         card["health"] = baby_card["health"]
-        baby_card["shield"] = 0
-        baby_card["max_shield"] = 20
+        card["shield"] = 0
+        card["max_shield"] = 20
     except KeyError:
         pass
 
@@ -988,13 +994,15 @@ def is_team(target = ""):
         return True
 
 async def update_state(players):
+    global animations
     for player in players:
         if player in session_table["players"]:
             out_table = copy.deepcopy(game_table)
             out_table["players"] = table("players")
             out_table["teams"] = table("teams")
             text = session_table["teams"]
-            await session_table["players"][player]["socket"].send(str({"text":text,"game_table":out_table,"me":player}))
+            await session_table["players"][player]["socket"].send(str({"text":text,"game_table":out_table,"me":player,"animations":animations}))
+    animations = []
 
 def strip_keys_copy(keys, table):
     copied_table = copy.deepcopy(table)

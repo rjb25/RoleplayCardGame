@@ -143,7 +143,6 @@ function updateCardButton(cardButton,card){
     health = cardButton.querySelector(".health");
     shield = cardButton.querySelector(".shield");
     cardCoinImage = cardButton.querySelector(".coin");
-    skullImage = cardButton.querySelector(".skull");
     cost = cardButton.querySelector(".cost");
     if(card["location"] == "tent"){
         bank = cardButton.querySelector(".bank");
@@ -170,10 +169,6 @@ function updateCardButton(cardButton,card){
                 health.style.background = "rgba(255, 255, 0, 0.8)";
             } else if (percent > 0){
                 health.style.background = "rgba(255, 0, 0, 0.8)";
-            } else {
-                if(card["location"] != "tent"){
-                    skullImage.style.display = "";
-                }
             }
             percent = 100 * card["shield"] / card["max_shield"] ;
             shield.style.width = Math.max(percent,0) +"%";
@@ -231,13 +226,6 @@ function generateCardButton(card){
     coinImage.src = "pics/" + "coin3.png";
     coinImage.alt = "coin";
 
-    skullImage = new Image();
-    skullImage.classList.add("skull");
-    skullImage.classList.add("picture");
-    skullImage.src = "pics/" + "skull.png";
-    skullImage.alt = "skull";
-    skullImage.draggable = false;
-    skullImage.style.display = "none";
 
     health = document.createElement("div");
     health.classList.add("health");
@@ -249,7 +237,6 @@ function generateCardButton(card){
     cardButton.appendChild(shield);
     cardButton.appendChild(coinImage);
     cardButton.appendChild(cost);
-    cardButton.append(skullImage);
 
     if (card["location"] == "tent"){
         bank = document.createElement("p");
@@ -347,72 +334,127 @@ function updateSlots(container, messageJson, name, location){
 function fetch(id){
     return document.querySelector(id);
 }
-function draw() {
-   const canvas = document.getElementById("myCanvas");
-   if (!canvas || !canvas.getContext) {
-    return;
-   }
-const ctx = canvas.getContext("2d");
-let cw = (canvas.width = window.innerWidth);
-let ch = (canvas.height = window.innerHeight);
 
-let images = [
-  {
-    url: "pics/coin3.png",
-    x: Math.random() * cw,
-    y: Math.random() * ch,
-    width: 50,
-    height: 50
-  },
-  {
-    url: "https://s3-us-west-2.amazonaws.com/s.cdpn.io/222579/puppy200x200.jpg",
-    x: Math.random() * cw,
-    y: Math.random() * ch,
-    width: 40,
-    height: 40
-  },
-  {
-    url:
-    "https://s3-us-west-2.amazonaws.com/s.cdpn.io/222579/puppyBeagle300.jpg",
-    x: Math.random() * cw,
-    y: Math.random() * ch,
-    width: 60,
-    height: 60
-  }
-];
+var myComponents = [];
+var myImages = [];
 
-for (let i = 0; i < images.length; i++) {
-  let y = images[i].y;
-  images[i].img = new Image();
-  images[i].img.src = images[i].url;
+function launchProjectile(dom1,dom2,size=1,image="pics/bang.png") {
+    console.log(dom1,dom2)
+    d1 = dom1.getBoundingClientRect();
+    d2 = dom2.getBoundingClientRect();
+    pWidth = 30 * size;
+    pHeight = 30 * size;
+    startX = d1.x+d1.width/2-pWidth/2;
+    startY = d1.y+d1.height/2-pHeight/2;
+    endX = d2.x+d2.width/2-pWidth/2;
+    endY = d2.y+d2.height/2-pHeight/2;
+    myComponents.push(new component(pWidth,pHeight,image,startX,startY,endX,endY,0.02));
+
+}
+function startGame() {
+    myGameArea.start();
 }
 
-function animate() {
-  requestAnimationFrame(animate);
-  // clear the canvas here!
-  ctx.clearRect(0, 0, cw, ch);
-  for (let i = 0; i < images.length; i++) {
-  //update the y value
-    images[i].y -= 1;
-    if (images[i].y < -images[i].height) {
-      images[i].y = window.innerHeight;
-      images[i].x = Math.random() * (canvas.width - 160);
+var myGameArea = {
+    canvas : document.getElementById("myCanvas"),
+    cardArea : document.getElementById("myPlayArea").getBoundingClientRect(),
+    start : function() {
+        this.canvas.width = this.cardArea.width;
+        this.canvas.height = this.cardArea.height;
+        this.context = this.canvas.getContext("2d");
+        this.frameNo = 0;
+        this.interval = setInterval(updateGameArea, 20);
+    },
+    update : function() {
+        this.cardArea = document.getElementById("myPlayArea").getBoundingClientRect();
+        this.canvas.width = this.cardArea.width;
+        this.canvas.height = this.cardArea.height;
+        continueComponents = []
+        for (i = 0; i < myComponents.length; i += 1) {
+            myComponents[i].update();
+            if (!myComponents[i].done){
+                continueComponents.push(myComponents[i])
+            }
+        }
+        myComponents = continueComponents
+    },
+    stop : function() {
+        clearInterval(this.interval);
+    },
+    clear : function() {
+        this.context.clearRect(0, 0, this.canvas.width, this.canvas.height);
     }
-    //draw again the image
-    ctx.drawImage(
-      images[i].img,
-      images[i].x,
-      images[i].y,
-      images[i].width,
-      images[i].height
-    );
-  }
 }
-animate();
+
+function component(width, height, color, x, y, destX = 0, destY = 0, rate = 0.0) {
+    this.width = width;
+    this.height = height;
+    this.x = x;
+    this.y = y;
+    this.destX = destX;
+    this.destY = destY;
+    this.sourceX = x;
+    this.sourceY = y;
+    this.rate = rate;
+    this.done = false;
+    this.progress = 0.0;
+    this.update = function() {
+        ctx = myGameArea.context;
+        ctx.fillStyle = color;
+        ctx.fillRect(this.x, this.y, this.width, this.height);
+        if (this.rate) {
+            this.x = this.sourceX + (this.destX - this.sourceX) * this.progress;
+            this.y = this.sourceY + (this.destY - this.sourceY) * this.progress;
+            if (this.progress >= 1.0) {
+                this.done = true;
+            } else {
+                this.progress += this.rate;
+            }
+        }
+    }
+}
+function component(width, height, color, x, y, destX = 0, destY = 0, rate = 0.0) {
+    this.width = width;
+    this.height = height;
+    this.x = x;
+    this.y = y;
+    this.destX = destX;
+    this.destY = destY;
+    this.sourceX = x;
+    this.sourceY = y;
+    this.rate = rate;
+    this.done = false;
+    this.progress = 0.0;
+    this.update = function() {
+        ctx = myGameArea.context;
+        if (color.includes("pics")){
+            img = new Image();
+            img.src = color
+            ctx.drawImage(img, this.x, this.y, this.width, this.height)
+
+        } else {
+            ctx.fillStyle = color;
+            ctx.fillRect(this.x, this.y, this.width, this.height);
+        }
+        if (this.rate) {
+            this.x = this.sourceX + (this.destX - this.sourceX) * this.progress;
+            this.y = this.sourceY + (this.destY - this.sourceY) * this.progress;
+            if (this.progress >= 1.0) {
+                this.done = true;
+            } else {
+                this.progress += this.rate;
+            }
+        }
+    }
+}
+
+function updateGameArea() {
+    myGameArea.update();
 }
 
 document.addEventListener('DOMContentLoaded', function(){
-    //draw();
+
+    startGame();
     //HAVE A list of targets under an attack cards with the images of what's being targetted. Pulse green for good things red for bad targets.
     websocketClient.onopen = function(){
         console.log("Client connected!");
@@ -436,10 +478,18 @@ document.addEventListener('DOMContentLoaded', function(){
                 menuButtons.forEach(makeMenuButton);
                 firstUpdate = 0;
             }
+            if("animations" in messageJson && messageJson["animations"].length > 0){
+                console.log(messageJson["animations"])
+                messageJson["animations"].forEach(function (animation){
+                launchProjectile(document.getElementById(animation["sender"].id),
+                document.getElementById(animation["receiver"].id), animation["size"], animation["image"]);
+            })
+            }
             //console.log(JSON.stringify(messageJson));
             buttonContainers.forEach(function (container,index){ 
                 updateSlots(fetch(container),messageJson,buttonContainerNames[index],buttonContainerLocations[index]);
             });
+
 
             //Myself
             gameState = messageJson["game_table"]
