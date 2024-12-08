@@ -45,6 +45,8 @@
 #DEAR GOD DO NOT PLAY GAMES AS RESEARCH IT IS SUCH A WASTE OF TIME
 
 #TODO
+#Add fog of war
+#Add a reconnect feature
 #Have damage pass through by default, then certain cards bypass and certain cards do not
 #Random start point on the card. Small image. Quick movement. Also death can show skull moving to discard. Deck that you can pay to draw from. Count on it of how many cards are in deck. Count on discard of how many cards in discard.
 #Canvas, draw an image that moves from a card to a location. Coin for money. Explosion for damage
@@ -408,9 +410,12 @@ def acting(action, card =""):
             cards = targets[0]
             destination = destinations
             #If destination is just append to entities location, no need to zip
-            for card in cards:
-                move(card,destination)
-        #Card to trash
+            for ca in cards:
+                move(ca,destination)
+                #if destination["location"] == "hand":
+                    #print(destination["location"]+"yolo")
+                    #animations.append({"sender": card, "receiver": ca, "size": 1, "image": "pics/cards.png"})
+    #Card to trash
         case "trash":
             #Move is a great example. What the real functions need are a couple targets and parameters
             #Each target is either a path or a card.
@@ -500,6 +505,7 @@ def acting(action, card =""):
         case "income":
             recipients = targets[0]
             for recipient in recipients:
+                animations.append({"sender": card, "receiver":recipient, "size":action["amount"], "image":"pics/coin3.png"})
                 recipient["gold"] += action["amount"]
                 recipient["gold"] = max(0, recipient["gold"])
                 recipient["gold"] = min(recipient["gold_limit"], recipient["gold"])

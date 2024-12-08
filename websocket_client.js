@@ -210,8 +210,6 @@ function updateCardButton(cardButton,card){
         Object.entries(card["effects"]).forEach(([effectType,amount]) => {
             //Add dom div if the effect is not in existing keys.
             if(!(effectBar.existing.includes(effectType))){
-                console.log("adding")
-                console.log(card)
                 effectBar.existing.push(effectType);
                 amountText = document.createElement("p");
                 amountText.classList.add("effectAmount");
@@ -229,6 +227,10 @@ function updateCardButton(cardButton,card){
                 effectDiv.appendChild(amountText);
                 effectDiv.appendChild(effectImage);
                 effectBar.appendChild(effectDiv);
+            }else {
+                effectDiv = effectBar.querySelector("."+effectType);
+                amountText = effectDiv.querySelector(".effectAmount");
+                amountText.innerHTML = amount; //Repeat the image in the div, don't use text
             }
         });
         effectBar.existing.forEach((effect) => {
@@ -394,8 +396,9 @@ var myImages = [];
 
 function launchProjectile(dom1,dom2,size=1,image="pics/bang.png") {
     //console.log(dom1,dom2)
-    d1 = dom1.getBoundingClientRect();
-    d2 = dom2.getBoundingClientRect();
+    if (dom1 && dom2){
+    d1 = dom1;
+    d2 = dom2;
     pWidth = 30 * size;
     pHeight = 30 * size;
     startX = d1.x+d1.width/2-pWidth/2;
@@ -403,7 +406,13 @@ function launchProjectile(dom1,dom2,size=1,image="pics/bang.png") {
     endX = d2.x+d2.width/2-pWidth/2;
     endY = d2.y+d2.height/2-pHeight/2;
     myComponents.push(new component(pWidth,pHeight,image,startX,startY,endX,endY,0.02));
-
+    }
+}
+function fog(on = true) {
+    if (on){
+        bound = document.getElementById("situations_container").getBoundingClientRect();
+        myComponents.push(new component(bound.width,bound.height,"grey",bound.x,bound.y));
+    }
 }
 function startGame() {
     myGameArea.start();
@@ -532,17 +541,50 @@ document.addEventListener('DOMContentLoaded', function(){
                 menuButtons.forEach(makeMenuButton);
                 firstUpdate = 0;
             }
+            //console.log(JSON.stringify(messageJson));
+            //Get location for animation before update.
+            if("animations" in messageJson && messageJson["animations"].length > 0){
+                //If you know where the card is before tick, use that if you can't find the card after tick
+                messageJson["animations"].forEach(function (animation){
+                card1 = document.getElementById(animation["sender"].id)
+                card2 = document.getElementById(animation["receiver"].id)
+                if (card1){
+                animation["bound1"] = card1.getBoundingClientRect()
+                }
+                if (card2){
+                animation["bound2"] = card2.getBoundingClientRect()
+                }
+            })
+            }
+
+            buttonContainers.forEach(function (container,index){
+                updateSlots(fetch(container),messageJson,buttonContainerNames[index],buttonContainerLocations[index]);
+            });
+
             if("animations" in messageJson && messageJson["animations"].length > 0){
                 //console.log(messageJson["animations"])
                 messageJson["animations"].forEach(function (animation){
-                launchProjectile(document.getElementById(animation["sender"].id),
-                document.getElementById(animation["receiver"].id), animation["size"], animation["image"]);
+
+                card1 = document.getElementById(animation["sender"].id)
+                card2 = document.getElementById(animation["receiver"].id)
+                post1 = ""
+                post2 = ""
+                if (card1){
+                post1 = card1.getBoundingClientRect();
+                }
+                if (card2){
+                post2 = card2.getBoundingClientRect();
+                }
+                if (!post1){
+                    post1 = animation["bound1"]
+                }
+                if (!post2){
+                    post2 = animation["bound2"]
+                }
+                launchProjectile(post1,
+                post2, animation["size"], animation["image"]);
             })
             }
-            //console.log(JSON.stringify(messageJson));
-            buttonContainers.forEach(function (container,index){ 
-                updateSlots(fetch(container),messageJson,buttonContainerNames[index],buttonContainerLocations[index]);
-            });
 
 
             //Myself
