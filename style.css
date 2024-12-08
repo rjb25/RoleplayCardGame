@@ -44,20 +44,14 @@ body {
   background-color: DodgerBlue;
 }
 
-.cooldown {
-    position: absolute;
-    opacity: 0.8;
-    top: 0px;
-    left: 0px;
-    height: 100%;
-    width: 100%;
-}
 .card {
   position:relative;
   width: 100%;
   height: 100%;
   background: white;
 } 
+.armor-icon {
+}
 .menu {
     display: inline-block;
     margin: 4px;
@@ -70,11 +64,38 @@ body {
   position: absolute;
 
 }
+.effectBar {
+  position: absolute;
+
+}
+.effectAmount {
+  position: absolute;
+  font-size:15px;
+  font-weight: bold;
+  margin: 0 auto;
+  left: 50%;
+  top: 20%;
+  color: white;
+
+}
+.effectDiv {
+    display: inline-block;
+    position: relative;
+    text-align: center;
+}
 .health {
   font-size: 10px;
   color: black;
   height: 8px;
   position: absolute;
+}
+.cooldown {
+    position: absolute;
+    opacity: 0.8;
+    top: 0px;
+    left: 0px;
+    height: 100%;
+    width: 100%;
 }
 .shield {
   font-size: 10px;

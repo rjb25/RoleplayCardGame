@@ -163,6 +163,8 @@ function updateCardButton(cardButton,card){
         if (card["location"] != "shop"){
             percent = 100 * card["health"] / card["max_health"] ;
             health.style.width = Math.max(percent,0) +"%";
+            //Have heart icons below the bar instead maybe?
+            health.style.height = 3.0 + card["max_health"]/2.0 +"%";
             if (percent > 75){
                 health.style.background = "rgba(0, 255, 0, 0.8)";
             } else if (percent > 40){
@@ -204,6 +206,48 @@ function updateCardButton(cardButton,card){
             }
         });
     });
+        effectBar = cardButton.querySelector(".effectBar");
+        Object.entries(card["effects"]).forEach(([effectType,amount]) => {
+            //Add dom div if the effect is not in existing keys.
+            if(!(effectBar.existing.includes(effectType))){
+                console.log("adding")
+                console.log(card)
+                effectBar.existing.push(effectType);
+                amountText = document.createElement("p");
+                amountText.classList.add("effectAmount");
+                amountText.innerHTML = amount; //Repeat the image in the div, don't use text
+
+                effectDiv = document.createElement("div");
+                effectDiv.classList.add("effectDiv");
+                effectDiv.classList.add(effectType);
+                effectImage = new Image(20,20);
+                effectImage.draggable = false;
+                effectImage.classList.add("effect-icon");
+                effectImage.src = "pics/" + effectType + "-icon.png";
+                effectImage.alt = effectType;
+
+                effectDiv.appendChild(amountText);
+                effectDiv.appendChild(effectImage);
+                effectBar.appendChild(effectDiv);
+            }
+        });
+        effectBar.existing.forEach((effect) => {
+            if (!(Object.keys(card["effects"]).includes(effect))){
+                console.log("removing")
+                console.log(card)
+                arrayRemove(effectBar.existing,effect);
+                effectBar.querySelector("."+effect).remove();
+            }
+        });
+}
+function isEmpty(obj) {
+  return Object.keys(obj).length === 0;
+}
+function arrayRemove(array, item){
+var index = array.indexOf(item);
+if (index !== -1) {
+  array.splice(index, 1);
+}
 }
 
 function generateCardButton(card){
@@ -259,6 +303,16 @@ function generateCardButton(card){
             }
         });
     });
+    effectBar = document.createElement("div");
+    effectBar.existing = [];
+    effectBar.classList.add("effectBar");
+    effectBar.style.height = 30 + "px";
+    effectBar.style.bottom = -30 + "px";
+    effectBar.style.width = 100 +"%";
+    //effectBar.style.background = "black";
+
+    cardButton.appendChild(effectBar);
+
     updateCardButton(cardButton,card);
     return cardButton;
 }
@@ -339,7 +393,7 @@ var myComponents = [];
 var myImages = [];
 
 function launchProjectile(dom1,dom2,size=1,image="pics/bang.png") {
-    console.log(dom1,dom2)
+    //console.log(dom1,dom2)
     d1 = dom1.getBoundingClientRect();
     d2 = dom2.getBoundingClientRect();
     pWidth = 30 * size;
@@ -479,7 +533,7 @@ document.addEventListener('DOMContentLoaded', function(){
                 firstUpdate = 0;
             }
             if("animations" in messageJson && messageJson["animations"].length > 0){
-                console.log(messageJson["animations"])
+                //console.log(messageJson["animations"])
                 messageJson["animations"].forEach(function (animation){
                 launchProjectile(document.getElementById(animation["sender"].id),
                 document.getElementById(animation["receiver"].id), animation["size"], animation["image"]);

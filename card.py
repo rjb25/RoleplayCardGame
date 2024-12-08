@@ -555,7 +555,6 @@ def add_effect(effect_function, card):
             effects[effect_name] = min(effects[effect_name],effect_function["value"])
 
 def get_effect(effect_to_get, card):
-    effecting()
     effect_value = get_nested(card, ["effects",effect_to_get])
     if not effect_value:
         effect_value = 0
@@ -819,6 +818,7 @@ async def tick():
                 if table("players").get(player).get("quit"):
                     del game_table["entities"][player]
             #Effects happen first since they are things that are removeable. They are added at start, removed at end
+            effecting()
             location_tick()
             ai_tick()
             await update_state(session_table["players"].keys())
@@ -994,6 +994,7 @@ def is_team(target = ""):
         return True
 
 async def update_state(players):
+    effecting()
     global animations
     for player in players:
         if player in session_table["players"]:
