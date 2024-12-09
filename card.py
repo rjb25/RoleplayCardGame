@@ -1008,7 +1008,11 @@ async def update_state(players):
             out_table["players"] = table("players")
             out_table["teams"] = table("teams")
             text = session_table["teams"]
-            await session_table["players"][player]["socket"].send(str({"text":text,"game_table":out_table,"me":player,"animations":animations}))
+            hasFog = 1
+            for card in out_table["teams"][get_team(player)]["locations"]["board"]:
+                if card:
+                    hasFog = 0
+            await session_table["players"][player]["socket"].send(str({"text":text,"game_table":out_table,"me":player,"animations":animations, "fog":hasFog}))
     animations = []
 
 def strip_keys_copy(keys, table):
