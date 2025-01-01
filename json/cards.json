@@ -177,7 +177,7 @@
             ]
         }
     },
-    "evil":{
+    "evil1":{
         "health":8,
         "cost":0,
         "triggers": {
@@ -187,6 +187,76 @@
                 ]},
                 {"goal":5, "progress":0, "actions":[
                     {"action":"move","target":["ally_deck"],"to":{"entity":"owner","location": "hand","index": "append"},"amount":1}
+                ]}
+            ]
+        }
+    },
+    "evil2":{
+        "health":2,
+        "cost":0,
+        "triggers": {
+            "timer": [
+                {"goal":0.1, "progress":0, "actions":[
+                    {"action":"income","target":"allies","amount":1}
+                ]},
+                {"goal":1, "progress":0, "actions":[
+                    {"action":"move","target":["ally_deck"],"to":{"entity":"owner","location": "hand","index": "append"},"amount":1}
+                ]}
+            ]
+        }
+    },
+    "evil3":{
+        "health":8,
+        "cost":0,
+        "triggers": {
+            "timer": [
+                {"goal":1, "progress":0, "actions":[
+                    {"action":"income","target":"allies","amount":1}
+                ]},
+                {"goal":5, "progress":0, "actions":[
+                    {"action":"move","target":["ally_deck"],"to":{"entity":"owner","location": "hand","index": "append"},"amount":1}
+                ]}
+            ]
+        }
+    },
+    "evil4":{
+        "health":8,
+        "cost":0,
+        "triggers": {
+            "timer": [
+                {"goal":1, "progress":0, "actions":[
+                    {"action":"income","target":"allies","amount":1}
+                ]},
+                {"goal":5, "progress":0, "actions":[
+                    {"action":"move","target":["ally_deck"],"to":{"entity":"owner","location": "hand","index": "append"},"amount":1}
+                ]}
+            ]
+        }
+    },
+    "evil5":{
+        "health":15,
+        "cost":0,
+        "triggers": {
+            "timer": [
+                {"goal":1, "progress":0, "actions":[
+                    {"action":"income","target":"allies","amount":3}
+                ]},
+                {"goal":4, "progress":0, "actions":[
+                    {"action":"move","target":["ally_deck"],"to":{"entity":"owner","location": "hand","index": "append"},"amount":1}
+                ]}
+            ]
+        }
+    },
+    "evil6":{
+        "health":20,
+        "cost":0,
+        "triggers": {
+            "timer": [
+                {"goal":0.5, "progress":0, "actions":[
+                    {"action":"income","target":"allies","amount":2}
+                ]},
+                {"goal":5, "progress":0, "actions":[
+                    {"action":"move","target":["ally_deck"],"to":{"entity":"owner","location": "hand","index": "append"},"amount":2}
                 ]}
             ]
         }

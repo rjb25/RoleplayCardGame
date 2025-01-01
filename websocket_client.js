@@ -15,7 +15,7 @@ socketname = "visually-popular-iguana.ngrok-free.app";
 buttonContainers = ["#enemy_base_container", "#situations_container", "#ally_base_container", "#plans_container", "#tent_container", "#cards_container", "#discard_container", "#shop_container", "#trash_container"];
 buttonContainerLocations = ["base", "board", "base", "board", "tent", "hand", "discard", "shop", "trash"];
 buttonContainerNames = [enemy_team, enemy_team, my_team, my_team, "me", "me", "me", "me", "me"];
-menuButtons = ["remove_ai", "win_game", "reset_game", "reset_session", "pause", "add_ai_evil", "add_ai_good", "join_good", "join_evil", "game_log"];
+menuButtons = ["remove_ai", "win_game", "reset_game", "reset_session", "pause", "add_ai_evil", "add_ai_good", "join_good", "join_evil", "game_log", "save_game","load_game","set_username"];
 //This is what you run if you want to reconnect to server
 //socketname = prompt("WebSocketURL no http://")
 const websocketClient = new WebSocket("wss://" + socketname);
@@ -91,7 +91,9 @@ function makeMenuButton(title) {
     menuButton.appendChild(menuTitle);
     menuButton.onclick = function () {
         websocketClient.send(JSON.stringify({
-            command: title
+            command: title,
+            username: document.getElementById("username").value,
+            save: document.getElementById("save").value
         }))
         console.log("called function " + title)
         console.log(window)

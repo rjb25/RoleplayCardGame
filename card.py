@@ -39,44 +39,35 @@
 #An an enter armor boost like in slay the spire
 #Add armor decay?
 #When an action finishes, outline the sending card, and  fill in the receiving card
+#Add fog of war
+#Canvas, draw an image that moves from a card to a location. Coin for money. Explosion for damage
 
 #TODO WARN
 #DEAR GOD DO NOT REFACTOR IN A WAY THAT IS NOT BITE SIZED EVER AGAIN
 #DEAR GOD DO NOT PLAY GAMES AS RESEARCH IT IS SUCH A WASTE OF TIME
 
 #TODO
-#Add fog of war
+#Add keeping health between rounds vs ai.
+#Add a run time shop/sell. Min 10 cards. Sell gives a third value.
+#Shop is same for both players and rotates between shop keepers?
 #Add a reconnect feature
 #Have damage pass through by default, then certain cards bypass and certain cards do not
-#Random start point on the card. Small image. Quick movement. Also death can show skull moving to discard. Deck that you can pay to draw from. Count on it of how many cards are in deck. Count on discard of how many cards in discard.
-#Canvas, draw an image that moves from a card to a location. Coin for money. Explosion for damage
-#Flavor means it's not automatic and core to the game. It's simply spice on top. So you can send flavor messages. Which will run a gif at a location on the client or play a sound.
-#Add the ability to add flavor text, flavor images and flavor tick actions.
 #Add some kind of label to the sections. Preferrably images
+#Allow one card to be trashed per round. FIX TRASHING
+#Readme card/ button people can click for a general explanation
 
-#Allow one card to be trashed per round
-#Readme card
-#Flavor text
-#Flavor images
-#Flavor sound?
-#Pop up menu with choices or a map or something
+#TODO MAYBE
 #Events
 #This would also allow for a card that reacts to a card being played across from it
 #Need triggers that can be subscribed to like on ally cards die. I suppose I could add triggers to ally cards, but that seems weird.
 #I would need a place to store subscription functions and parameters, then a way to call that list of functions
-
-#TODO MAYBE
 #Add draw button where you can buy draw more cards. This would be done by dragging the tent player to the zone
 #Add upgrade card button too maybe?
 #Health ticks down version
 #Create random cards and allow them to be saved off if good
 
 
-#TICK
-#Maybe balance it so which team is called first in order is randomized
-#Do not orgaize this. Let it be chaos
 #SHOP
-
 #Have a random card shop as a rare reward. With end game cards expected to come from random draws.
 #Make while triggers, maybe they add something something in a pre tick. The "effect" section is then wiped on tick cleanup
 #Change protect to add temporary health on a timer. Maybe a blue line below healthbar
@@ -103,6 +94,8 @@
 #Card that freezes income or draw of opponent
 #Card that reflects destabilize back at attacker
 #Card that deals more damage when hurt
+#Card that deals a lot of damage to all cards, but stays for a while and is expensive. It even kills your own.
+#Weaken, opposite of armor
 #Pool: income draw slow enemy income, slow enemy draw, protect neighbor cards, better versions of bomb cards. Combined cards, like spike shield. or Spiky bomb. Guardian that adds armor to neighbor cards. Card that increases tick rate of neighbor cards.
 
 #DON'T USE ORDERED DICT SINCE YOU CAN'T CHOOSE INSERTION POINT. JUST USE A LIST WITH REFERENCES TO A MEGA DICT
@@ -466,7 +459,7 @@ def acting(action, card =""):
         case "clean":
             recipients = targets[0]
             for recipient in recipients:
-                recipient["effects"] = {}
+                recipient["effects"].clear()
         case "remove_effect":
             all_effect_recipes = game_table["all_effect_recipes"]
             all_effect_recipes.remove(game_table["ids"][action["effect_id"]])
@@ -613,7 +606,7 @@ def create_random_action(action):
 
 #GLOBALS
 animations = []
-default_session_table = {"ais":{},"players":{},"teams":{"good":{"losses":0},"evil":{"losses":0}},"send_reset":1, "level":1, "max_level":5, "first":1, "reward":1}
+default_session_table = {"ais":{},"players":{},"teams":{"good":{"losses":0},"evil":{"losses":0}},"send_reset":1, "level":1, "max_level":7, "first":1, "reward":1}
 session_table = copy.deepcopy(default_session_table)
 random_table = load({"file":"json/random.json"})
 decks_table = load({"file":"json/decks.json"})
@@ -621,7 +614,37 @@ cards_table = load({"file":"json/cards.json"})
 targets_table = load({"file":"json/targets.json"})
 static_lists = ["hand","board","tent","base","trash","shop"]
 game_table = load({"file":"json/game.json"})
-current_id = 1
+table_table = {"session":session_table, "game":game_table, "current_id": 1}
+
+def save_game(name,message):
+    with open('json/save-'+message["save"]+'.json', 'w') as f:
+        json.dump(table_table, f)
+
+def set_username(name,message):
+    if name in session_table["players"].keys():
+        #TODO have this set the player socket to the person who sent this message if that person has disconnected.
+        session_table["players"][message["username"]] = session_table["players"].pop(name)
+        game_table["entities"][message["username"]] = game_table["entities"].pop(name)
+    else:
+        session_table["players"][message["username"]] = session_table["players"].pop(name)
+        game_table["entities"][message["username"]] = game_table["entities"].pop(name)
+
+def load_game(name,message):
+    #Might need something to wait till end of tick so the game state isn't influenced by what was running
+    save = load({"file": 'json/save-'+message["save"]+'.json'})
+    global session_table
+    global game_table
+    session_table = save["session"]
+    game_table = save["game"]
+    #You could make this easier by having the tables be
+    table_table["current_id"] = save["current_id"]
+
+def save_username(name):
+    return
+
+def load_username(name):
+    return
+
 
 def table(entity_type):
     if entity_type == "entities":
@@ -632,9 +655,6 @@ def table(entity_type):
             result[entity] = entity_data
     return result
 
-def saveBattle():
-        with open('json/decks.json', 'w') as f:
-            json.dump(decks_table,f)
 
 def get_card_index(hand):
     #should get all card indexes than random select
@@ -789,7 +809,6 @@ def cleanup_tick():
         for location, cards in team_data["locations"].items():
             for card in cards:
                 if card:
-                    card["effects"] = {}
                     if card["health"] <= 0:
                         if card["location"] == "base":
                             session_table["teams"][get_team(card["owner"])]["losses"] += 1
@@ -861,7 +880,7 @@ def initialize_team(team):
     if team == "evil":
         #Plus level if you want upgrading team
         #game_table["entities"][team]["locations"]["base"][0] = initialize_card(team+session_table["level"], team, "base")
-        game_table["entities"][team]["locations"]["base"][0] = initialize_card(team, team, "base",0)
+        game_table["entities"][team]["locations"]["base"][0] = initialize_card(team+str(session_table["level"]), team, "base",0)
     else:
         game_table["entities"][team]["locations"]["base"][0] = initialize_card(team, team, "base",0)
 
@@ -944,9 +963,8 @@ def reset_state():
     session_table["send_reset"] = 1
 
 def get_unique_id():
-    global current_id
-    current_id += 1
-    return str(current_id)
+    table_table["current_id"] += 1
+    return str(table_table["current_id"])
 
 def get_unique_name():
     cards_table["current_name"] += 1
@@ -956,7 +974,7 @@ def refresh_card(card):
     try:
         baby_card = copy.deepcopy(cards_table[card["name"]])
         card["triggers"] = baby_card["triggers"]
-        card["effects"] = {}
+        card["effects"].clear()
         card["max_health"] = baby_card["health"]
         card["health"] = baby_card["health"]
         card["shield"] = 0
@@ -978,6 +996,7 @@ def initialize_card(card_name,username="",location="deck",index=-1):
     baby_card["team"] = get_team(username)
     baby_card["id"] = get_unique_id()
     baby_card["shield"] = 0
+    baby_card["effects"] = {}
     baby_card["max_shield"] = 20
     game_table["ids"][baby_card["id"]] = baby_card
     baby_card["location"] = location
@@ -1000,7 +1019,6 @@ def is_team(target = ""):
         return True
 
 async def update_state(players):
-    effecting()
     global animations
     for player in players:
         if player in session_table["players"]:
@@ -1088,7 +1106,7 @@ def card_from(card_id, cards):
     return {}
 
 async def new_client_connected(client_socket, path):
-    username = "player" + get_unique_id()
+    username = "player" + "temp" + get_unique_id()
     if session_table["first"]:
         session_table["first"] = 0
         ainame = "ai" + get_unique_id()
@@ -1105,7 +1123,11 @@ async def new_client_connected(client_socket, path):
             if "id" in card_json.keys():
                 await handle_play(username,card_json)
             if card_json.get("command"):
-                globals()[card_json["command"]](username)
+                #TODO Make these get called in a for loop at the end of tick
+                if(card_json["command"] in ["save_game","load_game","set_username"]):
+                    globals()[card_json["command"]](username,card_json)
+                else:
+                    globals()[card_json["command"]](username)
                 if card_json.get("command") == "quit":
                     break;
                 await update_state(session_table["players"].keys())
@@ -1113,10 +1135,11 @@ async def new_client_connected(client_socket, path):
     except websockets.ConnectionClosed as e:
         log("Client quit:", username)
         log(e)
-        if session_table["players"].get(username):
-            del session_table["players"][username]
-        if game_table["entities"].get(username):
-            del game_table["entities"][username]
+        if "temp" in username:
+            if session_table["players"].get(username):
+                del session_table["players"][username]
+            if game_table["entities"].get(username):
+                del game_table["entities"][username]
 
 def pause(username):
     log(username + " paused")
