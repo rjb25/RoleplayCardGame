@@ -1,3 +1,5 @@
+#!/usr/bin/env python
+
 #TODO TODONE
 #Make refresh work
 #Add images
@@ -99,12 +101,15 @@
 #Pool: income draw slow enemy income, slow enemy draw, protect neighbor cards, better versions of bomb cards. Combined cards, like spike shield. or Spiky bomb. Guardian that adds armor to neighbor cards. Card that increases tick rate of neighbor cards.
 
 #DON'T USE ORDERED DICT SINCE YOU CAN'T CHOOSE INSERTION POINT. JUST USE A LIST WITH REFERENCES TO A MEGA DICT
+
 import asyncio
 from collections import Counter
 import websockets
+from websockets.exceptions import ConnectionClosedOK
 import sys
 import requests
 import functools
+import os
 import json
 from fractions import Fraction
 from operator import itemgetter
@@ -220,7 +225,6 @@ def resolve_entity_alias(entity_alias, card):
                 if entity_data["team"] != card["team"]:
                     entities.append([entity_data])
         case "enemies-joined":
-            #Odd that swords hurt themselves if you join enemy team after playing TODO
             enemies = []
             for entity_data in table("entities").values():
                 if entity_data["team"] != card["team"]:
@@ -606,7 +610,7 @@ def create_random_action(action):
 
 #GLOBALS
 animations = []
-default_session_table = {"ais":{},"players":{},"teams":{"good":{"losses":0},"evil":{"losses":0}},"send_reset":1, "level":1, "max_level":7, "first":1, "reward":1}
+default_session_table = {"missing":{},"ais":{},"players":{},"teams":{"good":{"losses":0},"evil":{"losses":0}},"send_reset":1, "level":1, "max_level":7, "first":1, "reward":1}
 session_table = copy.deepcopy(default_session_table)
 random_table = load({"file":"json/random.json"})
 decks_table = load({"file":"json/decks.json"})
@@ -616,11 +620,20 @@ static_lists = ["hand","board","tent","base","trash","shop"]
 game_table = load({"file":"json/game.json"})
 table_table = {"session":session_table, "game":game_table, "current_id": 1}
 
-def save_game(name,message):
-    with open('json/save-'+message["save"]+'.json', 'w') as f:
-        json.dump(table_table, f)
+#Save and load button for user and session.
+#If user was active in this session, possess.
+#If user was saved but not active, load and possess.
+#If user was saved and ist active, reject request.
+#If user does not exist, save
+#def save_deck(name,message):
 
-def set_username(name,message):
+#def load_deck(name, message):
+
+
+def save_user(name,message):
+    #Make it so that you can connect to a previously alive connection.
+    #Then upgrade to alias recognition on top of that
+    #session_table["aliases"][message["username"]] = session_table["players"][name]
     if name in session_table["players"].keys():
         #TODO have this set the player socket to the person who sent this message if that person has disconnected.
         session_table["players"][message["username"]] = session_table["players"].pop(name)
@@ -628,6 +641,20 @@ def set_username(name,message):
     else:
         session_table["players"][message["username"]] = session_table["players"].pop(name)
         game_table["entities"][message["username"]] = game_table["entities"].pop(name)
+
+#This should actually be more of a possess
+def possess_user(name,message):
+    if name in session_table["players"].keys():
+        # TODO have this set the player socket to the person who sent this message if that person has disconnected.
+        session_table["players"][message["username"]] = session_table["players"].pop(name)
+        game_table["entities"][message["username"]] = game_table["entities"].pop(name)
+    else:
+        session_table["players"][message["username"]] = session_table["players"].pop(name)
+        game_table["entities"][message["username"]] = game_table["entities"].pop(name)
+
+def save_game(name,message):
+    with open('json/save-'+message["save"]+'.json', 'w') as f:
+        json.dump(table_table, f)
 
 def load_game(name,message):
     #Might need something to wait till end of tick so the game state isn't influenced by what was running
@@ -638,13 +665,6 @@ def load_game(name,message):
     game_table = save["game"]
     #You could make this easier by having the tables be
     table_table["current_id"] = save["current_id"]
-
-def save_username(name):
-    return
-
-def load_username(name):
-    return
-
 
 def table(entity_type):
     if entity_type == "entities":
@@ -849,9 +869,6 @@ async def tick():
             await update_state(session_table["players"].keys())
             cleanup_tick()
 
-def remove_quit_players(team_data):
-    del game_table["entities"][player]
-
 def tick_rate():
     return game_table["tick_duration"]*game_table["tick_value"]
 
@@ -1021,7 +1038,7 @@ def is_team(target = ""):
 async def update_state(players):
     global animations
     for player in players:
-        if player in session_table["players"]:
+        if player in session_table["players"] and player not in session_table["missing"]:
             out_table = copy.deepcopy(game_table)
             out_table["players"] = table("players")
             out_table["teams"] = table("teams")
@@ -1030,7 +1047,8 @@ async def update_state(players):
             for card in out_table["teams"][get_team(player)]["locations"]["board"]:
                 if card:
                     hasFog = 0
-            await session_table["players"][player]["socket"].send(str({"text":text,"game_table":out_table,"me":player,"animations":animations, "fog":hasFog}))
+            if session_table["players"][player]["socket"]:
+                await session_table["players"][player]["socket"].send(str({"missing":session_table["missing"],"text":text,"game_table":out_table,"me":player,"animations":animations, "fog":hasFog}))
     animations = []
 
 def strip_keys_copy(keys, table):
@@ -1106,7 +1124,8 @@ def card_from(card_id, cards):
     return {}
 
 async def new_client_connected(client_socket, path):
-    username = "player" + "temp" + get_unique_id()
+    username= "player" + "temp" + get_unique_id()
+
     if session_table["first"]:
         session_table["first"] = 0
         ainame = "ai" + get_unique_id()
@@ -1115,85 +1134,102 @@ async def new_client_connected(client_socket, path):
     initialize_player("good", 0, username)
     await update_state([username])
 
+    #Could have a rejoin feature
+    loop = {}
+    loop["username"] = username
     try:
         while True:
-            card_json_message = await client_socket.recv()
-            card_json = json.loads(card_json_message)
-            log("Client sent:", card_json)
-            if "id" in card_json.keys():
-                await handle_play(username,card_json)
-            if card_json.get("command"):
-                #TODO Make these get called in a for loop at the end of tick
-                if(card_json["command"] in ["save_game","load_game","set_username"]):
-                    globals()[card_json["command"]](username,card_json)
-                else:
-                    globals()[card_json["command"]](username)
-                if card_json.get("command") == "quit":
-                    break;
+            client_message = await client_socket.recv()
+            message_json = json.loads(client_message)
+            #If I do a rejoin, set username to be who I rejoin as and set my old username to missing. Also give the player I am rejoining my socket.
+            #This is a pointer hack so username can be changed from external functions. Pass by reference
+            message_json["loop"] = loop
+            message_json["username"] = loop["username"]
+            log("Client sent:", message_json)
+            if message_json.get("command"):
+                globals()[message_json["command"]](message_json)
                 await update_state(session_table["players"].keys())
 
-    except websockets.ConnectionClosed as e:
+    except Exception as e:
         log("Client quit:", username)
         log(e)
-        if "temp" in username:
-            if session_table["players"].get(username):
-                del session_table["players"][username]
-            if game_table["entities"].get(username):
-                del game_table["entities"][username]
+        session_table["missing"][username] = 1
 
-def pause(username):
-    log(username + " paused")
+        #if "temp" in username:
+        #    if session_table["players"].get(username):
+        #        del session_table["players"][username]
+        #    if game_table["entities"].get(username):
+        #        del game_table["entities"][username]
+    #except Exception as e:
+    #    log("FATAL CRASH..... RESTARTING NOW")
+    #    os.execl(sys.executable,'python', __file__, *sys.argv[1:])
+
+def reconnect(command):
+    current_name = command["loop"]["username"]
+    re_name = command["reconnect"]
+    #Now commands will be recognized as coming from the correct user.
+    command["loop"]["username"] = re_name
+    session_table["players"][re_name]["socket"] = session_table["players"][current_name]["socket"]
+    session_table["players"][current_name]["socket"] = ""
+    print(session_table)
+
+def pause(command):
+    log(command["username"] + " paused")
     if game_table["running"]:
         game_table["running"] = 0
     else:
         game_table["running"] = 1
-def add_random_card(username):
+
+def add_random_card(command):
+    username = command["username"]
     card_name = get_unique_name()
     baby_card = create_random_card(card_name)
     baby_card = initialize_card(card_name, username)
     table("players")[username]["locations"]["deck"].append(baby_card)
 
-def save_random_cards(username):
+def save_random_cards(command):
     with open('json/cards.json', 'w') as f:
         json.dump(cards_table,f)
 
-def join_evil(username):
+def join_evil(command):
+    username = command["username"]
     log(username + " joined evil")
     table("players")[username]["team"] = "evil"
     session_table["players"][username]["team"] = "evil"
 
-def join_good(username):
+def join_good(command):
+    username = command["username"]
     log(username + " joined good")
     table("players")[username]["team"] = "good"
     session_table["players"][username]["team"] = "good"
 
-def reset_game(username):
+def reset_game(command):
     reset_state()
 
-def reset_session(username):
+def reset_session(command):
     global session_table
     session_table = copy.deepcopy(default_session_table)
     reset_state()
 
-def win_game(username):
+def win_game(command):
     session_table["reward"] = 1
     session_table["teams"]["evil"]["losses"] += 1
     if session_table["level"] < session_table["max_level"]:
         session_table["level"] += 1
     reset_state()
 
-def add_ai_evil(use):
+def add_ai_evil(command):
     username = "ai" + get_unique_id()
     initialize_player("evil",1,username)
 
-def add_ai_good(use):
+def add_ai_good(command):
     username = "ai" + get_unique_id()
     initialize_player("good",1,username)
 
-def quit(username):
-    table("entities")[username]["quit"] = 1
+def quit(command):
+    raise websockets.ConnectionClosed("Intentional")
 
-def remove_ai(username):
+def remove_ai(command):
     #Needs to mark for removal then remove after tick to avoid issues
     for player, player_data in table("players").items():
         if player_data["ai"]:
@@ -1205,7 +1241,10 @@ def log(*words):
     for word in words:
         print(word)
 
-async def handle_play(username,card_json):
+def handle_play(command):
+    #TODO make new username an alias
+    card_json = command
+    username = card_json["username"]
     card_id = card_json["id"]
     card_index = int(card_json["index"])
     card_to = card_json["location"]
@@ -1230,10 +1269,9 @@ async def handle_play(username,card_json):
             session_table["players"][username]["deck"].append(card["title"])
             game_table["entities"][card["owner"]]["locations"]["shop"] = [0,0,0]
 
-    await update_state(session_table["players"].keys())
 
 #There's also a full log in javascript message container
-def game_log(username):
+def game_log(command):
     log_json(game_table)
     #for key, value in game_table.items():
     #    if type(value) == dict:

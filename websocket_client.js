@@ -15,7 +15,7 @@ socketname = "visually-popular-iguana.ngrok-free.app";
 buttonContainers = ["#enemy_base_container", "#situations_container", "#ally_base_container", "#plans_container", "#tent_container", "#cards_container", "#discard_container", "#shop_container", "#trash_container"];
 buttonContainerLocations = ["base", "board", "base", "board", "tent", "hand", "discard", "shop", "trash"];
 buttonContainerNames = [enemy_team, enemy_team, my_team, my_team, "me", "me", "me", "me", "me"];
-menuButtons = ["remove_ai", "win_game", "reset_game", "reset_session", "pause", "add_ai_evil", "add_ai_good", "join_good", "join_evil", "game_log", "save_game","load_game","set_username"];
+menuButtons = ["remove_ai", "win_game", "reset_game", "reset_session", "pause", "add_ai_evil", "add_ai_good", "join_good", "join_evil", "game_log", "save_game","load_game","save_user","load_user"];
 //This is what you run if you want to reconnect to server
 //socketname = prompt("WebSocketURL no http://")
 const websocketClient = new WebSocket("wss://" + socketname);
@@ -67,6 +67,7 @@ function drop(ev) {
 
 function play(cardId, targ, locat) {
     websocketClient.send(JSON.stringify({
+        command: "handle_play",
         id: cardId,
         index: targ,
         location: locat
@@ -92,8 +93,6 @@ function makeMenuButton(title) {
     menuButton.onclick = function () {
         websocketClient.send(JSON.stringify({
             command: title,
-            username: document.getElementById("username").value,
-            save: document.getElementById("save").value
         }))
         console.log("called function " + title)
         console.log(window)
@@ -101,6 +100,23 @@ function makeMenuButton(title) {
             console.log("called extra function " + title)
             window[title]();
         }
+    };
+    fetch("#menu_container").appendChild(menuButton);
+}
+function makeConnectButton(title) {
+    menuButton = document.createElement("div");
+    menuButton.classList.add("menu");
+    menuTitle = document.createElement("div");
+    menuTitle.innerHTML = title;
+    menuButton.appendChild(menuTitle);
+    menuButton.onclick = function () {
+        websocketClient.send(JSON.stringify({
+            command: "reconnect",
+            reconnect: title,
+            save: document.getElementById("save").value
+        }))
+        console.log("called function " + title)
+        console.log(window)
     };
     fetch("#menu_container").appendChild(menuButton);
 }
@@ -555,6 +571,9 @@ document.addEventListener('DOMContentLoaded', function () {
                     if (name === "me") {
                         name = messageJson["me"]
                     }
+                    //This length of slot if different between players would not update properly. Slots would need to be reupdated. Ok for now since slot sizes are constant between players
+                    //This could be name indifferent if I had a list of sizes for all the slots
+                    //TODO recreate slots on user switch. Basically handle expandable slots
                     length = messageJson["game_table"]["entities"][name]["locations"][local].length;
                     if (container == "#discard_container") {
                         length = 1;
@@ -562,6 +581,8 @@ document.addEventListener('DOMContentLoaded', function () {
                     createSlots(fetch(container), length, local);
                 });
                 menuButtons.forEach(makeMenuButton);
+                console.log(messageJson["missing"])
+                Object.keys(messageJson["missing"]).forEach(makeConnectButton);
                 firstUpdate = 0;
             }
             //console.log(JSON.stringify(messageJson));
