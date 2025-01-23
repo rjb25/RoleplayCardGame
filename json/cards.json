@@ -1,7 +1,172 @@
 {
     "current_name": 0,
+    "bomby":{"health":1,
+        "cost":2,
+        "triggers":{
+            "timer": [
+                {"goal":8, "progress":0, "actions":[
+                    {"action":"damage","target":"enemy_base","amount":1},
+                    {"action":"move","target":"self","to": {"location": "discard","index": "append","entity": "owner"}}
+                ]}
+            ]
+        }
+    },
+    "bear-bomby":{"health":3,
+        "cost":5,
+        "triggers":{
+            "timer": [
+                {"goal":8, "progress":0, "actions":[
+                    {"action":"damage","target":"enemy_base","amount":5},
+                    {"action":"move","target":"self","to": {"location": "discard","index": "append","entity": "owner"}}
+                ]}
+            ]
+        }
+    },
+    "attacky":{
+        "health":3,
+        "cost":3,
+        "triggers": {
+            "timer": [
+                {"goal":2, "progress":0, "actions":[
+                    {"action":"damage","target":"across","amount":1}
+                ]},
+                {"goal":10, "progress":0, "actions":[
+                    {"action":"move","target":"self","to": {"location": "discard","index": "append","entity": "owner"}}
+                ]}
+            ]
+        }
+    },
+    "bear-attacky":{
+        "health":2,
+        "cost":5,
+        "triggers": {
+            "timer": [
+                {"goal":2, "progress":0, "actions":[
+                    {"action":"damage","target":"fork","amount":1}
+                ]},
+                {"goal":10, "progress":0, "actions":[
+                    {"action":"move","target":"self","to": {"location": "discard","index": "append","entity": "owner"}}
+                ]}
+            ]
+        }
+    },
+    "tanky":{
+        "health":2,
+        "cost":8,
+        "triggers": {
+            "timer": [
+                {"goal":30, "progress":0, "actions":[
+                    {"action":"move","target":"self","to": {"location": "discard","index": "append","entity": "owner"}}
+                ]}
+            ],
+            "enter": [
+                {"actions":[
+                    {"action": "effect_relative", "target": "all_in_my_location", "effect_function":{"name":"armor","function":"add","value":0.4}, "end_trigger":"exit"}
+                ]}
+            ]
+        }
+    },
+    "bear-tanky":{"health":3,
+        "cost":5,
+        "triggers":{
+            "timer": [
+                {"goal":10, "progress":0, "actions":[
+                    {"action":"move","target":"self","to": {"location": "discard","index": "append","entity": "owner"}}
+                ]}
+            ],
+            "enter": [
+                {"actions":[
+                    {"action": "effect_relative", "target": ["my_base"], "effect_function":{"name":"armor","function":"add","value":0.8}, "end_trigger":"exit"}
+                ]}
+            ]
+        }
+    },
+    "looty":{
+        "health":3,
+        "cost":2,
+        "triggers": {
+            "timer": [
+                {"goal":2, "progress":0, "actions":[
+                    {"action":"income","target":"allies","amount":2}
+                ]},
+                {"goal":10, "progress":0, "actions": [
+                    {"action":"move","target":"self","to": {"location": "discard","index": "append","entity": "owner"}}
+                ]}
+            ]
+        }
+    },
+    "bear-looty":{
+        "health":3,
+        "cost":5,
+        "triggers": {
+            "timer": [
+                {"goal":2, "progress":0, "actions":[
+                    {"action":"income","target":"allies","amount":4}
+                ]},
+                {"goal":10, "progress":0, "actions": [
+                    {"action":"move","target":"self","to": {"location": "discard","index": "append","entity": "owner"}}
+                ]}
+            ]
+        }
+    },
+    "miney":{
+        "health":4,
+        "cost":2,
+        "triggers": {
+            "timer": [
+                {"goal":3, "progress":0, "actions":[
+                    {"action":"gems","target":"allies","amount":1}
+                ]},
+                {"goal":9, "progress":0, "actions":[
+                    {"action":"move","target":"self","to": {"location": "discard","index": "append","entity": "owner"}}
+                ]}
+            ]
+        }
+    },
+    "bear-miney":{
+        "health":4,
+        "cost":5,
+        "triggers": {
+            "timer": [
+                {"goal":3, "progress":0, "actions":[
+                    {"action":"gems","target":"allies","amount":4}
+                ]},
+                {"goal":9, "progress":0, "actions":[
+                    {"action":"move","target":"self","to": {"location": "discard","index": "append","entity": "owner"}}
+                ]}
+            ]
+        }
+    },
+    "dealy":{
+        "health":3,
+        "cost":2,
+        "triggers": {
+            "timer": [
+                {"goal":2, "progress":0, "actions":[
+                    {"action":"move","target":["my_deck"],"to":{"entity":"owner","location": "hand","index": "append"},"amount":1}
+                ]},
+                {"goal":20, "progress":0, "actions":[
+                    {"action":"move","target":"self","to": {"location": "discard","index": "append","entity": "owner"}}
+                ]}
+            ]
+        }
+    },
+    "bear-dealy":{
+        "health":10,
+        "cost":8,
+        "triggers": {
+            "timer": [
+                {"goal":2, "progress":0, "actions":[
+                    {"action":"move","target":["my_deck"],"to":{"entity":"owner","location": "hand","index": "append"},"amount":4}
+                ]},
+                {"goal":20, "progress":0, "actions":[
+                    {"action":"move","target":"self","to": {"location": "discard","index": "append","entity": "owner"}}
+                ]}
+            ]
+        }
+    },
     "shield":{"health":3,
-        "cost":0,
+        "cost":3,
         "triggers":{
             "timer": [
                 {"goal":10, "progress":0, "actions":[
@@ -37,7 +202,6 @@
                     {"action":"damage","target":"across","amount":1}
                 ]},
                 {"goal":10, "progress":0, "actions":[
-                    {"action":"damage","target":"enemy_base","amount":1},
                     {"action":"move","target":"self","to": {"location": "discard","index": "append","entity": "owner"}}
                 ]}
             ],
@@ -101,6 +265,7 @@
     "loot":{
         "health":3,
         "cost":4,
+        "value":5,
         "triggers": {
             "timer": [
                 {"goal":2, "progress":0, "actions":[
@@ -116,6 +281,7 @@
     "draw":{
         "health":3,
         "cost":10,
+        "value":10,
         "triggers": {
             "timer": [
                 {"goal":2, "progress":0, "actions":[
@@ -131,6 +297,7 @@
     "shield2":{
         "health":3,
         "cost":3,
+        "value":3,
         "triggers": {
             "timer": [
                 {"goal":3, "progress":0, "actions":[
@@ -146,6 +313,7 @@
     "shield3":{
         "health":3,
         "cost":12,
+        "value":12,
         "triggers": {
             "timer": [
                 {"goal":4, "progress":3, "actions":[
@@ -159,33 +327,74 @@
         }
     },
     "player":{
-        "gold":10,
+        "gold":5,
         "gold_limit":50,
+        "gems":0,
+        "gems_limit":50,
         "triggers":{}
     },
-    "good":{
+    "trader1":{
         "health":8,
         "cost":0,
         "triggers": {
             "timer": [
-                {"goal":1, "progress":0, "actions":[
+                {"goal":30, "progress":0, "actions":[
+                    {"action":"trader","next":"trader2"}
+                ]}
+            ]
+        }
+    },
+    "trader2":{
+        "health":8,
+        "cost":0,
+        "triggers": {
+            "timer": [
+                {"goal":30, "progress":0, "actions":[
+                    {"action":"trader","next":"trader1"}
+                ]}
+            ]
+        }
+    },
+    "trader3":{
+        "health":8,
+        "cost":0,
+        "triggers": {
+            "timer": [
+                {"goal":30, "progress":0, "actions":[
+                    {"action":"trader","next":"trader1"}
+                ]}
+            ]
+        }
+    },
+    "good":{
+        "health":30,
+        "cost":0,
+        "triggers": {
+            "timer": [
+                {"goal":4, "progress":0, "actions":[
                     {"action":"income","target":"allies","amount":1}
                 ]},
-                {"goal":5, "progress":0, "actions":[
+                {"goal":16.23, "progress":0, "actions":[
+                    {"action":"gems","target":"allies","amount":1}
+                ]},
+                {"goal":8, "progress":0, "actions":[
                     {"action":"move","target":["ally_deck"],"to":{"entity":"owner","location": "hand","index": "append"},"amount":1}
                 ]}
             ]
         }
     },
     "evil1":{
-        "health":8,
+        "health":30,
         "cost":0,
         "triggers": {
             "timer": [
-                {"goal":1, "progress":0, "actions":[
+                {"goal":4, "progress":0, "actions":[
                     {"action":"income","target":"allies","amount":1}
                 ]},
-                {"goal":5, "progress":0, "actions":[
+                {"goal":5.23, "progress":0, "actions":[
+                    {"action":"gems","target":"allies","amount":1}
+                ]},
+                {"goal":8, "progress":0, "actions":[
                     {"action":"move","target":["ally_deck"],"to":{"entity":"owner","location": "hand","index": "append"},"amount":1}
                 ]}
             ]

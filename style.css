@@ -83,6 +83,12 @@ body {
     position: relative;
     text-align: center;
 }
+.sectionLabel {
+    background-color: Black;
+    color: White;
+    text-align: center;
+    margin: 0;
+}
 .health {
   font-size: 10px;
   color: black;
@@ -118,7 +124,13 @@ body {
   top: -12%; 
   right: -20%; 
   width: 50%; 
-} 
+}
+.coin2 {
+    position: absolute;
+    top: -12%;
+    left: -20%;
+    width: 50%;
+}
 .sack {
     width: 75%;
     right: -21%;
@@ -133,7 +145,16 @@ body {
   top: -18%; 
   right: -20%; 
   width: 50%; 
-} 
+}
+.cost2 {
+    position: absolute;
+    font-size:20px;
+    text-align:center;
+    font-weight: bold;
+    top: -18%;
+    left: -20%;
+    width: 50%;
+}
 .bank {
   position: absolute;
   font-size:20px;
@@ -142,7 +163,54 @@ body {
   top: -18%; 
   right: -20%; 
   width: 50%; 
-} 
+}
+.bank2 {
+    position: absolute;
+    font-size:20px;
+    text-align:center;
+    font-weight: bold;
+    top: -18%;
+    left: -20%;
+    width: 50%;
+}
+.deck {
+    position: absolute;
+    font-size:20px;
+    text-align:center;
+    font-weight: bold;
+    top: 17%;
+    left: -20%;
+    width: 50%;
+}
+.discard {
+    position: absolute;
+    font-size:20px;
+    text-align:center;
+    font-weight: bold;
+    top: 17%;
+    right: -20%;
+    width: 50%;
+}
+.deckCount {
+    position: absolute;
+    color: white;
+    font-size:20px;
+    text-align:center;
+    font-weight: bold;
+    top: 15%;
+    left: -20%;
+    width: 50%;
+}
+.discardCount {
+    color: white;
+    position: absolute;
+    font-size:20px;
+    text-align:center;
+    font-weight: bold;
+    top: 15%;
+    right: -20%;
+    width: 50%;
+}
 .title {
   position: absolute;
 } 

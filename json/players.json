@@ -1,5 +1,7 @@
 {
-    "gold":10,
+    "gold":0,
+    "gems":0,
+    "gem_limit":50,
     "gold_limit":50,
     "locations": {
         "hand": [

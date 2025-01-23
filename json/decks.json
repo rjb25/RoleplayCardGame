@@ -1,6 +1,6 @@
 {
     "standard":["aggression","aggression","draw","draw","draw","attack","attack","attack","loot","loot","loot"],
-    "beginner":["attack","attack","attack","attack","attack","attack","attack","attack"],
+    "beginner":["miney","bomby","attacky","looty"],
     "ai1":["tank","tank","tank","shield2","loot","attack2","attack2","draw","attack","attack","attack","bomb","bomb","bomb"],
     "ai2":["shield2","shield2","tank","tank","attack","attack","attack"],
     "ai3":["shield","shield","shield","shield","shield","attack","attack","attack","attack","attack","attack","bomb","bomb","bomb"],
@@ -14,5 +14,7 @@
     "shop4":["attack2","bomb","shield3"],
     "shop5":["attack2","loot","draw","shield","shield2"],
     "shop6":["attack2","loot","bomb","draw","shield2"],
+    "trader1":["looty","miney","bomby","tanky","attacky","dealy"],
+    "trader2":["bear-looty","bear-miney","bear-bomby","bear-tanky","bear-attacky","bear-dealy"],
     "shop7":["attack2","loot","bomb","draw","shield2"]
 }

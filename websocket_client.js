@@ -1,5 +1,6 @@
 my_team = "good";
 enemy_team = "evil";
+lastMissing = [];
 firstUpdate = 1;
 tr = " 0.7)";
 actionColors = {
@@ -12,9 +13,9 @@ var running = false;
 var target = 0;
 socketname = "visually-popular-iguana.ngrok-free.app";
 //These need to be variables
-buttonContainers = ["#enemy_base_container", "#situations_container", "#ally_base_container", "#plans_container", "#tent_container", "#cards_container", "#discard_container", "#shop_container", "#trash_container"];
-buttonContainerLocations = ["base", "board", "base", "board", "tent", "hand", "discard", "shop", "trash"];
-buttonContainerNames = [enemy_team, enemy_team, my_team, my_team, "me", "me", "me", "me", "me"];
+buttonContainers = ["#enemy_base_container", "#situations_container", "#ally_base_container", "#plans_container", "#tent_container", "#cards_container", "#discard_container", "#merchant_container", "#shop_container", "#trash_container"];
+buttonContainerLocations = ["base", "board", "base", "board", "tent", "hand", "discard", "stall", "shop", "trash"];
+buttonContainerNames = [enemy_team, enemy_team, my_team, my_team, "me", "me", "me", "trader", "trader", "trader"];
 menuButtons = ["remove_ai", "win_game", "reset_game", "reset_session", "pause", "add_ai_evil", "add_ai_good", "join_good", "join_evil", "game_log", "save_game","load_game","save_user","load_user"];
 //This is what you run if you want to reconnect to server
 //socketname = prompt("WebSocketURL no http://")
@@ -28,14 +29,14 @@ function join_good() {
     console.log("goodness")
     my_team = "good"
     enemy_team = "evil"
-    buttonContainerNames = [enemy_team, enemy_team, my_team, my_team, "me", "me", "me", "me", "me"];
+    buttonContainerNames = [enemy_team, enemy_team, my_team, my_team, "me", "me", "me", "trader", "trader", "trader"];
 }
 
 function join_evil() {
     console.log("evilness")
     my_team = "evil"
     enemy_team = "good"
-    buttonContainerNames = [enemy_team, enemy_team, my_team, my_team, "me", "me", "me", "me", "me"];
+    buttonContainerNames = [enemy_team, enemy_team, my_team, my_team, "me", "me", "me", "trader", "trader", "trader"];
 }
 
 function allowDrop(ev) {
@@ -118,7 +119,7 @@ function makeConnectButton(title) {
         console.log("called function " + title)
         console.log(window)
     };
-    fetch("#menu_container").appendChild(menuButton);
+    fetch("#reconnect_container").appendChild(menuButton);
 }
 
 function inspect(slot) {
@@ -175,12 +176,40 @@ function updateCardButton(cardButton, card) {
     var health = cardButton.querySelector(".health");
     var shield = cardButton.querySelector(".shield");
     var cardCoinImage = cardButton.querySelector(".coin");
+    var cardCoinImage2 = cardButton.querySelector(".coin2");
     var cost = cardButton.querySelector(".cost");
+    var cost2 = cardButton.querySelector(".cost2");
     if (card["location"] == "tent") {
         bank = cardButton.querySelector(".bank");
         bank.innerHTML = card["gold"];
+
+        bank2 = cardButton.querySelector(".bank2");
+        bank2.innerHTML = card["gems"];
+
+        mContainer = fetch("#messages_container");
+        if (mContainer.playerState) {
+            discard = cardButton.querySelector(".discardCount");
+            discard.innerHTML = mContainer.playerState.discardLength;
+            deck = cardButton.querySelector(".deckCount");
+            deck.innerHTML = mContainer.playerState.deckLength;
+        }
     }
-    if (card["location"] == "hand" && "cost" in card) {
+    if (card["location"] == "shop") {
+        cost2.innerHTML = card["value"];
+        mContainer = fetch("#messages_container");
+        if (mContainer.playerState) {
+            gems = mContainer.playerState["gems"];
+            if (card["value"] > gems) {
+                cost2.style.color = "crimson";
+            } else {
+                cost2.style.color = "black";
+            }
+        }
+    } else {
+        cost2.innerHTML = "";
+        cardCoinImage2.style.display = "none";
+    }
+    if ((card["location"] == "hand" || card["location"] == "shop") && "cost" in card) {
         cost.innerHTML = card["cost"];
         mContainer = fetch("#messages_container");
         if (mContainer.playerState) {
@@ -192,7 +221,7 @@ function updateCardButton(cardButton, card) {
             }
         }
     } else {
-        if (card["location"] !== "shop") {
+        if (card["location"] !== "shop" && card["location"] !== "stall") {
             let percent = 100 * card["health"] / card["max_health"];
             health.style.width = Math.max(percent, 0) + "%";
             //Have heart icons below the bar instead maybe?
@@ -306,6 +335,13 @@ function generateCardButton(card) {
     coinImage.src = "pics/" + "coin3.png";
     coinImage.alt = "coin";
 
+    cost2 = document.createElement("p");
+    cost2.classList.add("cost2");
+    coinImage2 = new Image();
+    coinImage2.draggable = false;
+    coinImage2.classList.add("coin2");
+    coinImage2.src = "pics/" + "gem.png";
+    coinImage2.alt = "gems";
 
     health = document.createElement("div");
     health.classList.add("health");
@@ -317,6 +353,8 @@ function generateCardButton(card) {
     cardButton.appendChild(shield);
     cardButton.appendChild(coinImage);
     cardButton.appendChild(cost);
+    cardButton.appendChild(coinImage2);
+    cardButton.appendChild(cost2);
 
     if (card["location"] == "tent") {
         bank = document.createElement("p");
@@ -328,6 +366,36 @@ function generateCardButton(card) {
         sackImage.draggable = false;
         cardButton.appendChild(sackImage);
         cardButton.appendChild(bank);
+
+        bank2 = document.createElement("p");
+        bank2.classList.add("bank2");
+        sackImage2 = new Image();
+        sackImage2.classList.add("coin2");
+        sackImage2.src = "pics/" + "gem.png";
+        sackImage2.alt = "gems";
+        sackImage2.draggable = false;
+        cardButton.appendChild(sackImage2);
+        cardButton.appendChild(bank2);
+
+        deckCount = document.createElement("p");
+        deckCount.classList.add("deckCount");
+        deckImage = new Image();
+        deckImage.draggable = false;
+        deckImage.classList.add("deck");
+        deckImage.src = "pics/" + "deck.png";
+        deckImage.alt = "gems";
+        cardButton.appendChild(deckImage);
+        cardButton.appendChild(deckCount);
+
+        discardCount = document.createElement("p");
+        discardCount.classList.add("discardCount");
+        discardImage = new Image();
+        discardImage.draggable = false;
+        discardImage.classList.add("discard");
+        discardImage.src = "pics/" + "discard.png";
+        discardImage.alt = "discard";
+        cardButton.appendChild(discardImage);
+        cardButton.appendChild(discardCount);
     }
 
     Object.entries(card["triggers"]).forEach(([triggerType, events]) => {
@@ -390,7 +458,7 @@ function updateSlots(container, messageJson, name, location) {
     }
 
     newCards.forEach((newCard, i) => {
-        slot = container.childNodes[i];
+        slot = container.getElementsByClassName("slot")[i];
         oldCardButton = slot.querySelector(".card");
         oldId = 0;
         newId = 0;
@@ -581,8 +649,6 @@ document.addEventListener('DOMContentLoaded', function () {
                     createSlots(fetch(container), length, local);
                 });
                 menuButtons.forEach(makeMenuButton);
-                console.log(messageJson["missing"])
-                Object.keys(messageJson["missing"]).forEach(makeConnectButton);
                 firstUpdate = 0;
             }
             //console.log(JSON.stringify(messageJson));
@@ -599,6 +665,12 @@ document.addEventListener('DOMContentLoaded', function () {
                         animation["bound2"] = card2.getBoundingClientRect()
                     }
                 })
+            }
+            missing = messageJson["missing"];
+            if (JSON.stringify(missing) != JSON.stringify(lastMissing)){
+                removeAllChildNodes(fetch("#reconnect_container"));
+                missing.forEach(makeConnectButton);
+                lastMissing = missing;
             }
 
             buttonContainers.forEach(function (container, index) {
@@ -631,8 +703,7 @@ document.addEventListener('DOMContentLoaded', function () {
             }
 
             if (fogs.length < 1){
-                Array.from(document.getElementById("situations_container").children).forEach(function (slot) {
-
+                Array.from(document.getElementById("situations_container").getElementsByClassName("slot")).forEach(function (slot) {
                     bound = slot.getBoundingClientRect();
 
                     console.log(bound)
@@ -654,6 +725,8 @@ document.addEventListener('DOMContentLoaded', function () {
             mContainer = fetch("#messages_container");
             mContainer.message = messageJson;
             playerState = gameState["entities"][me]["locations"]["tent"][0];
+            playerState.discardLength = gameState["entities"][me]["locations"]["discard"].length;
+            playerState.deckLength = gameState["entities"][me]["locations"]["deck"].length;
             mContainer.playerState = playerState
 
             messageText = messageJson["text"];
