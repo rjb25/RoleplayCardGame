@@ -50,6 +50,9 @@
 #DEAR GOD DO NOT PLAY GAMES AS RESEARCH IT IS SUCH A WASTE OF TIME
 
 #TODO
+#Make sell cooldown
+#Make race base stats
+#Other items modify the default stats
 #Shop is same for both players and rotates between shop keepers?
 #Add a reconnect feature
 #Have damage pass through by default, then certain cards bypass and certain cards do not
@@ -220,8 +223,6 @@ def resolve_entity_alias(entity_alias, card):
         case "card":
             entities.append([table("entities")[card["entity"]]])
         case "owner":
-            print("string")
-            print(card)
             entities.append([table("entities")[card["owner"]]])
         case "enemies" | "enemy":
             for entity_data in table("entities").values():

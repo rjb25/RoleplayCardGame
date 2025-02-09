@@ -1,7 +1,8 @@
 {
     "standard":["aggression","aggression","draw","draw","draw","attack","attack","attack","loot","loot","loot"],
-    "beginner":["miney","bomby","attacky","looty"],
-    "ai1":["tank","tank","tank","shield2","loot","attack2","attack2","draw","attack","attack","attack","bomb","bomb","bomb"],
+    "beginner":["miney","bomby","attacky","looty","dealy"],
+    "ai1":["miney","bomby","attacky","looty","dealy"],
+    "ai7":["tank","tank","tank","shield2","loot","attack2","attack2","draw","attack","attack","attack","bomb","bomb","bomb"],
     "ai2":["shield2","shield2","tank","tank","attack","attack","attack"],
     "ai3":["shield","shield","shield","shield","shield","attack","attack","attack","attack","attack","attack","bomb","bomb","bomb"],
     "ai4":["shield","shield","shield","shield","shield","bomb","bomb","bomb","bomb","bomb","bomb","bomb","bomb","bomb"],
