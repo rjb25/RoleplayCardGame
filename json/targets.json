@@ -13,6 +13,8 @@
     "my_deck":{"location":[["discard","deck"]],"entity":"owner","index":"amount"},
     "my_discard":{"location":"discard","entity":"owner","index":"all"},
     "my_hand":{"location":"hand","entity":"owner","index":"amount"},
+    "random_hand":{"location":"hand","entity":"owner","index":"random"},
+    "random_shop":{"location": "shop", "entity": "trader", "index": "random"},
     "ally_deck":{"location":[["discard","deck"]],"entity":"allies","index":"amount"},
     "ally_hand":{"location":"hand","entity":"allies","index":"amount"},
     "all":{"location":"all","entity":"all","index":"all"}

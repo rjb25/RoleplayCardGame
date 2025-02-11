@@ -30,7 +30,7 @@
         "cost":2,
         "triggers": {
             "timer": [
-                {"goal":2, "progress":0, "actions":[
+                {"goal":1, "progress":0, "actions":[
                     {"action":"move","target":"self","to": {"location": "discard","index": "append","entity": "owner"}}
                 ]}
             ],
@@ -71,6 +71,22 @@
             ]
         }
     },
+    "speedy":{
+        "health":2,
+        "cost":2,
+        "triggers": {
+            "timer": [
+                {"goal":20, "progress":0, "actions":[
+                    {"action":"move","target":"self","to": {"location": "discard","index": "append","entity": "owner"}}
+                ]}
+            ],
+            "enter": [
+                {"actions":[
+                    {"action": "effect_relative", "target": "all_in_my_location", "effect_function":{"name":"speed","function":"add","value":1}, "end_trigger":"exit"}
+                ]}
+            ]
+        }
+    },
     "miney":{
         "health":2,
         "cost":2,
@@ -85,11 +101,11 @@
             ]
         }
     },
-    "bear-bomby":{"health":5,
+    "bear-bomby":{"health":3,
         "cost":5,
         "triggers":{
             "timer": [
-                {"goal":5, "progress":0, "actions":[
+                {"goal":10, "progress":0, "actions":[
                     {"action":"damage","target":"enemy_base","amount":3},
                     {"action":"move","target":"self","to": {"location": "discard","index": "append","entity": "owner"}}
                 ]}
@@ -97,7 +113,7 @@
         }
     },
     "bear-attacky":{
-        "health":2,
+        "health":3,
         "cost":5,
         "triggers": {
             "timer": [
@@ -120,7 +136,7 @@
             ],
             "enter": [
                 {"actions":[
-                    {"action": "effect_relative", "target": ["my_base"], "effect_function":{"name":"armor","function":"add","value":0.8}, "end_trigger":"exit"}
+                    {"action": "effect_relative", "target": ["my_base"], "effect_function":{"name":"armor","function":"add","value":1.2}, "end_trigger":"exit"}
                 ]}
             ]
         }

@@ -15,7 +15,7 @@
     "shop4":["attack2","bomb","shield3"],
     "shop5":["attack2","loot","draw","shield","shield2"],
     "shop6":["attack2","loot","bomb","draw","shield2"],
-    "trader1":["looty","miney","bomby","tanky","attacky","dealy"],
+    "trader1":["looty","miney","bomby","tanky","attacky","dealy","speedy"],
     "trader2":["bear-looty","bear-miney","bear-bomby","bear-tanky","bear-attacky","bear-dealy"],
     "shop7":["attack2","loot","bomb","draw","shield2"]
 }
