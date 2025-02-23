@@ -38,23 +38,44 @@
 #Shop zone
 #Add reset session option.
 #Add different armor
-#An an enter armor boost like in slay the spire
+#An an enter armor boost like in slay the spire:
 #Add armor decay?
 #When an action finishes, outline the sending card, and  fill in the receiving card
 #Add fog of war
 #Canvas, draw an image that moves from a card to a location. Coin for money. Explosion for damage
 #Add a run time shop/sell. Min 10 cards. Sell gives a third value.
+#Add nuke card
+#Add a reconnect feature
+#Removed a deep copy
 
 #TODO WARN
 #DEAR GOD DO NOT REFACTOR IN A WAY THAT IS NOT BITE SIZED EVER AGAIN
 #DEAR GOD DO NOT PLAY GAMES AS RESEARCH IT IS SUCH A WASTE OF TIME
 
 #TODO
+#Zoom buttons update CSS scale variable
+#When a main action is identified, you can have a generic amount, speed, health, cost, hype. Hype could even tie into one of these traits for any given card. Or random trait temporarily?
+#The items stacked on left are lightning
+#The items stacked on right are exit
+#The items in line in middle happen an amount of times till it finishes.
+#The number on each image indicates the amount of the effect.
+#Top left says what the interaction of adding a card to another card is.
+#So Crate indicates add on.o
+#Or actually just make any crate type action have a bigger image. Then lay the card image on top. Three deletes? Just have three empty trash images and slap the three cards on top.
+#Option to hide info in the game. Or to pull along a dial for more information.
+#Make it so that the basek provides gems. Your player provides cards, and cards can be discarded for discount. Guarantee that you can always play.
+#The progress bars.
+#The first progress bar is the only progress bar.
+#Bomb effects are laid verically on right side with numbers in them.
+#Progress effects are laid horizontally and diminish each time it completes. Numbers on images. Max of 4?
+#Entrance effects are laid vertically on the left side.
+#You could if you really want have multiple effects but they would overlap.
+#Make info tab more visual. Have cards list their effect
+#Add hype
+#Don't allow sell. Make a trashing card that cards can be played on. When a card is played on another card leave a mini image of it on.
 #Make sell cooldown
-#Make race base stats
-#Other items modify the default stats
+#Make race base stats, Other items modify the default stats
 #Shop is same for both players and rotates between shop keepers?
-#Add a reconnect feature
 #Have damage pass through by default, then certain cards bypass and certain cards do not
 #Add some kind of label to the sections. Preferrably images
 #Allow one card to be trashed per round. FIX TRASHING
@@ -154,6 +175,15 @@ def get_target_groups(action, card):
     #If target_group_aliases is just a card
     if type(target_group_aliases) == dict and "id" in target_group_aliases.keys():
         return [[target_group_aliases]]
+
+    if target_group_aliases == "on_me":
+        #If you cannot do this correctly you need to return them to discard
+        #remove empty slots
+        on_it = []
+        for slot in card["slots"]:
+            if slot:
+                on_it.append(game_table["ids"].get(slot))
+        return [on_it]
 
     #If the list of target aliases is just a single, then put it in a list
     if type(target_group_aliases) != list:
@@ -336,10 +366,16 @@ def get_cards(zone, select_function, args, action, card):
             else:
                 return []
         case "card":
-            if card["index"] < len(zone) and zone[card["index"]]:
-                return [zone[card["index"]]]
-            else:
-                return []
+            try:
+                if card["index"] < len(zone) and zone[card["index"]]:
+                    return [zone[card["index"]]]
+                else:
+                    return []
+            except KeyError as e:
+                log(e)
+                log("You likely discarded the following card then tried to target something based on it's index which is now gone.")
+                log_json(card)
+
         case "fork":
             indices = [card["index"]-1,card["index"],card["index"]+1]
             result = []
@@ -374,7 +410,6 @@ def triggering(card, event_type):
             match event_type:
                 case "timer":
                     timer = event
-                    #seconds_passed = timer.get("progress") * speed
                     if timer["progress"] >= timer["goal"]:
                         timer["progress"] -= timer["goal"]
                         for action in timer["actions"]:
@@ -383,10 +418,16 @@ def triggering(card, event_type):
 
                     speed = 1 + get_effect("speed", card)
                     timer["progress"] += tick_rate() * speed
-                    #
+                case "forgotten":
+                    meter = event
+                    meter["progress"] += 0#1 #tick_rate() * speed
+                    if meter["progress"] >= meter["goal"]:
+                        meter["progress"] -= meter["goal"]
+                        for action in meter["actions"]:
+                            acting(action, card)
                 case _:
                     for action in event["actions"]:
-                        acting(action, card)
+                            acting(action, card)
             if event.get("once"):
                 events.remove(event)
 
@@ -437,25 +478,30 @@ def extend_nested(data, keys, value):
         data[keys[-1]] = value
 
 def acting(action, card =""):
-    targets = get_target_groups(action, card)
+    target_groups = get_target_groups(action, card)
     destinations = action.get("to")
     #try:
     match action["action"]:
+        case "forgotten":
+            for played in target_groups[0]:
+                triggering(played, "forgotten")
+
         case "play":
-            for played in targets[0]:
+            for played in target_groups[0]:
                 username = played["owner"]
                 captain = owner_card(username)
                 if captain["gold"] >= played["cost"]:
+                    acting({"action": "forgotten", "target": "all_hand"}, played)
+                    del played["triggers"]["forgotten"]
                     game_table["running"] = 1
                     captain["gold"] -= played["cost"]
                     destination = destinations
                     move(played,destination)
         case "buy":
-            for shop_copy in targets[0]:
+            for shop_copy in target_groups[0]:
                 username = destinations["entity"]
                 captain = owner_card(username)
                 if captain["gems"] >= shop_copy["value"]:
-                    print("purchase")
                     #session_table["players"][username]["deck"].append(shop_copy["title"])
                     animations.append(
                         {"sender": shop_copy, "receiver": game_table["entities"][username]["locations"]["tent"][0],
@@ -467,9 +513,9 @@ def acting(action, card =""):
                                     destinations["entity"], destinations["location"],
                                     destinations["index"])
         case "move":
-            #Move is a great example. What the real functions need are a couple targets and parameters
+            #Move is a great example. What the real functions need are a couple target_groups and parameters
             #Each target is either a path or a card.
-            cards = targets[0]
+            cards = target_groups[0]
             destination = destinations
             #If destination is just append to entities location, no need to zip
             for ca in cards:
@@ -478,15 +524,15 @@ def acting(action, card =""):
                     animations.append({"sender": card, "receiver": ca, "size": 1, "image": "pics/cards.png"})
     #Card to trash
         case "trash":
-            #Move is a great example. What the real functions need are a couple targets and parameters
+            #Move is a great example. What the real functions need are a couple target_groups and parameters
             #Each target is either a path or a card.
-            cards = targets[0]
+            cards = target_groups[0]
             #If destination is just append to entities location, no need to zip
             for card in cards:
                 to =  {"entity": "owner", "location": "trash", "index": "append"}
                 move(card,to)
         case "effect_relative":
-            # end trigger stored on casting card
+            # Following comment is the end trigger stored on casting card
             #{"action": "effect-relative", "target": ["my_base"], "effect_function":{"name":"armor","function":"add","value":1}, "end_trigger":"exit"}
             effect_function = action["effect_function"]
             target = action["target"]
@@ -494,11 +540,43 @@ def acting(action, card =""):
             game_table["ids"][effect["id"]] = effect
             append_nested(card,["triggers",action["end_trigger"]],{"actions": [{"action":"remove_effect","effect_id":effect["id"]}]})
             game_table["all_effect_recipes"].append(effect)
+        case "empty_slots":
+            victims = target_groups[0]
+            victim = victims[0]
+            slots = victim.get("slots")
+            if slots:
+                for index, slot in enumerate(slots):
+                    slots[index] = ""
+
+        case "hype":
+            print("hype!")
+            victims = target_groups[0]
+            victim = victims[0]
+            slots = victim.get("slots")
+            if slots:
+                for index, slot in enumerate(slots):
+                    if not slot:
+                        slots[index] = card["id"]
+                        acting({"action": "move", "target": card,
+                                "to": {"entity": card["owner"], "location": "held", "index": "append"}})
+                        break
+
+            ## end trigger stored on effected card
+            #effect_function = action["effect_function"]
+            #target = action["target"]
+            ##For all of the target_groups of this action, add the effect
+            #for target_groups in get_target_groups(target,card):
+            #    for target_group in target_groups:
+            #        for targetted_card in target_group:
+            #            effect = {"effect_function": effect_function, "target": [targetted_card], "id":get_unique_id()}
+            #            game_table["ids"][effect["id"]] = effect
+            #            append_nested(targetted_card, ["triggers", action["end_trigger"]],{"action": "remove_effect", "effect_id": effect["id"]})
+            #            game_table["all_effect_recipes"].append(effect)
+            #            #No card below since the target_groups are evaluated upfront
         case "effect_target":
-            # end trigger stored on effected card
             effect_function = action["effect_function"]
             target = action["target"]
-            #For all of the targets of this action, add the effect
+            #For all of the target_groups of this action, add the effect
             for target_groups in get_target_groups(target,card):
                 for target_group in target_groups:
                     for targetted_card in target_group:
@@ -506,7 +584,7 @@ def acting(action, card =""):
                         game_table["ids"][effect["id"]] = effect
                         append_nested(targetted_card, ["triggers", action["end_trigger"]],{"action": "remove_effect", "effect_id": effect["id"]})
                         game_table["all_effect_recipes"].append(effect)
-                        #No card below since the targets are evaluated upfront
+                        #No card below since the target_groups are evaluated upfront
         case "effect_positional":
             #Need to add a trigger somewhere that can remove the effect
             effect_function = action["effect_function"]
@@ -526,7 +604,7 @@ def acting(action, card =""):
                                    })
             game_table["all_effect_recipes"].append(effect)
         case "clean":
-            recipients = targets[0]
+            recipients = target_groups[0]
             for recipient in recipients:
                 recipient["effects"].clear()
         case "remove_effect":
@@ -534,8 +612,8 @@ def acting(action, card =""):
             all_effect_recipes.remove(game_table["ids"][action["effect_id"]])
             del game_table["ids"][action["effect_id"]]
         case "vampire":
-            victims = targets[0]
-            monsters = targets[1]
+            victims = target_groups[0]
+            monsters = target_groups[1]
             for victim, monster in zip(victims,monsters):
                 steal = action["amount"]
                 victim["health"] -= steal
@@ -546,7 +624,7 @@ def acting(action, card =""):
                 damage = max(0, steal - get_effect("armor",victim))
                 victim["health"] -= steal
         case "damage":
-            victims = targets[0]
+            victims = target_groups[0]
             for victim in victims:
                 #Maybe have this set the image too
                 damage = action["amount"]
@@ -557,22 +635,24 @@ def acting(action, card =""):
                 damage = -1 * negative_remaining_damage
                 damage = max(0, damage - armor)
                 victim["health"] -= damage
+                if victim["health"] <= 0 and action.get("kill"):
+                    victim["kill"] = action["kill"]
         case "shield":
-            victims = targets[0]
+            victims = target_groups[0]
             for victim in victims:
                 shield = action["amount"]
                 animations.append({"sender": card, "receiver":victim, "size":shield, "image":"pics/energyshield2.png"})
                 victim["shield"] += shield
                 victim["shield"] = min(victim["shield"],victim["max_shield"])
         case "income":
-            recipients = targets[0]
+            recipients = target_groups[0]
             for recipient in recipients:
                 animations.append({"sender": card, "receiver":recipient, "size":action["amount"], "image":"pics/coin3.png"})
                 recipient["gold"] += action["amount"]
                 recipient["gold"] = max(0, recipient["gold"])
                 recipient["gold"] = min(recipient["gold_limit"], recipient["gold"])
         case "gems":
-            recipients = targets[0]
+            recipients = target_groups[0]
             for recipient in recipients:
                 animations.append({"sender": card, "receiver":recipient, "size":action["amount"], "image":"pics/gem.png"})
                 recipient["gems"] += action["amount"]
@@ -651,9 +731,15 @@ def get_effect(effect_to_get, card):
 
 #Maybe make this an action?
 def kill_card(card):
-    animations.append({"sender": card, "receiver": card, "size": 4, "image": "pics/skull.png"})
-    acting({"action": "move", "target": card, "to": {"entity":"owner","location": "discard", "index": "append"}},
-           card)
+    if card.get("kill"):
+        animations.append({"sender": card, "receiver": card, "size": 4, "image": "pics/trash-icon.png"})
+        kill = card["kill"]
+        acting({"action": kill, "target": card},
+               card)
+    else:
+        animations.append({"sender": card, "receiver": card, "size": 4, "image": "pics/skull.png"})
+        acting({"action": "move", "target": card, "to": {"entity":"owner","location": "discard", "index": "append"}},
+               card)
 
 #JSON
 def load(a):
@@ -686,7 +772,7 @@ def create_random_action(action):
 
 #GLOBALS
 animations = []
-default_session_table = {"ais":{},"players":{},"teams":{"good":{"losses":0},"evil":{"losses":0}},"send_reset":1, "level":1, "max_level":7, "first":1, "reward":1, "trader_level":1}
+default_session_table = {"ais":{},"players":{},"teams":{"good":{"losses":0},"evil":{"losses":0}},"send_reset":1, "level":1, "max_level":7, "first":1, "reward":1, "trader_level":5}
 session_table = copy.deepcopy(default_session_table)
 random_table = load({"file":"json/random.json"})
 decks_table = load({"file":"json/decks.json"})
@@ -871,6 +957,7 @@ def initialize_player(team,ai,username, deck="beginner"):
             ],
             "deck": [],
             "discard": [],
+            "held": [],
             #"shop": [0,0,0],
             "trash": [],
             "tent": [
@@ -904,7 +991,7 @@ def initialize_players():
 def initialize_situation():
     set_nested(game_table,["entities","situation"],{"team":"gaia","type":"gaia","locations":{"events":[]}})
 
-def initialize_trader(trader = "trader1"):
+def initialize_trader(trader = "trader3"):
     #Initialize some cards to the shop on player startup
     #baby_card = initialize_card(card_name, username)
     #if session_table["reward"]:
@@ -923,7 +1010,7 @@ def initialize_ais():
 
 def initialize_game():
     game_table["all_effect_recipes"] = []
-    session_table["trader_level"] = 0
+    session_table["trader_level"] = 5
     initialize_situation()
     initialize_teams()
     initialize_players()
@@ -1028,7 +1115,7 @@ def move(card, to):
 
 def move_defaults(card, to):
     if "entity" not in to.keys():
-        print(card["owner"])
+        log(card["owner"])
         to["entity"] = card["owner"]
     if "location" not in to.keys():
         to["location"] = card["location"]
@@ -1125,7 +1212,6 @@ def move_triggers(card, to, card_was, card_is):
         if len(deck) <= 0:
             #player_data["locations"]["deck"] = player_data["locations"]["discard"]
             #player_data["locations"]["discard"] = []
-            print(card)
             acting({"action": "move", "target": "my_discard",
                     "to": {"entity": card["owner"], "location": "deck", "index": "append"}}, {"owner":card_owner})
             random.shuffle(deck)
@@ -1160,15 +1246,24 @@ async def update_state(players):
             present_players.append(player)
 
     for player in present_players:
-        out_table = copy.deepcopy(game_table)
+        out_table = game_table
         out_table["players"] = table("players")
         out_table["teams"] = table("teams")
-        text = session_table["teams"]
+        text = {"evil": {"losses": session_table["teams"]["evil"]["losses"]}, "good": {"losses": session_table["teams"]["good"]["losses"]}}
         hasFog = 1
         for card in out_table["teams"][get_team(player)]["locations"]["board"]:
             if card:
                 hasFog = 0
-        await session_table["players"][player]["socket"].send(str({"missing":missing_players,"text":text,"game_table":out_table,"me":player,"animations":animations, "fog":hasFog}))
+        try:
+            await session_table["players"][player]["socket"].send(str({"missing":missing_players,"text":text,"game_table":out_table,"me":player,"animations":animations, "fog":hasFog}))
+        except websockets.exceptions.ConnectionClosedOK as e:
+            log("Client easy quit", player)
+            log(e)
+            session_table["players"][player]["socket"] = ""
+        except websockets.exceptions.ConnectionClosedError as e:
+            log("Client quit:", player)
+            log(e)
+            session_table["players"][player]["socket"] = ""
     animations = []
 
 def strip_keys_copy(keys, table):
@@ -1274,6 +1369,15 @@ async def new_client_connected(client_socket, path):
     except websockets.ConnectionClosed as e:
     #except Exception as e:
         log("Client quit:", loop["username"])
+        log(e)
+        session_table["players"][loop["username"]]["socket"] = ""
+    except websockets.exceptions.ConnectionClosedError as e:
+        #except Exception as e:
+        log("Client shutdown quit", loop["username"])
+        log(e)
+        session_table["players"][loop["username"]]["socket"] = ""
+    except websockets.exceptions.ConnectionClosedOK as e:
+        log("Client easy quit", loop["username"])
         log(e)
         session_table["players"][loop["username"]]["socket"] = ""
 
@@ -1390,7 +1494,10 @@ def handle_play(command):
     if card_to == "hand":
         if card_from == "shop":
             acting({"action": "buy", "target": card, "to": {"entity":username,"location":"discard", "index": "append"}})
-
+        if card_from == "hand":
+            to_hype = game_table["entities"][username]["locations"]["hand"][card_index]
+            if to_hype and card_index != card["index"]:
+                acting({"action": "hype", "target": to_hype}, card)
 
 
 #There's also a full log in javascript message container

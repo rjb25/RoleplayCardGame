@@ -8,6 +8,12 @@
         <style>
             b { color: red;}
         </style>
+        <link rel="preconnect" href="https://fonts.googleapis.com">
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link href="https://fonts.googleapis.com/css2?family=Pixelify+Sans:wght@400..700&display=swap" rel="stylesheet">
+        <link rel="preconnect" href="https://fonts.googleapis.com">
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link href="https://fonts.googleapis.com/css2?family=Micro+5&display=swap" rel="stylesheet">
     </head>
     <body>
         <div class="prevent-select">
@@ -16,47 +22,47 @@
         <div class="text" id="messages_container">p</div>
         <div class="row-container" id="enemy_container">
             <div class="card-container" id="enemy_base_container">
-                <p class="sectionLabel">Enemy Base</p>
+                <!--<p class="sectionLabel">Enemy Base</p>-->
             </div>
             <div class="card-container" id="situations_container">
-                <p class="sectionLabel">Enemy Play Area</p>
+                <!--<p class="sectionLabel">Enemy Play Area</p>-->
             </div>
         </div>
         <div class="row-container" id="ally_container">
             <div class="card-container" id="ally_base_container">
-                <p class="sectionLabel">Ally Base</p>
+                <!--<p class="sectionLabel">Ally Base</p>-->
             </div>
             <div class="card-container playable" id="plans_container">
 
-                <p class="sectionLabel">Ally Play Area</p>
+                <!--<p class="sectionLabel">Ally Play Area</p>-->
             </div>
         </div>
         <div class="row-container" id="hand_container">
             <div class="card-container" id="tent_container">
-                <p class="sectionLabel">Player</p>
+                <!--<p class="sectionLabel">Player</p>-->
             </div>
             <div class="card-container playable" id="cards_container">
-                <p class="sectionLabel">Hand</p>
+                <!--<p class="sectionLabel">Hand</p>-->
             </div>
             <div class="card-container playable" id="discard_container">
-                <p class="sectionLabel">Discard</p>
+                <!--<p class="sectionLabel">Discard</p>-->
             </div>
         </div>
         <div class="row-container" id="store_container">
             <div class="card-container" id="merchant_container">
-                <p class="sectionLabel">Trader</p>
+                <!--<p class="sectionLabel">Trader</p>-->
             </div>
             <div class="card-container" id="shop_container">
-                <p class="sectionLabel">Shop</p>
+                <!--<p class="sectionLabel">Shop</p>-->
             </div>
             <div class="card-container playable" id="trash_container">
-                <p class="sectionLabel">Sell</p>
+                <!--<p class="sectionLabel">Sell</p>-->
             </div>
         </div>
         </div>
         <div class="menu-container" id="menu_container" ></div>
         <div class="menu-container" id="reconnect_container" ></div>
-        <div class="input-container" id="input_container" >
+        <!--<div class="input-container" id="input_container" >
             <div class="menu">
               <label for="username">Username:</label>
               <input type="text" id="username" name="uname">
@@ -66,10 +72,11 @@
               <input type="text" id="save" name="sname">
             </div>
         </div>
-        <div class="text" id="inspect_container" ></div>
+        <div class="text" id="inspect_container" ></div>-->
         <script type="application/javascript" src="websocket_client.js"></script>
         <script src="DragDropTouch.js"></script>
         </div>
+        <button onclick="full();">Fullscreen</button>
     </body>
 </html>
 

@@ -1,3 +1,10 @@
+function full(){
+    document.documentElement.webkitRequestFullScreen();
+    document.documentElement.requestFullscreen()
+        .catch((e) => {
+            console.log(e);
+        });
+}
 my_team = "good";
 enemy_team = "evil";
 lastMissing = [];
@@ -16,13 +23,13 @@ socketname = "visually-popular-iguana.ngrok-free.app";
 buttonContainers = ["#enemy_base_container", "#situations_container", "#ally_base_container", "#plans_container", "#tent_container", "#cards_container", "#discard_container", "#merchant_container", "#shop_container", "#trash_container"];
 buttonContainerLocations = ["base", "board", "base", "board", "tent", "hand", "discard", "stall", "shop", "trash"];
 buttonContainerNames = [enemy_team, enemy_team, my_team, my_team, "me", "me", "me", "trader", "trader", "trader"];
-menuButtons = ["remove_ai", "win_game", "reset_game", "reset_session", "pause", "add_ai_evil", "add_ai_good", "join_good", "join_evil", "game_log", "save_game","load_game","save_user","load_user"];
+menuButtons = ["remove_ai", "reset_session", "pause", "add_ai_evil", "add_ai_good", "join_good", "join_evil"/*, "save_game","load_game","save_user","load_user"*/];
 //This is what you run if you want to reconnect to server
 //socketname = prompt("WebSocketURL no http://")
 const websocketClient = new WebSocket("wss://" + socketname);
 
 function pause() {
-    changeBackground("red");
+    changeBackground("DodgerBlue");
 }
 
 function join_good() {
@@ -73,6 +80,8 @@ function play(cardId, targ, locat) {
         index: targ,
         location: locat
     }));
+    audio = new Audio("audio/play4.mp3");
+    audio.play();
 };
 
 function changeBackground(color) {
@@ -175,22 +184,23 @@ function updateCardButton(cardButton, card) {
     cardButton.card = card;
     var health = cardButton.querySelector(".health");
     var shield = cardButton.querySelector(".shield");
-    var cardCoinImage = cardButton.querySelector(".coin");
-    var cardCoinImage2 = cardButton.querySelector(".coin2");
-    var cost = cardButton.querySelector(".cost");
-    var cost2 = cardButton.querySelector(".cost2");
+    var cardCoinImage = cardButton.querySelector(".topRightImage");
+    var cardCoinImage2 = cardButton.querySelector(".topLeftImage");
+    var cost = cardButton.querySelector(".topRightText");
+    //Need a way to split this out so that top right can be different things at different times
+    var cost2 = cardButton.querySelector(".topLeftText");
     if (card["location"] == "tent") {
-        bank = cardButton.querySelector(".bank");
+        bank = cardButton.querySelector(".topRightText");
         bank.innerHTML = card["gold"];
 
-        bank2 = cardButton.querySelector(".bank2");
+        bank2 = cardButton.querySelector(".topLeftText");
         bank2.innerHTML = card["gems"];
 
         mContainer = fetch("#messages_container");
         if (mContainer.playerState) {
-            discard = cardButton.querySelector(".discardCount");
+            discard = cardButton.querySelector(".rightText");
             discard.innerHTML = mContainer.playerState.discardLength;
-            deck = cardButton.querySelector(".deckCount");
+            deck = cardButton.querySelector(".leftText");
             deck.innerHTML = mContainer.playerState.deckLength;
         }
     }
@@ -202,12 +212,14 @@ function updateCardButton(cardButton, card) {
             if (card["value"] > gems) {
                 cost2.style.color = "crimson";
             } else {
-                cost2.style.color = "black";
+                cost2.style.color = "white";
             }
         }
     } else {
-        cost2.innerHTML = "";
-        cardCoinImage2.style.display = "none";
+        if (card["location"] != "tent") {
+            cost2.innerHTML = "";
+            cardCoinImage2.style.display = "none";
+        }
     }
     if ((card["location"] == "hand" || card["location"] == "shop") && "cost" in card) {
         cost.innerHTML = card["cost"];
@@ -217,7 +229,7 @@ function updateCardButton(cardButton, card) {
             if (card["cost"] > money) {
                 cost.style.color = "crimson";
             } else {
-                cost.style.color = "black";
+                cost.style.color = "white";
             }
         }
     } else {
@@ -225,7 +237,7 @@ function updateCardButton(cardButton, card) {
             let percent = 100 * card["health"] / card["max_health"];
             health.style.width = Math.max(percent, 0) + "%";
             //Have heart icons below the bar instead maybe?
-            health.style.height = 3.0 + card["max_health"] / 2.0 + "%";
+            health.style.height = 4.0 /* + card["max_health"] / 2.0*/ + "%";
             if (percent > 75) {
                 health.style.background = "rgba(0, 255, 0, 0.8)";
             } else if (percent > 40) {
@@ -237,35 +249,43 @@ function updateCardButton(cardButton, card) {
             shield.style.width = Math.max(percent, 0) + "%";
             shield.style.background = "rgba(30,144,255,0.9)";
         }
+        if (card["location"] != "tent"){
         cost.innerHTML = "";
         cardCoinImage.style.display = "none";
+        }
     }
-    currentBottom = 0;
+    //currentBottom = 0;
     //Should be reversed at some point to match input data
+    found = 0;
     Object.entries(card["triggers"]).forEach(([triggerType, events]) => {
-        events.forEach((eventDict, i) => {
-            if (eventDict["goal"]) {
-                progressBars = cardButton.querySelectorAll(".progress");
-                progressBar = progressBars[i];
-                firstAction = eventDict["actions"][0];
-                amount = 0;
-                if (firstAction["amount"]) {
-                    amount = firstAction["amount"];
+
+        if (!found) {
+            events.forEach((eventDict, i) => {
+                if (eventDict["goal"] && !found) {
+                    progressBars = cardButton.querySelectorAll(".progress");
+                    progressBar = progressBars[i];
+                    firstAction = eventDict["actions"][0];
+                    amount = 0;
+                    if (firstAction["amount"]) {
+                        amount = firstAction["amount"];
+                    }
+                    width = 1.2;// + Math.max(amount, 0);
+                    progressBar.style.width = width + "vw";
+                    progressBar.style.bottom = 0/*currentBottom*/ + "vw";
+                    //currentBottom += height;
+                    percent = 100 * eventDict["progress"] / eventDict["goal"]
+                    percent_limit = Math.min(percent, 100);
+                    progressBar.style.height = percent_limit + "%";
+                    color = actionColors[firstAction["action"]];
+                    if (!color) {
+                        color = "rgba(255, 255, 255," + tr;
+                    }
+                    progressBar.style.background = color;
+                    found = 1
                 }
-                height = 2 + Math.max(amount, 0);
-                progressBar.style.height = height + "px";
-                progressBar.style.bottom = currentBottom + "px";
-                currentBottom += height;
-                percent = 100 * eventDict["progress"] / eventDict["goal"]
-                percent_limit = Math.min(percent, 100);
-                progressBar.style.width = percent_limit + "%";
-                color = actionColors[firstAction["action"]];
-                if (!color) {
-                    color = "white";
-                }
-                progressBar.style.background = color;
-            }
-        });
+            });
+        }
+
     });
     effectBar = cardButton.querySelector(".effectBar");
     Object.entries(card["effects"]).forEach(([effectType, amount]) => {
@@ -279,9 +299,9 @@ function updateCardButton(cardButton, card) {
             effectDiv = document.createElement("div");
             effectDiv.classList.add("effectDiv");
             effectDiv.classList.add(effectType);
-            effectImage = new Image(20, 20);
+            effectImage = new Image(20,20);
             effectImage.draggable = false;
-            effectImage.classList.add("effect-icon");
+            effectImage.classList.add("image");
             effectImage.src = "pics/" + effectType + "-icon.png";
             effectImage.alt = effectType;
 
@@ -314,11 +334,35 @@ function arrayRemove(array, item) {
         array.splice(index, 1);
     }
 }
+function addImage(image, size, location){
+
+    MyDiv = document.createElement("div");
+    MyDiv.classList.add(size+"Div",location);
+    MyCorner = document.createElement("div");
+    MyCorner.classList.add(size+"DivCorner",location);
+    MyText = document.createElement("p");
+    MyText.classList.add("count",location+"Text");
+    MyImage = new Image();
+    MyImage.draggable = false;
+    MyImage.classList.add("image",location+"Image");
+        MyImage.src = "pics/" + image + ".png";
+        MyImage.alt = "pics/" + image + ".png";
+    MyDiv.appendChild(MyImage);
+    MyDiv.appendChild(MyText);
+    MyDiv.appendChild(MyCorner);
+    return MyDiv;
+
+}
 
 function generateCardButton(card) {
+
+    cardWhole = document.createElement("div");
+    cardWhole.id = card["id"]
+    cardWhole.classList.add("card");
     cardButton = document.createElement("div");
     cardButton.id = card["id"]
     cardButton.classList.add("card");
+
     cardImage = new Image();
     cardImage.classList.add("picture");
     cardImage.src = "pics/" + card["title"] + ".png";
@@ -326,22 +370,6 @@ function generateCardButton(card) {
     cardImage.draggable = true;
     cardImage.setAttribute("ondragstart", "drag(event)");
     cardImage.id = card["id"];
-
-    cost = document.createElement("p");
-    cost.classList.add("cost");
-    coinImage = new Image();
-    coinImage.draggable = false;
-    coinImage.classList.add("coin");
-    coinImage.src = "pics/" + "coin3.png";
-    coinImage.alt = "coin";
-
-    cost2 = document.createElement("p");
-    cost2.classList.add("cost2");
-    coinImage2 = new Image();
-    coinImage2.draggable = false;
-    coinImage2.classList.add("coin2");
-    coinImage2.src = "pics/" + "gem.png";
-    coinImage2.alt = "gems";
 
     health = document.createElement("div");
     health.classList.add("health");
@@ -351,62 +379,39 @@ function generateCardButton(card) {
     cardButton.appendChild(cardImage);
     cardButton.appendChild(health);
     cardButton.appendChild(shield);
-    cardButton.appendChild(coinImage);
-    cardButton.appendChild(cost);
-    cardButton.appendChild(coinImage2);
-    cardButton.appendChild(cost2);
-
-    if (card["location"] == "tent") {
-        bank = document.createElement("p");
-        bank.classList.add("bank");
-        sackImage = new Image();
-        sackImage.classList.add("coin");
-        sackImage.src = "pics/" + "coin3.png";
-        sackImage.alt = "sack";
-        sackImage.draggable = false;
-        cardButton.appendChild(sackImage);
-        cardButton.appendChild(bank);
-
-        bank2 = document.createElement("p");
-        bank2.classList.add("bank2");
-        sackImage2 = new Image();
-        sackImage2.classList.add("coin2");
-        sackImage2.src = "pics/" + "gem.png";
-        sackImage2.alt = "gems";
-        sackImage2.draggable = false;
-        cardButton.appendChild(sackImage2);
-        cardButton.appendChild(bank2);
-
-        deckCount = document.createElement("p");
-        deckCount.classList.add("deckCount");
-        deckImage = new Image();
-        deckImage.draggable = false;
-        deckImage.classList.add("deck");
-        deckImage.src = "pics/" + "deck.png";
-        deckImage.alt = "gems";
-        cardButton.appendChild(deckImage);
-        cardButton.appendChild(deckCount);
-
-        discardCount = document.createElement("p");
-        discardCount.classList.add("discardCount");
-        discardImage = new Image();
-        discardImage.draggable = false;
-        discardImage.classList.add("discard");
-        discardImage.src = "pics/" + "discard.png";
-        discardImage.alt = "discard";
-        cardButton.appendChild(discardImage);
-        cardButton.appendChild(discardCount);
+    found = 0;
+    Object.entries(card["triggers"]).forEach(([triggerType, events]) => {
+        if (!found) {
+            events.forEach((eventDict) => {
+                if (eventDict["goal"] && !found) {
+                    progressBar = document.createElement("div");
+                    progressBar.classList.add("progress");
+                    cardButton.appendChild(progressBar);
+                    found = 1;
+                }
+            });
+        }
+    });
+    cardButton.appendChild(addImage("gem", "big", "topLeft"));
+    cardButton.appendChild(addImage("coin3", "big", "topRight"));
+    if(card["icons"]){
+        if (card["icons"][0]){
+            cardButton.appendChild(addImage(card["icons"][0]+"-icon", "small", "bottomLeftProgress"));
+        }
+        if (card["icons"][1]){
+            cardButton.appendChild(addImage(card["icons"][1]+"-icon", "small", "leftProgress"));
+        }
+        if (card["icons"][2]){
+            cardButton.appendChild(addImage(card["icons"][2]+"-icon", "small", "topLeftProgress"));
+        }
     }
 
-    Object.entries(card["triggers"]).forEach(([triggerType, events]) => {
-        events.forEach((eventDict) => {
-            if (eventDict["goal"]) {
-                progressBar = document.createElement("div");
-                progressBar.classList.add("progress");
-                cardButton.appendChild(progressBar);
-            }
-        });
-    });
+    if (card["location"] == "tent") {
+        cardButton.appendChild(addImage("discard", "big", "right"));
+        cardButton.appendChild(addImage("deck", "big", "left"));
+    }
+
+    //The bar that contains effects like armor etc.
     effectBar = document.createElement("div");
     effectBar.existing = [];
     effectBar.classList.add("effectBar");
@@ -416,9 +421,10 @@ function generateCardButton(card) {
     //effectBar.style.background = "black";
 
     cardButton.appendChild(effectBar);
+    cardWhole.appendChild(cardButton)
 
-    updateCardButton(cardButton, card);
-    return cardButton;
+    updateCardButton(cardWhole, card);
+    return cardWhole;
 }
 
 function createSlots(container, length, location) {
@@ -632,7 +638,7 @@ document.addEventListener('DOMContentLoaded', function () {
             messageJson = JSON.parse(message.data.replace(/'/g, '"'));
             //console.log(messageJson);
             if (firstUpdate) {
-                changeBackground("black");
+                changeBackground("dodgerBlue");
                 buttonContainers.forEach(function (container, index) {
                     name = buttonContainerNames[index]
                     local = buttonContainerLocations[index]
@@ -702,6 +708,7 @@ document.addEventListener('DOMContentLoaded', function () {
                 })
             }
 
+            /*
             if (fogs.length < 1){
                 Array.from(document.getElementById("situations_container").getElementsByClassName("slot")).forEach(function (slot) {
                     bound = slot.getBoundingClientRect();
@@ -716,6 +723,7 @@ document.addEventListener('DOMContentLoaded', function () {
             }else{
                 hideFog();
             }
+             */
 
 
             //Myself
@@ -735,9 +743,9 @@ document.addEventListener('DOMContentLoaded', function () {
             }
             running = gameState["running"];
             if (running) {
-                changeBackground("black");
+                changeBackground("DodgerBlue");
             } else {
-                changeBackground("red");
+                changeBackground("DodgerBlue");
             }
 
         };

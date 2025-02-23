@@ -3,6 +3,7 @@
     "dealy":{
         "health":2,
         "cost":2,
+        "icons": ["","move",""],
         "triggers": {
             "timer": [
                 {"goal":2, "progress":0, "actions":[
@@ -11,15 +12,26 @@
                 {"goal":20, "progress":0, "actions":[
                     {"action":"move","target":"self","to": {"location": "discard","index": "append","entity": "owner"}}
                 ]}
+            ],
+            "forgotten": [
+                {"goal":3, "progress":0, "actions":[
+                    {"action":"move","target":"self","to": {"location": "discard","index": "append","entity": "owner"}}
+                ]}
             ]
         }
     },
     "bomby":{"health":2,
         "cost":2,
+        "icons": ["","","victory"],
         "triggers":{
             "timer": [
                 {"goal":2, "progress":0, "actions":[
                     {"action":"damage","target":"enemy_base","amount":1},
+                    {"action":"move","target":"self","to": {"location": "discard","index": "append","entity": "owner"}}
+                ]}
+            ],
+            "forgotten": [
+                {"goal":3, "progress":0, "actions":[
                     {"action":"move","target":"self","to": {"location": "discard","index": "append","entity": "owner"}}
                 ]}
             ]
@@ -28,6 +40,7 @@
     "attacky":{
         "health":2,
         "cost":2,
+        "icons": ["damage","",""],
         "triggers": {
             "timer": [
                 {"goal":1, "progress":0, "actions":[
@@ -38,12 +51,80 @@
                 {"actions":[
                     {"action":"damage","target":"across","amount":2}
                 ]}
+            ],
+            "forgotten": [
+                {"goal":3, "progress":0, "actions":[
+                    {"action":"move","target":"self","to": {"location": "discard","index": "append","entity": "owner"}}
+                ]}
+            ]
+        }
+    },
+    "nuke":{
+        "health":30,
+        "cost":10,
+        "icons": ["damage","",""],
+        "triggers": {
+            "timer": [
+                {"goal":10, "progress":0, "actions":[
+                    {"action":"move","target":"self","to": {"location": "discard","index": "append","entity": "owner"}}
+                ]}
+            ],
+            "enter": [
+                {"actions":[
+                    {"action":"damage","target":"all_board","amount":25}
+                ]}
+            ],
+            "forgotten": [
+                {"goal":3, "progress":0, "actions":[
+                    {"action":"move","target":"self","to": {"location": "discard","index": "append","entity": "owner"}}
+                ]}
+            ]
+        }
+    },
+    "trash":{
+        "health":1,
+        "cost":1,
+        "icons": ["","","trash"],
+        "slots": ["",""],
+        "triggers": {
+            "timer": [
+                {"goal":10, "progress":0, "actions":[
+                    {"action":"trash","target":"on_me"},
+                    {"action":"empty_slots","target":"self"},
+                    {"action":"move","target":"self","to": {"location": "discard","index": "append","entity": "owner"}}
+                ]}
+            ],
+            "forgotten": [
+                {"goal":3, "progress":0, "actions":[
+                    {"action":"move","target":"self","to": {"location": "discard","index": "append","entity": "owner"}}
+                ]}
+            ]
+        }
+    },
+    "trash-attacky":{
+        "health":10,
+        "cost":10,
+        "icons": ["","trash",""],
+        "triggers": {
+            "timer": [
+                {"goal":2, "progress":0, "actions":[
+                    {"action":"damage","target":"across", "kill":"trash", "amount": 1}
+                ]},
+                {"goal":10, "progress":0, "actions":[
+                    {"action":"move","target":"self","to": {"location": "discard","index": "append","entity": "owner"}}
+                ]}
+            ],
+            "forgotten": [
+                {"goal":3, "progress":0, "actions":[
+                    {"action":"move","target":"self","to": {"location": "discard","index": "append","entity": "owner"}}
+                ]}
             ]
         }
     },
     "tanky":{
         "health":2,
         "cost":2,
+        "icons": ["armor","",""],
         "triggers": {
             "timer": [
                 {"goal":30, "progress":0, "actions":[
@@ -54,12 +135,18 @@
                 {"actions":[
                     {"action": "effect_relative", "target": "all_in_my_location", "effect_function":{"name":"armor","function":"add","value":0.4}, "end_trigger":"exit"}
                 ]}
+            ],
+            "forgotten": [
+                {"goal":3, "progress":0, "actions":[
+                    {"action":"move","target":"self","to": {"location": "discard","index": "append","entity": "owner"}}
+                ]}
             ]
         }
     },
     "looty":{
         "health":2,
         "cost":2,
+        "icons": ["","income",""],
         "triggers": {
             "timer": [
                 {"goal":2, "progress":0, "actions":[
@@ -68,21 +155,32 @@
                 {"goal":10, "progress":0, "actions": [
                     {"action":"move","target":"self","to": {"location": "discard","index": "append","entity": "owner"}}
                 ]}
+            ],
+            "forgotten": [
+                {"goal":3, "progress":0, "actions":[
+                    {"action":"move","target":"self","to": {"location": "discard","index": "append","entity": "owner"}}
+                ]}
             ]
         }
     },
     "speedy":{
         "health":2,
         "cost":2,
+        "icons": ["speed","",""],
         "triggers": {
+            "enter": [
+                {"actions":[
+                    {"action": "effect_relative", "target": "all_in_my_location", "effect_function":{"name":"speed","function":"add","value":1}, "end_trigger":"exit"}
+                ]}
+            ],
             "timer": [
                 {"goal":20, "progress":0, "actions":[
                     {"action":"move","target":"self","to": {"location": "discard","index": "append","entity": "owner"}}
                 ]}
             ],
-            "enter": [
-                {"actions":[
-                    {"action": "effect_relative", "target": "all_in_my_location", "effect_function":{"name":"speed","function":"add","value":1}, "end_trigger":"exit"}
+            "forgotten": [
+                {"goal":3, "progress":0, "actions":[
+                    {"action":"move","target":"self","to": {"location": "discard","index": "append","entity": "owner"}}
                 ]}
             ]
         }
@@ -90,6 +188,7 @@
     "miney":{
         "health":2,
         "cost":2,
+        "icons": ["","gems",""],
         "triggers": {
             "timer": [
                 {"goal":3, "progress":0, "actions":[
@@ -98,15 +197,26 @@
                 {"goal":9, "progress":0, "actions":[
                     {"action":"move","target":"self","to": {"location": "discard","index": "append","entity": "owner"}}
                 ]}
+            ],
+            "forgotten": [
+                {"goal":3, "progress":0, "actions":[
+                    {"action":"move","target":"self","to": {"location": "discard","index": "append","entity": "owner"}}
+                ]}
             ]
         }
     },
     "bear-bomby":{"health":3,
         "cost":5,
+        "icons": ["","","victory"],
         "triggers":{
             "timer": [
-                {"goal":10, "progress":0, "actions":[
+                {"goal":20, "progress":0, "actions":[
                     {"action":"damage","target":"enemy_base","amount":3},
+                    {"action":"move","target":"self","to": {"location": "discard","index": "append","entity": "owner"}}
+                ]}
+            ],
+            "forgotten": [
+                {"goal":3, "progress":0, "actions":[
                     {"action":"move","target":"self","to": {"location": "discard","index": "append","entity": "owner"}}
                 ]}
             ]
@@ -115,6 +225,7 @@
     "bear-attacky":{
         "health":3,
         "cost":5,
+        "icons": ["","damage",""],
         "triggers": {
             "timer": [
                 {"goal":2, "progress":0, "actions":[
@@ -123,11 +234,17 @@
                 {"goal":10, "progress":0, "actions":[
                     {"action":"move","target":"self","to": {"location": "discard","index": "append","entity": "owner"}}
                 ]}
+            ],
+            "forgotten": [
+                {"goal":3, "progress":0, "actions":[
+                    {"action":"move","target":"self","to": {"location": "discard","index": "append","entity": "owner"}}
+                ]}
             ]
         }
     },
     "bear-tanky":{"health":3,
         "cost":5,
+        "icons": ["armor","",""],
         "triggers":{
             "timer": [
                 {"goal":10, "progress":0, "actions":[
@@ -138,12 +255,18 @@
                 {"actions":[
                     {"action": "effect_relative", "target": ["my_base"], "effect_function":{"name":"armor","function":"add","value":1.2}, "end_trigger":"exit"}
                 ]}
+            ],
+            "forgotten": [
+                {"goal":3, "progress":0, "actions":[
+                    {"action":"move","target":"self","to": {"location": "discard","index": "append","entity": "owner"}}
+                ]}
             ]
         }
     },
     "bear-looty":{
         "health":3,
         "cost":5,
+        "icons": ["","income",""],
         "triggers": {
             "timer": [
                 {"goal":2, "progress":0, "actions":[
@@ -152,12 +275,18 @@
                 {"goal":10, "progress":0, "actions": [
                     {"action":"move","target":"self","to": {"location": "discard","index": "append","entity": "owner"}}
                 ]}
+            ],
+            "forgotten": [
+                {"goal":3, "progress":0, "actions":[
+                    {"action":"move","target":"self","to": {"location": "discard","index": "append","entity": "owner"}}
+                ]}
             ]
         }
     },
     "bear-miney":{
         "health":4,
         "cost":5,
+        "icons": ["","gems",""],
         "triggers": {
             "timer": [
                 {"goal":3, "progress":0, "actions":[
@@ -166,18 +295,29 @@
                 {"goal":9, "progress":0, "actions":[
                     {"action":"move","target":"self","to": {"location": "discard","index": "append","entity": "owner"}}
                 ]}
+            ],
+            "forgotten": [
+                {"goal":3, "progress":0, "actions":[
+                    {"action":"move","target":"self","to": {"location": "discard","index": "append","entity": "owner"}}
+                ]}
             ]
         }
     },
     "bear-dealy":{
         "health":10,
         "cost":5,
+        "icons": ["","move",""],
         "triggers": {
             "timer": [
                 {"goal":2, "progress":0, "actions":[
                     {"action":"move","target":["my_deck"],"to":{"entity":"owner","location": "hand","index": "append"},"amount":4}
                 ]},
                 {"goal":20, "progress":0, "actions":[
+                    {"action":"move","target":"self","to": {"location": "discard","index": "append","entity": "owner"}}
+                ]}
+            ],
+            "forgotten": [
+                {"goal":3, "progress":0, "actions":[
                     {"action":"move","target":"self","to": {"location": "discard","index": "append","entity": "owner"}}
                 ]}
             ]
@@ -194,6 +334,11 @@
             "enter": [
                 {"actions":[
                     {"action": "effect_relative", "target": ["my_base"], "effect_function":{"name":"armor","function":"add","value":0.9}, "end_trigger":"exit"}
+                ]}
+            ],
+            "forgotten": [
+                {"goal":3, "progress":0, "actions":[
+                    {"action":"move","target":"self","to": {"location": "discard","index": "append","entity": "owner"}}
                 ]}
             ]
         }
@@ -345,9 +490,9 @@
         }
     },
     "player":{
-        "gold":5,
+        "gold":10,
         "gold_limit":50,
-        "gems":0,
+        "gems":10,
         "gems_limit":50,
         "triggers":{}
     },
@@ -368,7 +513,7 @@
         "triggers": {
             "timer": [
                 {"goal":30, "progress":0, "actions":[
-                    {"action":"trader","next":"trader1"}
+                    {"action":"trader","next":"trader3"}
                 ]}
             ]
         }

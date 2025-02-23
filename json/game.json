@@ -1,7 +1,7 @@
 {
     "entities":{},
     "all_effect_recipes":[],
-    "tick_duration":0.1,
+    "tick_duration":0.5,
     "tick_value":1,
     "running":0, 
     "loser":"",

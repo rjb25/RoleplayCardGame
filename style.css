@@ -1,16 +1,50 @@
+:root {
+    --scale: 1.0;
+}
+p {
+    margin: 0;
+    padding: 0;
+}
+div{
+    /*font-size: 0;*/
+    vertical-align: top;
+}
+
+#cards_container{
+    background-color: Blue;
+}
+#ally_base_container{
+    background-color: greenyellow;
+}
+#enemy_base_container{
+    background-color: Tomato;
+}
+#situations_container{
+    background-color: red;
+}
+
+#plans_container{
+    background-color: green;
+
+}
+#tent_container{
+    background-color: teal;
+
+}
+
 .slot {
   display: inline-block;
   position: relative;
-  box-shadow: 0 4px 8px 0 rgba(0,0,0,0.2);
+  box-shadow: 0 0.4vw 0.4vw 0 rgba(0,0,0,0.2);
   transition: 0.3s;
-  width: 6em;
-  height: 8em;
+  width: calc(var(--scale)* 10vw);
+  height: calc(var(--scale)* 10vw);
   background-color: #f1f1f1;
-  padding: 3px;
-  margin: 7px;
-   -webkit-border-radius: 5px;
-    -moz-border-radius: 5px;
-    border-radius: 5px;
+  padding: calc(var(--scale)* 0.22vw);
+  margin:calc(var(--scale)*  0.5vw);
+   -webkit-border-radius: calc(var(--scale)*0.5vw);
+    -moz-border-radius: calc(var(--scale)*0.5vw);
+    border-radius: calc(var(--scale)*0.5vw);
 }
 #myCanvas {
 
@@ -29,16 +63,17 @@ body {
 }
 
 .slot:hover {
-  box-shadow: 0 8px 16px 0 rgba(0,0,0,0.6);
+  box-shadow: 0 1vw 1vw 0 rgba(0,0,0,0.6);
 }
 
 .row-container {
-  background-color: black;
+  background-color: DodgerBlue;
+    font-size: 0;
 }
 .card-container {
   display: inline-block;
   background-color: DodgerBlue;
-  margin: auto;
+  margin: 0.0vw;
 }
 .menu-container {
   background-color: DodgerBlue;
@@ -50,8 +85,6 @@ body {
   height: 100%;
   background: white;
 } 
-.armor-icon {
-}
 .menu {
     display: inline-block;
     margin: 4px;
@@ -70,18 +103,17 @@ body {
 }
 .effectAmount {
   position: absolute;
-  font-size:15px;
+  font-size:calc(var(--scale)*1vw);
   font-weight: bold;
   margin: 0 auto;
   left: 50%;
   top: 20%;
   color: white;
+font-family: "Micro 5", serif;
+font-weight: 400;
+font-style: normal;
+    text-shadow: 0.05vw 0 0 #000, 0 -0.05vw 0 #000, 0 0.05vw 0 #000, -0.05vw 0 0 #000;
 
-}
-.effectDiv {
-    display: inline-block;
-    position: relative;
-    text-align: center;
 }
 .sectionLabel {
     background-color: Black;
@@ -90,9 +122,9 @@ body {
     margin: 0;
 }
 .health {
-  font-size: 10px;
+    display: inline-block;
   color: black;
-  height: 8px;
+  height: 0.2vw;
   position: absolute;
 }
 .cooldown {
@@ -104,13 +136,12 @@ body {
     width: 100%;
 }
 .shield {
-  font-size: 10px;
   color: black;
-  height: 4px;
+  height: 0.1vw;
   position: absolute;
 }
 .picture {
-  position: absolute;
+    position: absolute;
     width:100%;
     height:100%;
 }
@@ -119,97 +150,85 @@ body {
     width:100%;
     height:100%;
 }
-.coin {
-  position: absolute;
-  top: -12%; 
-  right: -20%; 
-  width: 50%; 
-}
-.coin2 {
+
+.count {
+    text-shadow: 0.04vw 0 0 #000, 0 -0.04vw 0 #000, 0 0.04vw 0 #000, -0.04vw 0 0 #000;
+    font-size:calc(var(--scale)*1.5vw);
+    font-weight: bold;
+    color: white;
     position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    margin-block-start: 0vw;
+    margin-block-end: 0vw;
+}
+.image {
+    display: inline-block;
+    height:100%;
+    width: 100%;
+}
+.effectDiv {
+    display: inline-block;
+    position: relative;
+    width: calc(var(--scale)*1.75vw);
+    height: calc(var(--scale)*1.75vw);
+}
+.smallDiv {
+    position: absolute;
+    width: 30%;
+    height: 30%;
+}
+.smallDiv::after {
+    content:" ";
+    position: absolute;
+    top:0;
+    right:0;
+    border-style: solid;
+    border-width: 0 1.2vw 1.2vw 0;
+    border-color: transparent green transparent transparent;
+}
+
+.bigDiv {
+    position: absolute;
+    width: calc(var(--scale)*4vw);
+    height: calc(var(--scale)*4vw);
+}
+.topRight{
     top: -12%;
-    left: -20%;
-    width: 50%;
+    right: -15%;
 }
-.sack {
-    width: 75%;
-    right: -21%;
-    top: -26%;
-    position: absolute;
-} 
-.cost {
-  position: absolute;
-  font-size:20px;
-  text-align:center;
-  font-weight: bold;
-  top: -18%; 
-  right: -20%; 
-  width: 50%; 
+.topLeft{
+    top: -12%;
+    left: -15%;
 }
-.cost2 {
-    position: absolute;
-    font-size:20px;
-    text-align:center;
-    font-weight: bold;
-    top: -18%;
-    left: -20%;
-    width: 50%;
+.bottom{
+    bottom: -5%;
+    right: 33.3%;
 }
-.bank {
-  position: absolute;
-  font-size:20px;
-  text-align:center;
-  font-weight: bold;
-  top: -18%; 
-  right: -20%; 
-  width: 50%; 
+.bottomRight{
+    bottom: -5%;
+    right: -10%;
 }
-.bank2 {
-    position: absolute;
-    font-size:20px;
-    text-align:center;
-    font-weight: bold;
-    top: -18%;
-    left: -20%;
-    width: 50%;
+.leftProgress{
+    bottom: 35%;
+    left: -15%;
 }
-.deck {
-    position: absolute;
-    font-size:20px;
-    text-align:center;
-    font-weight: bold;
+.topLeftProgress{
+    top: 0%;
+    left: -15%;
+}
+.bottomLeftProgress{
+    bottom: 0%;
+    left: -15%;
+}
+.left{
+    right: -15%;
     top: 17%;
-    left: -20%;
-    width: 50%;
 }
-.discard {
-    position: absolute;
-    font-size:20px;
-    text-align:center;
-    font-weight: bold;
+.right{
+    left: -15%;
     top: 17%;
-    right: -20%;
-    width: 50%;
-}
-.deckCount {
-    position: absolute;
-    color: white;
-    font-size:20px;
-    text-align:center;
-    font-weight: bold;
-    top: 15%;
-    left: -20%;
-    width: 50%;
-}
-.discardCount {
-    color: white;
-    position: absolute;
-    font-size:20px;
-    text-align:center;
-    font-weight: bold;
-    top: 15%;
-    right: -20%;
-    width: 50%;
 }
 .title {
   position: absolute;
