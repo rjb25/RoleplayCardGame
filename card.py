@@ -1,4 +1,40 @@
 #!/usr/bin/env python
+#TODO
+#Only your cards should have corner colors for targetting. Enemy cards should not since they don't make sense
+#Make a card that allows for stacking cards. It multiplies amount for all.
+#bidding/buying is a tap. minimum bid for a card received at end of timer
+#Switch between auction and price mode
+#Remove multiple ais fix indexing
+#Need to make it so that you can configure the corner to be the correct Color.
+#Have Main list a color
+#Just have labels that you add to the card actions that look up one level for the progress bar
+#Zoom buttons update CSS scale variable
+#When a main action is identified, you can have a generic amount, speed, health, cost, hype. Hype could even tie into one of these traits for any given card. Or random trait temporarily?
+#The items stacked on left are lightning
+#The items stacked on right are exit
+#The items in line in middle happen an amount of times till it finishes.
+#The number on each image indicates the amount of the effect.
+#Top left says what the interaction of adding a card to another card is.
+#So Crate indicates add on.o
+#Or actually just make any crate type action have a bigger image. Then lay the card image on top. Three deletes? Just have three empty trash images and slap the three cards on top.
+#Option to hide info in the game. Or to pull along a dial for more information.
+#Make it so that the basek provides gems. Your player provides cards, and cards can be discarded for discount. Guarantee that you can always play.
+#The progress bars.
+#The first progress bar is the only progress bar.
+#Bomb effects are laid verically on right side with numbers in them.
+#Progress effects are laid horizontally and diminish each time it completes. Numbers on images. Max of 4?
+#Entrance effects are laid vertically on the left side.
+#You could if you really want have multiple effects but they would overlap.
+#Make info tab more visual. Have cards list their effect
+#Add hype
+#Don't allow sell. Make a trashing card that cards can be played on. When a card is played on another card leave a mini image of it on.
+#Make sell cooldown
+#Make race base stats, Other items modify the default stats
+#Shop is same for both players and rotates between shop keepers?
+#Have damage pass through by default, then certain cards bypass and certain cards do not
+#Add some kind of label to the sections. Preferrably images
+#Allow one card to be trashed per round. FIX TRASHING
+#Readme card/ button people can click for a general explanation
 
 #TODO TODONE
 #Make refresh work
@@ -51,35 +87,6 @@
 #TODO WARN
 #DEAR GOD DO NOT REFACTOR IN A WAY THAT IS NOT BITE SIZED EVER AGAIN
 #DEAR GOD DO NOT PLAY GAMES AS RESEARCH IT IS SUCH A WASTE OF TIME
-
-#TODO
-#Zoom buttons update CSS scale variable
-#When a main action is identified, you can have a generic amount, speed, health, cost, hype. Hype could even tie into one of these traits for any given card. Or random trait temporarily?
-#The items stacked on left are lightning
-#The items stacked on right are exit
-#The items in line in middle happen an amount of times till it finishes.
-#The number on each image indicates the amount of the effect.
-#Top left says what the interaction of adding a card to another card is.
-#So Crate indicates add on.o
-#Or actually just make any crate type action have a bigger image. Then lay the card image on top. Three deletes? Just have three empty trash images and slap the three cards on top.
-#Option to hide info in the game. Or to pull along a dial for more information.
-#Make it so that the basek provides gems. Your player provides cards, and cards can be discarded for discount. Guarantee that you can always play.
-#The progress bars.
-#The first progress bar is the only progress bar.
-#Bomb effects are laid verically on right side with numbers in them.
-#Progress effects are laid horizontally and diminish each time it completes. Numbers on images. Max of 4?
-#Entrance effects are laid vertically on the left side.
-#You could if you really want have multiple effects but they would overlap.
-#Make info tab more visual. Have cards list their effect
-#Add hype
-#Don't allow sell. Make a trashing card that cards can be played on. When a card is played on another card leave a mini image of it on.
-#Make sell cooldown
-#Make race base stats, Other items modify the default stats
-#Shop is same for both players and rotates between shop keepers?
-#Have damage pass through by default, then certain cards bypass and certain cards do not
-#Add some kind of label to the sections. Preferrably images
-#Allow one card to be trashed per round. FIX TRASHING
-#Readme card/ button people can click for a general explanation
 
 #TODO MAYBE
 #AI
@@ -180,7 +187,7 @@ def get_target_groups(action, card):
         #If you cannot do this correctly you need to return them to discard
         #remove empty slots
         on_it = []
-        for slot in card["slots"]:
+        for slot in card["storage"]:
             if slot:
                 on_it.append(game_table["ids"].get(slot))
         return [on_it]
@@ -266,6 +273,7 @@ def get_target_group(target_recipe, action, card, logging = False):
         log("selected_zones")
         log(selected_zones)
     for zone in selected_zones:
+        #Alternative function herre that takes things from the card etc and targetting to get animation list for targetting to enable miss animation
         selected_cards.extend(get_cards(zone, select_function, args, action, card))
     if logging:
         log("selected_cards")
@@ -345,11 +353,13 @@ def resolve_location_alias(entity, location_alias, card):
 
 #Returns a list of cards from the zone
 #Needs the zone, index function and args
+#Maybe have a miss section that gets generated here?
 def get_cards(zone, select_function, args, action, card):
     #Aborts if zone is empty
     if not zone:
         return []
     #Removes empty from zones to select from
+
     actual_zone = [i for i in zone if i]
     match select_function:
         case "all":
@@ -540,23 +550,23 @@ def acting(action, card =""):
             game_table["ids"][effect["id"]] = effect
             append_nested(card,["triggers",action["end_trigger"]],{"actions": [{"action":"remove_effect","effect_id":effect["id"]}]})
             game_table["all_effect_recipes"].append(effect)
-        case "empty_slots":
+        case "empty_storage":
             victims = target_groups[0]
             victim = victims[0]
-            slots = victim.get("slots")
-            if slots:
-                for index, slot in enumerate(slots):
-                    slots[index] = ""
+            storage = victim.get("storage")
+            if storage:
+                for index, slot in enumerate(storage):
+                    storage[index] = ""
 
         case "hype":
             print("hype!")
             victims = target_groups[0]
             victim = victims[0]
-            slots = victim.get("slots")
-            if slots:
-                for index, slot in enumerate(slots):
+            storage = victim.get("storage")
+            if storage:
+                for index, slot in enumerate(storage):
                     if not slot:
-                        slots[index] = card["id"]
+                        storage[index] = card["id"]
                         acting({"action": "move", "target": card,
                                 "to": {"entity": card["owner"], "location": "held", "index": "append"}})
                         break
@@ -653,7 +663,9 @@ def acting(action, card =""):
                 recipient["gold"] = min(recipient["gold_limit"], recipient["gold"])
         case "gems":
             recipients = target_groups[0]
+            #Maybe refactor so that recipient also has a missed section returned in another list
             for recipient in recipients:
+
                 animations.append({"sender": card, "receiver":recipient, "size":action["amount"], "image":"pics/gem.png"})
                 recipient["gems"] += action["amount"]
                 recipient["gems"] = max(0, recipient["gems"])
@@ -817,19 +829,45 @@ def table(entity_type):
 
 
 def location_tick():
+    tick_areas = []
     for team, team_data in table("teams").items():
-        stall = get_nested(game_table, ["entities", "trader", "locations", "stall"])
-        tick_areas = list(team_data["locations"].values())
-        tick_areas.append(stall)
-        for location_data in tick_areas:
-            for card in location_data:
-                if card:
-                    triggering(card,"timer")
-                    #Decay shield
+        tick_areas.extend(list(team_data["locations"].values()))
+    stall = get_nested(game_table, ["entities", "trader", "locations", "stall"])
+    tick_areas.append(stall)
 
-                    if card.get("shield"):
-                        shield = max(card["shield"]-(math.sqrt(card["shield"])*tick_rate()+0.2)/10,0)
-                        card["shield"] = shield
+    for player, player_data in table("players").items():
+        tent = player_data["locations"]["tent"]
+        tick_areas.append(tent)
+
+    for location_data in tick_areas:
+        for card in location_data:
+            if card:
+                triggering(card,"timer")
+                #Decay shield
+
+                if card.get("shield"):
+                    shield = max(card["shield"]-(math.sqrt(card["shield"])*tick_rate()+0.2)/10,0)
+                    card["shield"] = shield
+
+    #for team, team_data in table("teams").items():
+    #    stall = get_nested(game_table, ["entities", "trader", "locations", "stall"])
+    #    tick_areas = list(team_data["locations"].values())
+    #    print("ticket")
+    #    print_json(tick_areas)
+    #    tick_areas.append(stall)
+    #    for location_data in tick_areas:
+    #        print("loco")
+    #        print_json(location_data)
+    #        for card in location_data:
+    #            print("card")
+    #            print_json(card)
+    #            if card:
+    #                triggering(card,"timer")
+    #                #Decay shield
+
+    #                if card.get("shield"):
+    #                    shield = max(card["shield"]-(math.sqrt(card["shield"])*tick_rate()+0.2)/10,0)
+    #                    card["shield"] = shield
 
 #Cleanup is really just a post tick.
 def cleanup_tick():
@@ -1028,12 +1066,15 @@ def initialize_card(card_name,username,location,index):
         if "cost" in baby_card.keys():
             baby_card["value"] = baby_card["cost"]
 
-
     baby_card["id"] = get_unique_id()
     baby_card["shield"] = 0
     baby_card["effects"] = {}
     baby_card["max_shield"] = 20
     baby_card["index"] = "in the void"
+    #for trigger in baby_card["trigger"]:
+    #   for action in trigger:
+    #       if "main" in action.keys():
+    #           baby_card["
     game_table["ids"][baby_card["id"]] = baby_card
     possess_card(baby_card,username)
     move(baby_card,{"location":location, "index":index})
@@ -1370,7 +1411,8 @@ async def new_client_connected(client_socket, path):
     #except Exception as e:
         log("Client quit:", loop["username"])
         log(e)
-        session_table["players"][loop["username"]]["socket"] = ""
+        if session_table["players"].get(loop["username"]):
+            session_table["players"][loop["username"]]["socket"] = ""
     except websockets.exceptions.ConnectionClosedError as e:
         #except Exception as e:
         log("Client shutdown quit", loop["username"])

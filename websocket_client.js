@@ -5,6 +5,7 @@ function full(){
             console.log(e);
         });
 }
+gameState = {}
 my_team = "good";
 enemy_team = "evil";
 lastMissing = [];
@@ -69,7 +70,7 @@ function drop(ev) {
     target = findAncestor(nestedTarget, "slot");
     container = findAncestor(nestedTarget, "playable");
     if (container) {
-        play(cardId, target.getAttribute("spot"), target.getAttribute("location"));
+        play(cardId, target.getAttribute("slot"), target.getAttribute("location"));
     }
 }
 
@@ -122,8 +123,8 @@ function makeConnectButton(title) {
     menuButton.onclick = function () {
         websocketClient.send(JSON.stringify({
             command: "reconnect",
-            reconnect: title,
-            save: document.getElementById("save").value
+            reconnect: title
+            //save: document.getElementById("save").value
         }))
         console.log("called function " + title)
         console.log(window)
@@ -180,6 +181,7 @@ function inspect(slot) {
     }
 }
 
+//TODO make this happen less frequently. It's the most expensive
 function updateCardButton(cardButton, card) {
     cardButton.card = card;
     var health = cardButton.querySelector(".health");
@@ -205,14 +207,14 @@ function updateCardButton(cardButton, card) {
         }
     }
     if (card["location"] == "shop") {
-        cost2.innerHTML = card["value"];
+        cost.innerHTML = card["value"];
         mContainer = fetch("#messages_container");
         if (mContainer.playerState) {
             gems = mContainer.playerState["gems"];
             if (card["value"] > gems) {
-                cost2.style.color = "crimson";
+                cost.style.color = "crimson";
             } else {
-                cost2.style.color = "white";
+                cost.style.color = "white";
             }
         }
     } else {
@@ -221,7 +223,7 @@ function updateCardButton(cardButton, card) {
             cardCoinImage2.style.display = "none";
         }
     }
-    if ((card["location"] == "hand" || card["location"] == "shop") && "cost" in card) {
+    if (card["location"] == "hand" && "cost" in card) {
         cost.innerHTML = card["cost"];
         mContainer = fetch("#messages_container");
         if (mContainer.playerState) {
@@ -232,7 +234,18 @@ function updateCardButton(cardButton, card) {
                 cost.style.color = "white";
             }
         }
-    } else {
+    } else if (card["location"] == "shop" && "cost" in card) {
+        cost.innerHTML = card["cost"];
+        mContainer = fetch("#messages_container");
+        if (mContainer.playerState) {
+            money = mContainer.playerState["gold"];
+            if (card["cost"] > money) {
+                cost.style.color = "crimson";
+            } else {
+                cost.style.color = "white";
+            }
+        }
+    }else {
         if (card["location"] !== "shop" && card["location"] !== "stall") {
             let percent = 100 * card["health"] / card["max_health"];
             health.style.width = Math.max(percent, 0) + "%";
@@ -256,45 +269,52 @@ function updateCardButton(cardButton, card) {
     }
     //currentBottom = 0;
     //Should be reversed at some point to match input data
-    found = 0;
-    Object.entries(card["triggers"]).forEach(([triggerType, events]) => {
+    progressBar = cardButton.querySelector(".progress");
+    if (progressBar) {
+        eventDict = card["triggers"][progressBar.triggerType][progressBar.triggerIndex];
+        percent = 100 * eventDict["progress"] / eventDict["goal"]
+        percent_limit = Math.min(percent, 100);
+        progressBar.style.height = percent_limit + "%";
+    }
 
-        if (!found) {
-            events.forEach((eventDict, i) => {
-                if (eventDict["goal"] && !found) {
-                    progressBars = cardButton.querySelectorAll(".progress");
-                    progressBar = progressBars[i];
-                    firstAction = eventDict["actions"][0];
-                    amount = 0;
-                    if (firstAction["amount"]) {
-                        amount = firstAction["amount"];
-                    }
-                    width = 1.2;// + Math.max(amount, 0);
-                    progressBar.style.width = width + "vw";
-                    progressBar.style.bottom = 0/*currentBottom*/ + "vw";
-                    //currentBottom += height;
-                    percent = 100 * eventDict["progress"] / eventDict["goal"]
-                    percent_limit = Math.min(percent, 100);
-                    progressBar.style.height = percent_limit + "%";
-                    color = actionColors[firstAction["action"]];
-                    if (!color) {
-                        color = "rgba(255, 255, 255," + tr;
-                    }
-                    progressBar.style.background = color;
-                    found = 1
-                }
-            });
+    storageBar = cardButton.querySelector(".storageBar");
+    if(storageBar){
+        for(i = 0; i < card["storage"].length; i++) {
+            //Add dom div if the effect is not in existing keys.
+            if (!storageBar.existing.includes(card["storage"][i]) && card["storage"][i]) {
+                storageBar.existing.push(card["storage"][i]);
+                innerImage = cardButton.querySelector(".storage"+(i+1)+"Inner");
+
+                innerImage.draggable = false;
+                innerImage.classList.add("image");
+                console.log(gameState);
+                innerImage.src = "pics/" + gameState["ids"][card["storage"][i]]["name"] + ".png";
+                console.log(innerImage.src);
+                innerImage.alt = "stored";
+
+            } else {
+                //Wipe out the image
+                //Need bonus image in center
+               // storageDiv = storageBar.querySelector("." + storageType);
+               // amountText = storageDiv.querySelector(".storageAmount");
+               // amountText.innerHTML = amount.toFixed(1);
+            }
         }
-
-    });
+        storageBar.existing.forEach((storage) => {
+            if (!(Object.keys(card["storage"]).includes(storage))) {
+                arrayRemove(storageBar.existing, storage);
+            }
+        });
+    }
     effectBar = cardButton.querySelector(".effectBar");
+    //This is bad performance Only update when needed
     Object.entries(card["effects"]).forEach(([effectType, amount]) => {
         //Add dom div if the effect is not in existing keys.
         if (!(effectBar.existing.includes(effectType))) {
             effectBar.existing.push(effectType);
             amountText = document.createElement("p");
             amountText.classList.add("effectAmount");
-            amountText.innerHTML = amount; //Repeat the image in the div, don't use text
+            amountText.innerHTML = amount.toFixed(1); //Repeat the image in the div, don't use text
 
             effectDiv = document.createElement("div");
             effectDiv.classList.add("effectDiv");
@@ -311,13 +331,11 @@ function updateCardButton(cardButton, card) {
         } else {
             effectDiv = effectBar.querySelector("." + effectType);
             amountText = effectDiv.querySelector(".effectAmount");
-            amountText.innerHTML = amount; //Repeat the image in the div, don't use text
+            amountText.innerHTML = amount.toFixed(1);
         }
     });
     effectBar.existing.forEach((effect) => {
         if (!(Object.keys(card["effects"]).includes(effect))) {
-            console.log("removing")
-            console.log(card)
             arrayRemove(effectBar.existing, effect);
             effectBar.querySelector("." + effect).remove();
         }
@@ -334,12 +352,13 @@ function arrayRemove(array, item) {
         array.splice(index, 1);
     }
 }
-function addImage(image, size, location){
+function addImage(image, size, location, target = "", storage = ""){
 
     MyDiv = document.createElement("div");
     MyDiv.classList.add(size+"Div",location);
-    MyCorner = document.createElement("div");
-    MyCorner.classList.add(size+"DivCorner",location);
+    if (target){
+        MyDiv.classList.add(target);
+    }
     MyText = document.createElement("p");
     MyText.classList.add("count",location+"Text");
     MyImage = new Image();
@@ -349,16 +368,33 @@ function addImage(image, size, location){
         MyImage.alt = "pics/" + image + ".png";
     MyDiv.appendChild(MyImage);
     MyDiv.appendChild(MyText);
-    MyDiv.appendChild(MyCorner);
+    if(target){
+        MyCorner = document.createElement("div");
+        MyCorner.classList.add(size+"DivCorner",location);
+        MyDiv.appendChild(MyCorner);
+    }
+    if(storage){
+        InnerImage = new Image();
+        InnerDiv = document.createElement("div");
+        InnerDiv.classList.add("inner");
+        //InnerDiv.hidden = "hidden";
+        InnerImage.draggable = false;
+        InnerImage.classList.add("image",location+"Inner");
+        //InnerImage.src = "pics/" + image + ".png";
+        //InnerImage.alt = "pics/" + image + ".png";
+        InnerDiv.appendChild(InnerImage);
+        MyDiv.appendChild(InnerDiv);
+
+    }
     return MyDiv;
 
 }
 
 function generateCardButton(card) {
-
+    let i;
     cardWhole = document.createElement("div");
     cardWhole.id = card["id"]
-    cardWhole.classList.add("card");
+    cardWhole.classList.add("cardWhole");
     cardButton = document.createElement("div");
     cardButton.id = card["id"]
     cardButton.classList.add("card");
@@ -380,31 +416,44 @@ function generateCardButton(card) {
     cardButton.appendChild(health);
     cardButton.appendChild(shield);
     found = 0;
+    cardProgress = document.createElement("div");
+    cardProgress.classList.add("cardProgress");
+    //Could just list the progress percent on the card based on main
     Object.entries(card["triggers"]).forEach(([triggerType, events]) => {
         if (!found) {
-            events.forEach((eventDict) => {
-                if (eventDict["goal"] && !found) {
+            for (i =0; i < events.length; i++) {
+                eventDict = events[i];
+                if (eventDict["goal"] && !found && "main" in eventDict) {
                     progressBar = document.createElement("div");
                     progressBar.classList.add("progress");
-                    cardButton.appendChild(progressBar);
+                    progressBar.triggerType = triggerType;
+                    progressBar.triggerIndex = i;
+                    progressBar.style.background = eventDict["main"];
+                    cardProgress.appendChild(progressBar);
                     found = 1;
                 }
-            });
+            }
         }
     });
     cardButton.appendChild(addImage("gem", "big", "topLeft"));
     cardButton.appendChild(addImage("coin3", "big", "topRight"));
-    if(card["icons"]){
-        if (card["icons"][0]){
-            cardButton.appendChild(addImage(card["icons"][0]+"-icon", "small", "bottomLeftProgress"));
-        }
-        if (card["icons"][1]){
-            cardButton.appendChild(addImage(card["icons"][1]+"-icon", "small", "leftProgress"));
-        }
-        if (card["icons"][2]){
-            cardButton.appendChild(addImage(card["icons"][2]+"-icon", "small", "topLeftProgress"));
+
+    //PROGRESS
+    showTarget = card["team"] === my_team || card["team"] === "gaia";
+    locations = ["bottomLeftProgress", "leftProgress", "topLeftProgress"];
+    if(card["icons"] ){
+        for(i = 0; i < card["icons"].length; i++){
+            if (card["icons"][i]) {
+                if(showTarget){
+                    target = card["targets"][i]
+                } else {
+                    target = "none"
+                }
+                cardProgress.appendChild(addImage(card["icons"][i]+"-icon", "small", locations[i], target));
+            }
         }
     }
+    //PROGRESS
 
     if (card["location"] == "tent") {
         cardButton.appendChild(addImage("discard", "big", "right"));
@@ -412,15 +461,26 @@ function generateCardButton(card) {
     }
 
     //The bar that contains effects like armor etc.
+    //EFFECT
     effectBar = document.createElement("div");
     effectBar.existing = [];
     effectBar.classList.add("effectBar");
-    effectBar.style.height = 30 + "px";
-    effectBar.style.bottom = -30 + "px";
-    effectBar.style.width = 100 + "%";
-    //effectBar.style.background = "black";
+    //EFFECT
+
+    //SLOTS
+    if (card["storage"]){
+        storageBar = document.createElement("div");
+        storageBar.existing = [];
+        storageBar.classList.add("storageBar");
+        for (let i = 0; i < card["storage"].length; i++) {
+            storageBar.appendChild(addImage("crate", "medium", "storage"+(i+1),"", true));
+        }
+        cardButton.appendChild(storageBar);
+    }
+    //SLOTS
 
     cardButton.appendChild(effectBar);
+    cardWhole.appendChild(cardProgress)
     cardWhole.appendChild(cardButton)
 
     updateCardButton(cardWhole, card);
@@ -430,7 +490,7 @@ function generateCardButton(card) {
 function createSlots(container, length, location) {
     for (let i = 0; i < length; i++) {
         slot = document.createElement("div");
-        slot.setAttribute("spot", i);
+        slot.setAttribute("slot", i);
         slot.setAttribute("location", location);
         slot.classList.add("slot");
         slot.setAttribute("ondrop", "drop(event)");
@@ -465,7 +525,7 @@ function updateSlots(container, messageJson, name, location) {
 
     newCards.forEach((newCard, i) => {
         slot = container.getElementsByClassName("slot")[i];
-        oldCardButton = slot.querySelector(".card");
+        oldCardButton = slot.querySelector(".cardWhole");
         oldId = 0;
         newId = 0;
         if (oldCardButton) {

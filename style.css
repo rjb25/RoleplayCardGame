@@ -1,5 +1,13 @@
 :root {
-    --scale: 1.0;
+    --scale: 1.05;
+    --my_cards: Blue;
+    --my_base: greenyellow;
+    --enemy_base: Tomato;
+    --enemy_board: red;
+    --my_board: green;
+    --on_me: brown;
+    --none: transparent;
+    --my_tent: #00DDDD;
 }
 p {
     margin: 0;
@@ -10,35 +18,19 @@ div{
     vertical-align: top;
 }
 
-#cards_container{
-    background-color: Blue;
-}
-#ally_base_container{
-    background-color: greenyellow;
-}
-#enemy_base_container{
-    background-color: Tomato;
-}
-#situations_container{
-    background-color: red;
-}
 
-#plans_container{
-    background-color: green;
+#myPlayArea {
+    display: inline-block;
+    width: 90%;
 
 }
-#tent_container{
-    background-color: teal;
-
-}
-
 .slot {
   display: inline-block;
   position: relative;
   box-shadow: 0 0.4vw 0.4vw 0 rgba(0,0,0,0.2);
   transition: 0.3s;
   width: calc(var(--scale)* 10vw);
-  height: calc(var(--scale)* 10vw);
+  height: calc(var(--scale)* 9vw);
   background-color: #f1f1f1;
   padding: calc(var(--scale)* 0.22vw);
   margin:calc(var(--scale)*  0.5vw);
@@ -77,28 +69,52 @@ body {
 }
 .menu-container {
   background-color: DodgerBlue;
+    display: inline-block;
+    height:80%;
+    width:9%;
+}
+.menu {
+    vertical-align: middle;
+    margin: 0.4vw;
+    padding: 0.4vw;
+    position:relative;
+    background: white;
 }
 
 .card {
+  display: inline-block;
   position:relative;
-  width: 100%;
+  width: 80%;
   height: 100%;
   background: white;
-} 
-.menu {
+}
+.cardProgress {
     display: inline-block;
-    margin: 4px;
-    padding: 4px;
-  position:relative;
-  background: white;
-} 
+    position:relative;
+    width: 20%;
+    height: 100%;
+    background: lightgrey;
+}
+.cardWhole {
+    position:relative;
+    width: 100%;
+    height: 100%;
+    background: white;
+}
 
 .progress {
+  width: 100%;
   position: absolute;
+    bottom: 0;
 
 }
 .effectBar {
   position: absolute;
+    bottom: 10%;
+    height : 10%;
+    width : 100%;
+    /*
+     */
 
 }
 .effectAmount {
@@ -107,7 +123,7 @@ body {
   font-weight: bold;
   margin: 0 auto;
   left: 50%;
-  top: 20%;
+  top: 40%;
   color: white;
 font-family: "Micro 5", serif;
 font-weight: 400;
@@ -168,6 +184,13 @@ font-style: normal;
     height:100%;
     width: 100%;
 }
+.inner {
+    position: absolute;
+    top:10%;
+    left: 10%;
+    height:80%;
+    width: 80%;
+}
 .effectDiv {
     display: inline-block;
     position: relative;
@@ -176,7 +199,7 @@ font-style: normal;
 }
 .smallDiv {
     position: absolute;
-    width: 30%;
+    width: 120%;
     height: 30%;
 }
 .smallDiv::after {
@@ -186,13 +209,65 @@ font-style: normal;
     right:0;
     border-style: solid;
     border-width: 0 1.2vw 1.2vw 0;
-    border-color: transparent green transparent transparent;
 }
+
+.my_cards::after{
+    border-color: transparent var(--my_cards) transparent transparent;
+}
+.my_base::after{
+    border-color: transparent var(--my_base) transparent transparent;
+}
+.enemy_base::after{
+    border-color: transparent var(--enemy_base) transparent transparent;
+}
+.enemy_board::after{
+    border-color: transparent var(--enemy_board) transparent transparent;
+}
+.all_board::after{
+    border-color: transparent var(--enemy_board) var(--my_board) transparent;
+}
+.on_me::after{
+    border-color: transparent var(--on_me) transparent transparent;
+}
+.my_board::after{
+    border-color: transparent var(--my_board) transparent transparent;
+}
+.none::after{
+    border-color: transparent var(--none) transparent transparent;
+}
+.my_tent::after{
+    border-color: transparent var(--my_tent) transparent transparent;
+}
+
+#cards_container{
+    background-color: var(--my_cards);
+}
+#ally_base_container{
+    background-color: var(--my_base);
+}
+#enemy_base_container{
+    background-color: var(--enemy_base);
+}
+#situations_container{
+    background-color: var(--enemy_board);
+}
+#plans_container{
+    background-color: var(--my_board);
+}
+#tent_container{
+    background-color: var(--my_tent);
+}
+/*Going to need classes for each of the target areas then simply add that class and have the color set*/
 
 .bigDiv {
     position: absolute;
     width: calc(var(--scale)*4vw);
     height: calc(var(--scale)*4vw);
+}
+.mediumDiv {
+    position: absolute;
+    width: calc(var(--scale)*2.5vw);
+    height: calc(var(--scale)*2.5vw);
 }
 .topRight{
     top: -12%;
@@ -212,23 +287,31 @@ font-style: normal;
 }
 .leftProgress{
     bottom: 35%;
-    left: -15%;
+    left: -10%;
 }
 .topLeftProgress{
     top: 0%;
-    left: -15%;
+    left: -10%;
 }
 .bottomLeftProgress{
     bottom: 0%;
-    left: -15%;
+    left: -10%;
 }
 .left{
-    right: -15%;
+    left: -15%;
     top: 17%;
 }
 .right{
-    left: -15%;
+    right: -15%;
     top: 17%;
+}
+.storage1{
+    right: -10%;
+    top: 30%;
+}
+.storage2{
+    bottom: 15%;
+    right: -10%;
 }
 .title {
   position: absolute;
