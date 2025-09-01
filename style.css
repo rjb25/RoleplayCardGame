@@ -29,7 +29,7 @@ div{
   position: relative;
   box-shadow: 0 0.4vw 0.4vw 0 rgba(0,0,0,0.2);
   transition: 0.3s;
-  width: calc(var(--scale)* 10vw);
+  width: calc(var(--scale)* 9vw);
   height: calc(var(--scale)* 9vw);
   background-color: #f1f1f1;
   padding: calc(var(--scale)* 0.22vw);
@@ -84,16 +84,17 @@ body {
 .card {
   display: inline-block;
   position:relative;
-  width: 80%;
+  width: 71.6%;
   height: 100%;
   background: white;
 }
 .cardProgress {
     display: inline-block;
     position:relative;
-    width: 20%;
+    width: 28.4%;
     height: 100%;
     background: lightgrey;
+    border-radius: 3px;
 }
 .cardWhole {
     position:relative;
@@ -106,7 +107,6 @@ body {
   width: 100%;
   position: absolute;
     bottom: 0;
-
 }
 .effectBar {
   position: absolute;
@@ -160,6 +160,7 @@ font-style: normal;
     position: absolute;
     width:100%;
     height:100%;
+    border-radius: 3px;
 }
 .text {
   background: white;

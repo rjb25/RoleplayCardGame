@@ -570,6 +570,8 @@ def acting(action, card =""):
                         acting({"action": "move", "target": card,
                                 "to": {"entity": card["owner"], "location": "held", "index": "append"}})
                         break
+            else:
+                acting({"action": "move", "target": card, "to": {"entity":"owner","location": "discard", "index": "append"}}, card)
 
             ## end trigger stored on effected card
             #effect_function = action["effect_function"]

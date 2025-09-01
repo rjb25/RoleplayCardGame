@@ -19,7 +19,7 @@ actionColors = {
 };
 var running = false;
 var target = 0;
-socketname = "visually-popular-iguana.ngrok-free.app";
+socketname = "grown-bass-helping.ngrok-free.app";
 //These need to be variables
 buttonContainers = ["#enemy_base_container", "#situations_container", "#ally_base_container", "#plans_container", "#tent_container", "#cards_container", "#discard_container", "#merchant_container", "#shop_container", "#trash_container"];
 buttonContainerLocations = ["base", "board", "base", "board", "tent", "hand", "discard", "stall", "shop", "trash"];
@@ -133,7 +133,8 @@ function makeConnectButton(title) {
 }
 
 function inspect(slot) {
-    cardButton = slot.querySelector('.card')
+    console.log("gadget");
+    cardButton = slot.querySelector('.cardWhole');
     if (cardButton) {
         var card = cardButton.card;
         if (card) {
@@ -171,12 +172,14 @@ function inspect(slot) {
                 });
             });
             fetch("#inspect_container").innerHTML = infoText + triggersText;
+            /*
             var infoImage = new Image();
             infoImage.draggable = false;
             //infoImage.classList.add("coin");
             infoImage.src = "pics/" + card["name"] + "info.png";
             infoImage.alt = "info";
             fetch("#inspect_container").appendChild(infoImage);
+             */
         }
     }
 }
@@ -186,11 +189,10 @@ function updateCardButton(cardButton, card) {
     cardButton.card = card;
     var health = cardButton.querySelector(".health");
     var shield = cardButton.querySelector(".shield");
-    var cardCoinImage = cardButton.querySelector(".topRightImage");
-    var cardCoinImage2 = cardButton.querySelector(".topLeftImage");
-    var cost = cardButton.querySelector(".topRightText");
-    //Need a way to split this out so that top right can be different things at different times
-    var cost2 = cardButton.querySelector(".topLeftText");
+    var topRightImage = cardButton.querySelector(".topRightImage");
+    var topLeftImage = cardButton.querySelector(".topLeftImage");
+    var topRightText = cardButton.querySelector(".topRightText");
+    var topLeftText = cardButton.querySelector(".topLeftText");
     if (card["location"] == "tent") {
         bank = cardButton.querySelector(".topRightText");
         bank.innerHTML = card["gold"];
@@ -207,42 +209,33 @@ function updateCardButton(cardButton, card) {
         }
     }
     if (card["location"] == "shop") {
-        cost.innerHTML = card["value"];
+        topRightText.innerHTML = card["value"];
+        topRightImage.src = "pics/gem.png";
+        topLeftImage.style.display = "none";
         mContainer = fetch("#messages_container");
         if (mContainer.playerState) {
             gems = mContainer.playerState["gems"];
             if (card["value"] > gems) {
-                cost.style.color = "crimson";
+                topRightText.style.color = "crimson";
             } else {
-                cost.style.color = "white";
+                topRightText.style.color = "white";
             }
         }
     } else {
         if (card["location"] != "tent") {
-            cost2.innerHTML = "";
-            cardCoinImage2.style.display = "none";
+            topLeftText.innerHTML = "";
+            topLeftImage.style.display = "none";
         }
     }
     if (card["location"] == "hand" && "cost" in card) {
-        cost.innerHTML = card["cost"];
+        topRightText.innerHTML = card["cost"];
         mContainer = fetch("#messages_container");
         if (mContainer.playerState) {
             money = mContainer.playerState["gold"];
             if (card["cost"] > money) {
-                cost.style.color = "crimson";
+                topRightText.style.color = "crimson";
             } else {
-                cost.style.color = "white";
-            }
-        }
-    } else if (card["location"] == "shop" && "cost" in card) {
-        cost.innerHTML = card["cost"];
-        mContainer = fetch("#messages_container");
-        if (mContainer.playerState) {
-            money = mContainer.playerState["gold"];
-            if (card["cost"] > money) {
-                cost.style.color = "crimson";
-            } else {
-                cost.style.color = "white";
+                topRightText.style.color = "white";
             }
         }
     }else {
@@ -262,9 +255,9 @@ function updateCardButton(cardButton, card) {
             shield.style.width = Math.max(percent, 0) + "%";
             shield.style.background = "rgba(30,144,255,0.9)";
         }
-        if (card["location"] != "tent"){
-        cost.innerHTML = "";
-        cardCoinImage.style.display = "none";
+        if (!["shop","tent","hand"].includes(card["location"]) ){
+            topRightText.innerHTML = "";
+            topRightImage.style.display = "none";
         }
     }
     //currentBottom = 0;
@@ -403,6 +396,11 @@ function generateCardButton(card) {
     cardImage.classList.add("picture");
     cardImage.src = "pics/" + card["title"] + ".png";
     cardImage.alt = card["title"];
+    cardImage.onerror = function() {
+        console.log("pics/" + card["title"] + ".png");
+        cardImage.src = "pics/" + card["title"] + ".png";
+        //this.onerror = null;
+    };
     cardImage.draggable = true;
     cardImage.setAttribute("ondragstart", "drag(event)");
     cardImage.id = card["id"];
@@ -495,9 +493,24 @@ function createSlots(container, length, location) {
         slot.classList.add("slot");
         slot.setAttribute("ondrop", "drop(event)");
         slot.setAttribute("ondragover", "allowDrop(event)");
-        slot.onclick = function () {
-            inspect(this);
-        };
+        if (location === "shop"){
+                slot.onclick = function () {
+                    cardButton = this.querySelector('.card')
+                    if (cardButton) {
+                        play(cardButton.id, i, "hand");
+                    }
+                };
+        } else {
+            console.log("patronum");
+            slot.onclick = function () {
+                texts = [];
+                bound = this.getBoundingClientRect();
+                console.log(this)
+                makeText(bound);
+                inspect(this);
+            };
+
+        }
         container.append(slot);
     }
 }
@@ -560,8 +573,10 @@ function fetch(id) {
     return document.querySelector(id);
 }
 
+//CANVAS
 var projectiles = [];
 var fogs = [];
+var texts = [];
 function hideFog(){
     fogs.forEach(function (fog) {
        fog.visible = false;
@@ -582,6 +597,16 @@ function makeFog(bound1, image = "pics/fogCardBest.webp") {
         startX = d1.x;
         startY = d1.y;
         fogs.push(new component(pWidth, pHeight, image, startX, startY));
+    }
+}
+function makeText(bound1, image = "pics/fogCardBest.webp") {
+    if (bound1) {
+        d1 = bound1;
+        pWidth = d1.width/1.5;
+        pHeight = d1.height/1.5;
+        startX = d1.x+(d1.width-pWidth)-10;
+        startY = d1.y+(d1.height-pHeight)-10;
+        texts.push(new component(pWidth, pHeight, "blue", startX, startY));
     }
 }
 
@@ -635,6 +660,9 @@ var myGameArea = {
         for (i = 0; i < fogs.length; i += 1) {
             fogs[i].update();
         }
+        for (i = 0; i < texts.length; i += 1) {
+            texts[i].update();
+        }
         projectiles = continueComponents
     },
     stop: function () {
@@ -669,7 +697,13 @@ function component(width, height, color, x, y, destX = 0, destY = 0, rate = fals
 
             } else {
                 ctx.fillStyle = color;
-                ctx.fillRect(this.x, this.y, this.width, this.height);
+                //ctx.fillRect(this.x, this.y, this.width, this.height);
+                ctx.strokeStyle = color;
+                ctx.beginPath();
+                ctx.roundRect(this.x, this.y, this.width, this.height,[10]);
+                ctx.stroke();
+                ctx.fill();
+
             }
         }
         if (this.rate) {
@@ -712,6 +746,7 @@ document.addEventListener('DOMContentLoaded', function () {
                     if (container == "#discard_container") {
                         length = 1;
                     }
+                    console.log("signs of life");
                     createSlots(fetch(container), length, local);
                 });
                 menuButtons.forEach(makeMenuButton);

@@ -40,6 +40,7 @@
         }
     },
     "attacky":{
+        "description": "Quickly attacks the card in front of it.",
         "health":2,
         "cost":2,
         "targets": ["enemy_board","",""],
@@ -217,7 +218,7 @@
     },
     "bear-bomby":{"health":3,
         "cost":5,
-        "targets": ["","","enemy_tent"],
+        "targets": ["","","enemy_base"],
         "icons": ["","","victory"],
         "triggers":{
             "timer": [
