@@ -19,7 +19,7 @@ actionColors = {
 };
 var running = false;
 var target = 0;
-socketname = "grown-bass-helping.ngrok-free.app";
+socketname = "roleplaycardgame.com:12345";
 //These need to be variables
 buttonContainers = ["#enemy_base_container", "#situations_container", "#ally_base_container", "#plans_container", "#tent_container", "#cards_container", "#discard_container", "#merchant_container", "#shop_container", "#trash_container"];
 buttonContainerLocations = ["base", "board", "base", "board", "tent", "hand", "discard", "stall", "shop", "trash"];
@@ -27,7 +27,7 @@ buttonContainerNames = [enemy_team, enemy_team, my_team, my_team, "me", "me", "m
 menuButtons = ["remove_ai", "reset_session", "pause", "add_ai_evil", "add_ai_good", "join_good", "join_evil"/*, "save_game","load_game","save_user","load_user"*/];
 //This is what you run if you want to reconnect to server
 //socketname = prompt("WebSocketURL no http://")
-const websocketClient = new WebSocket("wss://" + socketname);
+const websocketClient = new WebSocket("ws://" + socketname);
 
 function pause() {
     changeBackground("DodgerBlue");
