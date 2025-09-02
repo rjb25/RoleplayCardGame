@@ -132,8 +132,16 @@ function makeConnectButton(title) {
     fetch("#reconnect_container").appendChild(menuButton);
 }
 
+
 function inspect(slot) {
-    console.log("gadget");
+    inspection = slot.querySelector('.inspection');
+    if(slot.info){
+        inspection.style.visibility = "hidden";
+        slot.info = false
+    }else {
+        inspection.style.visibility = "visible";
+        slot.info = true
+    }
     cardButton = slot.querySelector('.cardWhole');
     if (cardButton) {
         var card = cardButton.card;
@@ -171,7 +179,7 @@ function inspect(slot) {
                     });
                 });
             });
-            fetch("#inspect_container").innerHTML = infoText + triggersText;
+            inspection.innerHTML = infoText + triggersText;
             /*
             var infoImage = new Image();
             infoImage.draggable = false;
@@ -278,7 +286,7 @@ function updateCardButton(cardButton, card) {
                 storageBar.existing.push(card["storage"][i]);
                 innerImage = cardButton.querySelector(".storage"+(i+1)+"Inner");
 
-                innerImage.draggable = false;
+                //innerImage.draggable = false;
                 innerImage.classList.add("image");
                 console.log(gameState);
                 innerImage.src = "pics/" + gameState["ids"][card["storage"][i]]["name"] + ".png";
@@ -313,7 +321,7 @@ function updateCardButton(cardButton, card) {
             effectDiv.classList.add("effectDiv");
             effectDiv.classList.add(effectType);
             effectImage = new Image(20,20);
-            effectImage.draggable = false;
+            //effectImage.draggable = false;
             effectImage.classList.add("image");
             effectImage.src = "pics/" + effectType + "-icon.png";
             effectImage.alt = effectType;
@@ -355,7 +363,7 @@ function addImage(image, size, location, target = "", storage = ""){
     MyText = document.createElement("p");
     MyText.classList.add("count",location+"Text");
     MyImage = new Image();
-    MyImage.draggable = false;
+    //MyImage.draggable = false;
     MyImage.classList.add("image",location+"Image");
         MyImage.src = "pics/" + image + ".png";
         MyImage.alt = "pics/" + image + ".png";
@@ -371,7 +379,7 @@ function addImage(image, size, location, target = "", storage = ""){
         InnerDiv = document.createElement("div");
         InnerDiv.classList.add("inner");
         //InnerDiv.hidden = "hidden";
-        InnerImage.draggable = false;
+        //InnerImage.draggable = false;
         InnerImage.classList.add("image",location+"Inner");
         //InnerImage.src = "pics/" + image + ".png";
         //InnerImage.alt = "pics/" + image + ".png";
@@ -391,6 +399,8 @@ function generateCardButton(card) {
     cardButton = document.createElement("div");
     cardButton.id = card["id"]
     cardButton.classList.add("card");
+    cardInspection = document.createElement("div");
+    cardInspection.classList.add("inspection");
 
     cardImage = new Image();
     cardImage.classList.add("picture");
@@ -480,6 +490,7 @@ function generateCardButton(card) {
     cardButton.appendChild(effectBar);
     cardWhole.appendChild(cardProgress)
     cardWhole.appendChild(cardButton)
+    cardWhole.appendChild(cardInspection)
 
     updateCardButton(cardWhole, card);
     return cardWhole;
@@ -501,12 +512,7 @@ function createSlots(container, length, location) {
                     }
                 };
         } else {
-            console.log("patronum");
             slot.onclick = function () {
-                texts = [];
-                bound = this.getBoundingClientRect();
-                console.log(this)
-                makeText(bound);
                 inspect(this);
             };
 
@@ -576,7 +582,6 @@ function fetch(id) {
 //CANVAS
 var projectiles = [];
 var fogs = [];
-var texts = [];
 function hideFog(){
     fogs.forEach(function (fog) {
        fog.visible = false;
@@ -597,16 +602,6 @@ function makeFog(bound1, image = "pics/fogCardBest.webp") {
         startX = d1.x;
         startY = d1.y;
         fogs.push(new component(pWidth, pHeight, image, startX, startY));
-    }
-}
-function makeText(bound1, image = "pics/fogCardBest.webp") {
-    if (bound1) {
-        d1 = bound1;
-        pWidth = d1.width/1.5;
-        pHeight = d1.height/1.5;
-        startX = d1.x+(d1.width-pWidth)-10;
-        startY = d1.y+(d1.height-pHeight)-10;
-        texts.push(new component(pWidth, pHeight, "blue", startX, startY));
     }
 }
 
@@ -637,19 +632,28 @@ function startGame() {
 }
 
 var myGameArea = {
+
     canvas: document.getElementById("myCanvas"),
     cardArea: document.getElementById("myPlayArea").getBoundingClientRect(),
+    scale: window.devicePixelRatio,
     start: function () {
-        this.canvas.width = this.cardArea.width;
-        this.canvas.height = this.cardArea.height;
+        this.canvas.width = Math.floor(this.cardArea.width * this.scale);
+        this.canvas.height = Math.floor(this.cardArea.height * this.scale);
+        this.canvas.style.width = this.cardArea.width + "px";
+        this.canvas.style.height = this.cardArea.height + "px";
         this.context = this.canvas.getContext("2d");
+        this.context.scale(this.scale,this.scale);
         this.frameNo = 0;
         this.interval = setInterval(updateGameArea, 20);
     },
     update: function () {
+        this.scale = window.devicePixelRatio;
         this.cardArea = document.getElementById("myPlayArea").getBoundingClientRect();
-        this.canvas.width = this.cardArea.width;
-        this.canvas.height = this.cardArea.height;
+        this.canvas.width = Math.floor(this.cardArea.width * this.scale);
+        this.canvas.height = Math.floor(this.cardArea.height * this.scale);
+        this.canvas.style.width = this.cardArea.width + "px";
+        this.canvas.style.height = this.cardArea.height + "px";
+        this.context.scale(this.scale,this.scale);
         continueComponents = []
         for (i = 0; i < projectiles.length; i += 1) {
             projectiles[i].update();
@@ -659,9 +663,6 @@ var myGameArea = {
         }
         for (i = 0; i < fogs.length; i += 1) {
             fogs[i].update();
-        }
-        for (i = 0; i < texts.length; i += 1) {
-            texts[i].update();
         }
         projectiles = continueComponents
     },
@@ -673,7 +674,7 @@ var myGameArea = {
     }
 }
 
-function component(width, height, color, x, y, destX = 0, destY = 0, rate = false) {
+function component(width, height, color, x, y, destX = 0, destY = 0, rate = false, text = "") {
     this.width = width;
     this.height = height;
     this.x = x;
@@ -697,13 +698,7 @@ function component(width, height, color, x, y, destX = 0, destY = 0, rate = fals
 
             } else {
                 ctx.fillStyle = color;
-                //ctx.fillRect(this.x, this.y, this.width, this.height);
-                ctx.strokeStyle = color;
-                ctx.beginPath();
-                ctx.roundRect(this.x, this.y, this.width, this.height,[10]);
-                ctx.stroke();
-                ctx.fill();
-
+                ctx.fillRect(this.x, this.y, this.width, this.height);
             }
         }
         if (this.rate) {
@@ -746,7 +741,6 @@ document.addEventListener('DOMContentLoaded', function () {
                     if (container == "#discard_container") {
                         length = 1;
                     }
-                    console.log("signs of life");
                     createSlots(fetch(container), length, local);
                 });
                 menuButtons.forEach(makeMenuButton);
