@@ -135,12 +135,12 @@ function makeConnectButton(title) {
 
 function inspect(slot) {
     inspection = slot.querySelector('.inspection');
-    if(slot.info){
+    if(inspection.info){
         inspection.style.visibility = "hidden";
-        slot.info = false
+        inspection.info = false
     }else {
         inspection.style.visibility = "visible";
-        slot.info = true
+        inspection.info = true
     }
     cardButton = slot.querySelector('.cardWhole');
     if (cardButton) {
@@ -436,7 +436,7 @@ function generateCardButton(card) {
                     progressBar.classList.add("progress");
                     progressBar.triggerType = triggerType;
                     progressBar.triggerIndex = i;
-                    progressBar.style.background = eventDict["main"];
+                    progressBar.style.background = "dodgerblue";//All progress same color for clarity//eventDict["main"];
                     cardProgress.appendChild(progressBar);
                     found = 1;
                 }

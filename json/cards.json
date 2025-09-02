@@ -63,6 +63,27 @@
             ]
         }
     },
+    "bird-thefty":{
+        "description": "Steals money from your opponent.",
+        "health":4,
+        "cost":10,
+        "targets": ["","","enemies"],
+        "icons": ["","","theft"],
+        "triggers": {
+            "timer": [
+                {"goal":10, "main":"red" ,"progress":0, "actions":[
+                    {"action":"income","target":"enemies","amount":-10},
+                    {"action":"income","target":"allies","amount":5},
+                    {"action":"move","target":"self","to": {"location": "discard","index": "append","entity": "owner"}}
+                ]}
+            ],
+            "forgotten": [
+                {"goal":3, "progress":0, "actions":[
+                    {"action":"move","target":"self","to": {"location": "discard","index": "append","entity": "owner"}}
+                ]}
+            ]
+        }
+    },
     "nuke":{
         "health":30,
         "cost":10,
