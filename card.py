@@ -571,7 +571,7 @@ def acting(action, card =""):
             #If you are storing a card with storage, clear its storage
             if card.get("storage"):
                 acting({"action": "move", "target": "on_me",
-                        "to": {"entity": card["owner"], "location": "discard", "index": "append"}})
+                        "to": {"entity": card["owner"], "location": "discard", "index": "append"}},card)
             storage = victim.get("storage")
             if storage:
                 for index, slot in enumerate(storage):
