@@ -568,6 +568,10 @@ def acting(action, card =""):
             print("hype!")
             victims = target_groups[0]
             victim = victims[0]
+            #If you are storing a card with storage, clear its storage
+            if card.get("storage"):
+                acting({"action": "move", "target": "on_me",
+                        "to": {"entity": card["owner"], "location": "discard", "index": "append"}})
             storage = victim.get("storage")
             if storage:
                 for index, slot in enumerate(storage):
