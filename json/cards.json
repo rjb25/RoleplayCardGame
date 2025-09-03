@@ -159,8 +159,30 @@
         "triggers": {
             "timer": [
                 {"goal":10, "main":"green","progress":0, "actions":[
+                    {"action":"empty_storage","target":"self"},
+                    {"action":"move","target":"self","to": {"location": "discard","index": "append","entity": "owner"}}
+                ]}
+            ],
+            "forgotten": [
+                {"goal":3, "progress":0, "actions":[
+                    {"action":"move","target":"self","to": {"location": "discard","index": "append","entity": "owner"}}
+                ]}
+            ]
+        }
+    },
+    "beaver-duplicate-bak":{
+        "description": "Duplicates the card in storage.",
+        "health":1,
+        "cost":1,
+        "targets": ["","","on_me"],
+        "icons": ["","","move"],
+        "storage": ["",""],
+        "triggers": {
+            "timer": [
+                {"goal":10, "main":"green","progress":0, "actions":[
                     {"action":"duplicate","target":"on_me"},
                     {"action":"duplicate","target":"on_me"},
+                    {"action":"move","target":"on_me","to": {"location": "discard","index": "append","entity": "owner"}},
                     {"action":"empty_storage","target":"self"},
                     {"action":"move","target":"self","to": {"location": "discard","index": "append","entity": "owner"}}
                 ]}
