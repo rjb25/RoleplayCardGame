@@ -67,7 +67,7 @@
         "description": "Steals money from your opponent.",
         "health":4,
         "cost":10,
-        "targets": ["","","enemies"],
+        "targets": ["","",""],
         "icons": ["","","theft"],
         "triggers": {
             "timer": [
@@ -139,6 +139,29 @@
                     {"action":"damage","target":"across", "kill":"trash", "amount": 1}
                 ]},
                 {"goal":10, "main":"brown","progress":0, "actions":[
+                    {"action":"move","target":"self","to": {"location": "discard","index": "append","entity": "owner"}}
+                ]}
+            ],
+            "forgotten": [
+                {"goal":3, "progress":0, "actions":[
+                    {"action":"move","target":"self","to": {"location": "discard","index": "append","entity": "owner"}}
+                ]}
+            ]
+        }
+    },
+    "beaver-duplicate":{
+        "description": "Duplicates the card in storage.",
+        "health":1,
+        "cost":1,
+        "targets": ["","","on_me"],
+        "icons": ["","","move"],
+        "storage": ["",""],
+        "triggers": {
+            "timer": [
+                {"goal":10, "main":"green","progress":0, "actions":[
+                    {"action":"duplicate","target":"on_me"},
+                    {"action":"move","target":"on_me","to": {"location": "discard","index": "append","entity": "owner"}},
+                    {"action":"empty_storage","target":"self"},
                     {"action":"move","target":"self","to": {"location": "discard","index": "append","entity": "owner"}}
                 ]}
             ],
@@ -569,6 +592,19 @@
         }
     },
     "trader3":{
+        "targets": ["","","none"],
+        "icons": ["","","move"],
+        "health":8,
+        "cost":0,
+        "triggers": {
+            "timer": [
+                {"goal":30, "main":"white", "progress":0, "actions":[
+                    {"action":"trader","next":"trader4"}
+                ]}
+            ]
+        }
+    },
+    "trader4":{
         "targets": ["","","none"],
         "icons": ["","","move"],
         "health":8,

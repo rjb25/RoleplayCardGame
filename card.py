@@ -532,6 +532,13 @@ def acting(action, card =""):
                 move(ca,destination)
                 if destination["location"] == "hand":
                     animations.append({"sender": card, "receiver": ca, "size": 1, "image": "pics/cards.png"})
+        case "duplicate":
+            cards = target_groups[0]
+            username = card["owner"]
+            for ca in cards:
+                baby_card = initialize_card(ca["name"], username, "deck", "append")
+                table("players")[username]["locations"]["deck"].append(baby_card)
+                animations.append({"sender": card, "receiver": owner_card(username), "size": 1, "image": "pics/cards.png"})
     #Card to trash
         case "trash":
             #Move is a great example. What the real functions need are a couple target_groups and parameters
@@ -1031,7 +1038,7 @@ def initialize_players():
 def initialize_situation():
     set_nested(game_table,["entities","situation"],{"team":"gaia","type":"gaia","locations":{"events":[]}})
 
-def initialize_trader(trader = "trader3"):
+def initialize_trader(trader = "trader4"):
     #Initialize some cards to the shop on player startup
     #baby_card = initialize_card(card_name, username)
     #if session_table["reward"]:
