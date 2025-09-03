@@ -537,7 +537,6 @@ def acting(action, card =""):
             username = card["owner"]
             for ca in cards:
                 baby_card = initialize_card(ca["name"], username, "deck", "append")
-                table("players")[username]["locations"]["deck"].append(baby_card)
                 animations.append({"sender": card, "receiver": owner_card(username), "size": 1, "image": "pics/cards.png"})
     #Card to trash
         case "trash":
