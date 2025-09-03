@@ -159,6 +159,7 @@
         "triggers": {
             "timer": [
                 {"goal":10, "main":"green","progress":0, "actions":[
+                    {"action":"move","target":"on_me","to": {"location": "discard","index": "append","entity": "owner"}},
                     {"action":"empty_storage","target":"self"},
                     {"action":"move","target":"self","to": {"location": "discard","index": "append","entity": "owner"}}
                 ]}
