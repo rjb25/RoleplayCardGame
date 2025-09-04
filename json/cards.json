@@ -128,7 +128,7 @@
             ],
             "discarded": [
                 {"actions":[
-                    {"action":"move","target":"on_me","to": {"location": "discard","index": "append","entity": "owner"}},
+                    {"action":"move","target":"on_me","to": {"location": "discard","index": "append","entity": "owner"}}
                 ]}
             ],
             "forgotten": [
@@ -177,7 +177,7 @@
             ],
             "discarded": [
                 {"actions":[
-                    {"action":"move","target":"on_me","to": {"location": "discard","index": "append","entity": "owner"}},
+                    {"action":"move","target":"on_me","to": {"location": "discard","index": "append","entity": "owner"}}
                 ]}
             ],
             "forgotten": [
