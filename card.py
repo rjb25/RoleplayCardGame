@@ -387,6 +387,8 @@ def get_cards(zone, select_function, args, action, card):
                 log_json(card)
                 log("Zone")
                 log_json(zone)
+                log("Action")
+                log_json(action)
 
         case "fork":
             indices = [card["index"]-1,card["index"],card["index"]+1]
