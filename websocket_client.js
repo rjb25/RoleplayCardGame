@@ -19,7 +19,7 @@ actionColors = {
 };
 var running = false;
 var target = 0;
-socketname = "roleplaycardgame.com:12345";
+socketname = "localhost:12345";
 //These need to be variables
 buttonContainers = ["#enemy_base_container", "#situations_container", "#ally_base_container", "#plans_container", "#tent_container", "#cards_container", "#discard_container", "#merchant_container", "#shop_container", "#trash_container"];
 buttonContainerLocations = ["base", "board", "base", "board", "tent", "hand", "discard", "stall", "shop", "trash"];
