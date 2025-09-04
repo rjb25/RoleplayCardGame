@@ -201,12 +201,12 @@ function updateCardButton(cardButton, card) {
     var topLeftImage = cardButton.querySelector(".topLeftImage");
     var topRightText = cardButton.querySelector(".topRightText");
     var topLeftText = cardButton.querySelector(".topLeftText");
-    if (card["location"] == "tent") {
+    if (["tent"].includes(card["location"])){
         bank = cardButton.querySelector(".topRightText");
-        bank.innerHTML = card["gold"];
+        bank.innerHTML = Math.floor(card["gold"]);
 
         bank2 = cardButton.querySelector(".topLeftText");
-        bank2.innerHTML = card["gems"];
+        bank2.innerHTML = Math.floor(card["gems"]);
 
         mContainer = fetch("#messages_container");
         if (mContainer.playerState) {
@@ -216,7 +216,7 @@ function updateCardButton(cardButton, card) {
             deck.innerHTML = mContainer.playerState.deckLength;
         }
     }
-    if (card["location"] == "shop") {
+    if (["shop"].includes(card["location"])){
         topRightText.innerHTML = card["value"];
         topRightImage.src = "pics/gem.png";
         topLeftImage.style.display = "none";
@@ -229,17 +229,8 @@ function updateCardButton(cardButton, card) {
                 topRightText.style.color = "white";
             }
         }
-    } else {
-        if (card["location"] != "tent") {
-            topLeftText.innerHTML = "";
-            topLeftImage.style.display = "none";
-        }
     }
-    if (card["location"] == "hand" ){
-        if (card.get("level")){
-            topLeftText.innerHTML = card["level"];
-            topLeftImage.src = "pics/level-icon.png";
-        }
+    if (["hand"].includes(card["location"])){
         if("cost" in card) {
             topRightText.innerHTML = card["cost"];
             mContainer = fetch("#messages_container");
@@ -252,27 +243,40 @@ function updateCardButton(cardButton, card) {
                 }
             }
         }
-    }else {
-        if (card["location"] !== "shop" && card["location"] !== "stall") {
-            let percent = 100 * card["health"] / card["max_health"];
-            health.style.width = Math.max(percent, 0) + "%";
-            //Have heart icons below the bar instead maybe?
-            health.style.height = 4.0 /* + card["max_health"] / 2.0*/ + "%";
-            if (percent > 75) {
-                health.style.background = "rgba(0, 255, 0, 0.8)";
-            } else if (percent > 40) {
-                health.style.background = "rgba(255, 255, 0, 0.8)";
-            } else if (percent > 0) {
-                health.style.background = "rgba(255, 0, 0, 0.8)";
-            }
-            percent = 100 * card["shield"] / card["max_shield"];
-            shield.style.width = Math.max(percent, 0) + "%";
-            shield.style.background = "rgba(30,144,255,0.9)";
+    }
+    if (["board","hand"].includes(card["location"])) {
+        if (card["level"]){
+            topLeftText.innerHTML = parseFloat(card["level"].toFixed(1));
+            topLeftImage.src = "pics/level-icon.png";
+            topLeftImage.style.display = "inline-block";
+        }else {
+            topLeftText.innerHTML = "";
+            topLeftImage.style.display = "none";
         }
-        if (!["shop","tent","hand"].includes(card["location"]) ){
-            topRightText.innerHTML = "";
-            topRightImage.style.display = "none";
+    }
+    if (!["shop","stall"].includes(card["location"]) ){
+        let percent = 100 * card["health"] / card["max_health"];
+        health.style.width = Math.max(percent, 0) + "%";
+        //Have heart icons below the bar instead maybe?
+        health.style.height = 4.0 /* + card["max_health"] / 2.0*/ + "%";
+        if (percent > 75) {
+            health.style.background = "rgba(0, 255, 0, 0.8)";
+        } else if (percent > 40) {
+            health.style.background = "rgba(255, 255, 0, 0.8)";
+        } else if (percent > 0) {
+            health.style.background = "rgba(255, 0, 0, 0.8)";
         }
+        percent = 100 * card["shield"] / card["max_shield"];
+        shield.style.width = Math.max(percent, 0) + "%";
+        shield.style.background = "rgba(30,144,255,0.9)";
+    }
+    if (!["shop","tent","hand"].includes(card["location"])){
+        topRightText.innerHTML = "";
+        topRightImage.style.display = "none";
+    }
+    if (!["board","tent","hand"].includes(card["location"])){
+        topLeftText.innerHTML = "";
+        topLeftImage.style.display = "none";
     }
     //currentBottom = 0;
     //Should be reversed at some point to match input data
@@ -321,7 +325,7 @@ function updateCardButton(cardButton, card) {
             effectBar.existing.push(effectType);
             amountText = document.createElement("p");
             amountText.classList.add("effectAmount");
-            amountText.innerHTML = amount.toFixed(1); //Repeat the image in the div, don't use text
+            amountText.innerHTML = parseFloat(amount.toFixed(1)); //Repeat the image in the div, don't use text
 
             effectDiv = document.createElement("div");
             effectDiv.classList.add("effectDiv");
