@@ -128,7 +128,8 @@
             ],
             "discarded": [
                 {"actions":[
-                    {"action":"move","target":"on_me","to": {"location": "discard","index": "append","entity": "owner"}}
+                    {"action":"move","target":"on_me","to": {"location": "discard","index": "append","entity": "owner"}},
+                    {"action":"empty_storage","target":"self"}
                 ]}
             ],
             "forgotten": [
@@ -177,7 +178,8 @@
             ],
             "discarded": [
                 {"actions":[
-                    {"action":"move","target":"on_me","to": {"location": "discard","index": "append","entity": "owner"}}
+                    {"action":"move","target":"on_me","to": {"location": "discard","index": "append","entity": "owner"}},
+                    {"action":"empty_storage","target":"self"}
                 ]}
             ],
             "forgotten": [
@@ -658,7 +660,7 @@
     "good":{
         "health":30,
         "cost":0,
-        "targets": ["","","my_tent"],
+        "targets": ["","my_tent","my_tent"],
         "icons": ["","income","gems"],
         "triggers": {
             "timer": [
@@ -674,7 +676,7 @@
     "evil1":{
         "health":30,
         "cost":0,
-        "targets": ["","","my_tent"],
+        "targets": ["","my_tent","my_tent"],
         "icons": ["","income","gems"],
         "triggers": {
             "timer": [
