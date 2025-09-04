@@ -166,7 +166,7 @@ from itertools import takewhile
 #Should never return 0s
 def get_target_groups(action, card):
     #If the action doesn't have a target, quit
-    logging = False #action.get("action") == "buy"
+    logging = action.get("action") == "move"
     if logging:
         log("action and card")
         log(action)
