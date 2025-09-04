@@ -35,6 +35,8 @@
 #Add some kind of label to the sections. Preferrably images
 #Allow one card to be trashed per round. FIX TRASHING
 #Readme card/ button people can click for a general explanation
+#Have a cooldown timer on cards so that you need a larger deck. Fast deck isn't good enough. So draw, discard, and waiting sections.
+#Have glass cards that are used once then they trash themselves.
 
 #TODO TODONE
 #Make refresh work
@@ -166,7 +168,7 @@ from itertools import takewhile
 #Should never return 0s
 def get_target_groups(action, card):
     #If the action doesn't have a target, quit
-    logging = action.get("action") == "move" and action.get("target") == "on_me"
+    logging = False #action.get("action") == "move" and action.get("target") == "on_me"
     if logging:
         log("action and card")
         log(action)
@@ -406,8 +408,12 @@ def get_cards(zone, select_function, args, action, card):
                     result.append(zone[index])
             return result
         case "amount":
-            amount = action["amount"]
-            return actual_zone[-amount:]
+            power = 0
+            if card and card.get("level"):
+                power = math.floor(action["amount"] + card["level"])
+            else:
+                power = action["amount"]
+            return actual_zone[-power:]
         case _:
         #Case for if an literal index is passed
             return [zone[select_function]]
@@ -496,6 +502,12 @@ def extend_nested(data, keys, value):
 def acting(action, card =""):
     target_groups = get_target_groups(action, card)
     destinations = action.get("to")
+    power = 0
+    if action.get("amount"):
+        power = action.get("amount")
+        if card and card.get("level"):
+            power += card.get("level")
+
     #try:
     match action["action"]:
         case "forgotten":
@@ -558,6 +570,8 @@ def acting(action, card =""):
             # Following comment is the end trigger stored on casting card
             #{"action": "effect-relative", "target": ["my_base"], "effect_function":{"name":"armor","function":"add","value":1}, "end_trigger":"exit"}
             effect_function = action["effect_function"]
+            if effect_function.get("value"):
+                effect_function["value"] += card.get("level")
             target = action["target"]
             effect = {"effect_function":effect_function,"target":target, "card_id":card["id"], "id": get_unique_id()}
             game_table["ids"][effect["id"]] = effect
@@ -571,12 +585,15 @@ def acting(action, card =""):
             if storage:
                 for index, slot in enumerate(storage):
                     storage[index] = ""
-
-        case "hype":
-            print("hype!")
+        case "level":
             victims = target_groups[0]
             victim = victims[0]
-            #If you are storing a card with storage, clear its storage
+            victim["level"] += action["amount"]
+
+        case "hype":
+            victims = target_groups[0]
+            victim = victims[0]
+            #If you are storing a card that has it's own storage, clear that storage.
             if card.get("storage"):
                 acting({"action": "move", "target": "on_me",
                         "to": {"entity": card["owner"], "location": "discard", "index": "append"}},card)
@@ -589,6 +606,7 @@ def acting(action, card =""):
                                 "to": {"entity": card["owner"], "location": "held", "index": "append"}})
                         break
             else:
+                acting({"action": "level", "target": victim, "amount":0.2}, card)
                 acting({"action": "move", "target": card, "to": {"entity":"owner","location": "discard", "index": "append"}}, card)
 
             ## end trigger stored on effected card
@@ -642,6 +660,7 @@ def acting(action, card =""):
             all_effect_recipes.remove(game_table["ids"][action["effect_id"]])
             del game_table["ids"][action["effect_id"]]
         case "vampire":
+            #Make a card that heals other cards when it attacks?
             victims = target_groups[0]
             monsters = target_groups[1]
             for victim, monster in zip(victims,monsters):
@@ -657,7 +676,7 @@ def acting(action, card =""):
             victims = target_groups[0]
             for victim in victims:
                 #Maybe have this set the image too
-                damage = action["amount"]
+                damage = power
                 animations.append({"sender": card, "receiver":victim, "size":damage, "image":"pics/bang.png"})
                 armor = get_effect("armor", victim)
                 remaining_shield = negative_remaining_damage = victim["shield"] - damage
@@ -670,27 +689,26 @@ def acting(action, card =""):
         case "shield":
             victims = target_groups[0]
             for victim in victims:
-                shield = action["amount"]
+                shield = power
                 animations.append({"sender": card, "receiver":victim, "size":shield, "image":"pics/energyshield2.png"})
                 victim["shield"] += shield
                 victim["shield"] = min(victim["shield"],victim["max_shield"])
         case "income":
             recipients = target_groups[0]
             for recipient in recipients:
-                recipient["gold"] += action["amount"]
+                recipient["gold"] += power
                 recipient["gold"] = max(0, recipient["gold"])
                 recipient["gold"] = min(recipient["gold_limit"], recipient["gold"])
                 if action["amount"] > 0:
-                    animations.append({"sender": card, "receiver": recipient, "size": action["amount"], "image": "pics/coin3.png"})
+                    animations.append({"sender": card, "receiver": recipient, "size": power, "image": "pics/coin3.png"})
                 else:
-                    animations.append({"sender": card, "receiver": recipient, "size": action["amount"], "image": "pics/theft-icon.png"})
+                    animations.append({"sender": card, "receiver": recipient, "size": power, "image": "pics/theft-icon.png"})
         case "gems":
             recipients = target_groups[0]
             #Maybe refactor so that recipient also has a missed section returned in another list
             for recipient in recipients:
-
                 animations.append({"sender": card, "receiver":recipient, "size":action["amount"], "image":"pics/gem.png"})
-                recipient["gems"] += action["amount"]
+                recipient["gems"] += power
                 recipient["gems"] = max(0, recipient["gems"])
                 recipient["gems"] = min(recipient["gems_limit"], recipient["gems"])
         case "trader":
@@ -807,6 +825,8 @@ def create_random_action(action):
 
 #GLOBALS
 animations = []
+#Run update on all rooms with sessions instead of just on players in single session
+rooms_table = {}
 default_session_table = {"ais":{},"players":{},"teams":{"good":{"losses":0},"evil":{"losses":0}},"send_reset":1, "level":1, "max_level":7, "first":1, "reward":1, "trader_level":5}
 session_table = copy.deepcopy(default_session_table)
 random_table = load({"file":"json/random.json"})
@@ -1019,6 +1039,7 @@ def initialize_player(team,ai,username, deck="beginner"):
             "deck": [],
             "discard": [],
             "held": [],
+            #If I want shop on each player instead of one for everyone this is a start. Individual shops would be best for rpg style.
             #"shop": [0,0,0],
             "trash": [],
             "tent": [
@@ -1093,6 +1114,7 @@ def initialize_card(card_name,username,location,index):
     baby_card["shield"] = 0
     baby_card["effects"] = {}
     baby_card["max_shield"] = 20
+    baby_card["level"] = 0
     baby_card["index"] = "in the void"
     #for trigger in baby_card["trigger"]:
     #   for action in trigger:

@@ -235,15 +235,21 @@ function updateCardButton(cardButton, card) {
             topLeftImage.style.display = "none";
         }
     }
-    if (card["location"] == "hand" && "cost" in card) {
-        topRightText.innerHTML = card["cost"];
-        mContainer = fetch("#messages_container");
-        if (mContainer.playerState) {
-            money = mContainer.playerState["gold"];
-            if (card["cost"] > money) {
-                topRightText.style.color = "crimson";
-            } else {
-                topRightText.style.color = "white";
+    if (card["location"] == "hand" ){
+        if (card.get("level")){
+            topLeftText.innerHTML = card["level"];
+            topLeftImage.src = "pics/level-icon.png";
+        }
+        if("cost" in card) {
+            topRightText.innerHTML = card["cost"];
+            mContainer = fetch("#messages_container");
+            if (mContainer.playerState) {
+                money = mContainer.playerState["gold"];
+                if (card["cost"] > money) {
+                    topRightText.style.color = "crimson";
+                } else {
+                    topRightText.style.color = "white";
+                }
             }
         }
     }else {
