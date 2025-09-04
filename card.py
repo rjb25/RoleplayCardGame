@@ -437,7 +437,7 @@ def triggering(card, event_type):
                             acting(action, card)
                 case _:
                     for action in event["actions"]:
-                            log(action,card)
+                            print(action,card)
                             acting(action, card)
             if event.get("once"):
                 events.remove(event)
