@@ -137,7 +137,7 @@
                     {"action":"move","target":"self","to": {"location": "discard","index": "append","entity": "owner"}}
                 ]}
             ]
-        }
+       }
     },
     "trash-attacky":{
         "health":10,
@@ -163,7 +163,7 @@
     "beaver-duplicate":{
         "description": "Duplicates the card in storage.",
         "health":1,
-        "cost":1,
+        "cost":8,
         "targets": ["","","on_me"],
         "icons": ["","","move"],
         "storage": ["",""],
