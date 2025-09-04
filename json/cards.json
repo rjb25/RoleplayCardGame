@@ -128,9 +128,7 @@
             ],
             "discarded": [
                 {"actions":[
-                    {"action":"trash","target":"on_me"},
-                    {"action":"empty_storage","target":"self"},
-                    {"action":"move","target":"self","to": {"location": "discard","index": "append","entity": "owner"}}
+                    {"action":"move","target":"on_me","to": {"location": "discard","index": "append","entity": "owner"}},
                 ]}
             ],
             "forgotten": [
@@ -175,6 +173,11 @@
                     {"action":"move","target":"on_me","to": {"location": "discard","index": "append","entity": "owner"}},
                     {"action":"empty_storage","target":"self"},
                     {"action":"move","target":"self","to": {"location": "discard","index": "append","entity": "owner"}}
+                ]}
+            ],
+            "discarded": [
+                {"actions":[
+                    {"action":"move","target":"on_me","to": {"location": "discard","index": "append","entity": "owner"}},
                 ]}
             ],
             "forgotten": [
