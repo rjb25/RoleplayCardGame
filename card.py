@@ -547,6 +547,7 @@ def acting(action, card =""):
             for card in cards:
                 to =  {"entity": "owner", "location": "trash", "index": "append"}
                 move(card,to)
+
         case "effect_relative":
             # Following comment is the end trigger stored on casting card
             #{"action": "effect-relative", "target": ["my_base"], "effect_function":{"name":"armor","function":"add","value":1}, "end_trigger":"exit"}
@@ -556,6 +557,7 @@ def acting(action, card =""):
             game_table["ids"][effect["id"]] = effect
             append_nested(card,["triggers",action["end_trigger"]],{"actions": [{"action":"remove_effect","effect_id":effect["id"]}]})
             game_table["all_effect_recipes"].append(effect)
+
         case "empty_storage":
             victims = target_groups[0]
             victim = victims[0]
@@ -669,11 +671,15 @@ def acting(action, card =""):
         case "income":
             recipients = target_groups[0]
             for recipient in recipients:
-                animations.append({"sender": card, "receiver":recipient, "size":action["amount"], "image":"pics/coin3.png"})
                 recipient["gold"] += action["amount"]
                 recipient["gold"] = max(0, recipient["gold"])
                 recipient["gold"] = min(recipient["gold_limit"], recipient["gold"])
-        case "gems":
+                if action["amount"] > 0:
+                    animations.append({"sender": card, "receiver": recipient, "size": action["amount"], "image": "pics/coin3.png"})
+                else:
+                    animations.append({"sender": card, "receiver": recipient, "size": action["amount"], "image": "pics/theft-icon.png"})
+
+    case "gems":
             recipients = target_groups[0]
             #Maybe refactor so that recipient also has a missed section returned in another list
             for recipient in recipients:
@@ -1269,6 +1275,7 @@ def move_triggers(card, to, card_was, card_is):
                     "to": {"entity": card["owner"], "location": "deck", "index": "append"}}, {"owner":card_owner})
             random.shuffle(deck)
     if to_location == "discard":
+        triggering(card, "discarded")
         refresh_card(card)
 
 #Need an add card

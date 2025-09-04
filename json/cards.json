@@ -121,6 +121,18 @@
                     {"action":"move","target":"self","to": {"location": "discard","index": "append","entity": "owner"}}
                 ]}
             ],
+            "enter": [
+                {"actions":[
+                    {"action": "effect_relative", "target": "all_in_my_location", "effect_function":{"name":"armor","function":"add","value":0.4}, "end_trigger":"exit"}
+                ]}
+            ],
+            "discarded": [
+                {"actions":[
+                    {"action":"trash","target":"on_me"},
+                    {"action":"empty_storage","target":"self"},
+                    {"action":"move","target":"self","to": {"location": "discard","index": "append","entity": "owner"}}
+                ]}
+            ],
             "forgotten": [
                 {"goal":3, "progress":0, "actions":[
                     {"action":"move","target":"self","to": {"location": "discard","index": "append","entity": "owner"}}
@@ -328,7 +340,7 @@
         "icons": ["armor","",""],
         "triggers":{
             "timer": [
-                {"goal":10, "main":"black","progress":0, "actions":[
+                {"goal":20, "main":"black","progress":0, "actions":[
                     {"action":"move","target":"self","to": {"location": "discard","index": "append","entity": "owner"}}
                 ]}
             ],
@@ -644,7 +656,7 @@
         "health":30,
         "cost":0,
         "targets": ["","","my_tent"],
-        "icons": ["","","gems"],
+        "icons": ["","income","gems"],
         "triggers": {
             "timer": [
                 {"goal":4, "progress":0, "actions":[
@@ -660,7 +672,7 @@
         "health":30,
         "cost":0,
         "targets": ["","","my_tent"],
-        "icons": ["","","gems"],
+        "icons": ["","income","gems"],
         "triggers": {
             "timer": [
                 {"goal":4, "progress":0, "actions":[
