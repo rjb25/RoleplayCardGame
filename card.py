@@ -389,6 +389,7 @@ def get_cards(zone, select_function, args, action, card):
                 log_json(zone)
                 log("Action")
                 log_json(action)
+                log("If the target is self, self cannot be in discard.")
 
         case "fork":
             indices = [card["index"]-1,card["index"],card["index"]+1]
