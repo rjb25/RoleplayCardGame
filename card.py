@@ -177,8 +177,8 @@ def get_target_groups(action, card):
 
     target_group_aliases = action["target"]
     #If it just wants to target itself, return card
-    #if target_group_aliases == "self":
-        #return [[card]]
+    if target_group_aliases == "self":
+        return [[card]]
     #If target_group_aliases is just a card
     if type(target_group_aliases) == dict and "id" in target_group_aliases.keys():
         return [[target_group_aliases]]
