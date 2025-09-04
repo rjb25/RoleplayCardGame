@@ -126,7 +126,7 @@
                     {"action": "effect_relative", "target": "all_in_my_location", "effect_function":{"name":"armor","function":"add","value":0.4}, "end_trigger":"exit"}
                 ]}
             ],
-            "discarded": [
+            "exit": [
                 {"actions":[
                     {"action":"move","target":"on_me","to": {"location": "discard","index": "append","entity": "owner"}},
                     {"action":"empty_storage","target":"self"}
@@ -176,7 +176,7 @@
                     {"action":"move","target":"self","to": {"location": "discard","index": "append","entity": "owner"}}
                 ]}
             ],
-            "discarded": [
+            "exit": [
                 {"actions":[
                     {"action":"move","target":"on_me","to": {"location": "discard","index": "append","entity": "owner"}},
                     {"action":"empty_storage","target":"self"}
