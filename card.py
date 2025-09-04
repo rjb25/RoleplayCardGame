@@ -385,6 +385,8 @@ def get_cards(zone, select_function, args, action, card):
                 log(e)
                 log("You likely discarded the following card then tried to target something based on it's index which is now gone.")
                 log_json(card)
+                log("Zone")
+                log_json(zone)
 
         case "fork":
             indices = [card["index"]-1,card["index"],card["index"]+1]
