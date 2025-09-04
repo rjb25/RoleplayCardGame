@@ -678,8 +678,7 @@ def acting(action, card =""):
                     animations.append({"sender": card, "receiver": recipient, "size": action["amount"], "image": "pics/coin3.png"})
                 else:
                     animations.append({"sender": card, "receiver": recipient, "size": action["amount"], "image": "pics/theft-icon.png"})
-
-    case "gems":
+        case "gems":
             recipients = target_groups[0]
             #Maybe refactor so that recipient also has a missed section returned in another list
             for recipient in recipients:
