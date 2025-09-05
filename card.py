@@ -435,13 +435,6 @@ def triggering(card, event_type):
 
                     speed = 1 + get_effect("speed", card)
                     timer["progress"] += tick_rate() * speed
-                case "forgotten":
-                    meter = event
-                    meter["progress"] += 0#1 #tick_rate() * speed
-                    if meter["progress"] >= meter["goal"]:
-                        meter["progress"] -= meter["goal"]
-                        for action in meter["actions"]:
-                            acting(action, card)
                 case _:
                     for action in event["actions"]:
                             print(action,card)
@@ -512,17 +505,12 @@ def acting(action, card =""):
     power = get_power(action,card)
     #try:
     match action["action"]:
-        case "forgotten":
-            for played in target_groups[0]:
-                triggering(played, "forgotten")
 
         case "play":
             for played in target_groups[0]:
                 username = played["owner"]
                 captain = owner_card(username)
                 if captain["gold"] >= played["cost"]:
-                    acting({"action": "forgotten", "target": "all_hand"}, played)
-                    del played["triggers"]["forgotten"]
                     game_table["running"] = 1
                     captain["gold"] -= played["cost"]
                     destination = destinations
@@ -552,6 +540,14 @@ def acting(action, card =""):
                 move(ca,destination)
                 if destination["location"] == "hand":
                     animations.append({"sender": card, "receiver": ca, "size": 1, "image": "pics/cards.png"})
+
+        case "create":
+            victims = target_groups[0]
+            for i in range(math.floor(power)):
+                for victim in victims:
+                    baby_card = initialize_card(action["what"], victim["owner"], "deck", "append")
+                    #animations.append({"sender": card, "receiver": owner_card(username), "size": 1, "image": "pics/cards.png"})
+
         case "duplicate":
             cards = target_groups[0]
             username = card["owner"]
@@ -587,15 +583,27 @@ def acting(action, card =""):
             if storage:
                 for index, slot in enumerate(storage):
                     storage[index] = ""
-        case "level":
+        case "upgrade":
             victims = target_groups[0]
-            victim = victims[0]
-            victim["level"] += action["amount"]
+            #If destination is just append to entities location, no need to zip
+            for victim in victims:
+                if victim["level"] < victim["max_level"]:
+                    victim["level"] += action["amount"]
 
         case "empower":
             victims = target_groups[0]
             victim = victims[0]
-            victim["hype"] += action["amount"]
+            if victim["hype"] < victim["max_hype"]:
+                victim["hype"] += action["amount"]
+
+        case "abduct":
+            victims = target_groups[0]
+            #If destination is just append to entities location, no need to zip
+            for victim in victims:
+                to =  {"entity": card["owner"], "location": "discard", "index": "append"}
+                move(victim,to)
+                #Get Owned!
+                victim["owner"] = card["owner"]
 
         case "hype":
             victims = target_groups[0]
@@ -710,6 +718,23 @@ def acting(action, card =""):
                     animations.append({"sender": card, "receiver": recipient, "size": power, "image": "pics/coin3.png"})
                 else:
                     animations.append({"sender": card, "receiver": recipient, "size": power, "image": "pics/theft-icon.png"})
+
+        case "accelerate":
+            recipients = target_groups[0]
+            for recipient in recipients:
+                goals = find_goals_with_action_name({"action":action["what"]}, recipient)
+                for goal in goals:
+                    goal["progress"] += power
+                animations.append({"sender": card, "receiver":recipient, "size":power, "image":"pics/speed-icon.png"})
+
+        case "finish":
+            recipients = target_groups[0]
+            for recipient in recipients:
+                goals = find_goals_with_action_name({"action":action["what"]}, recipient)
+                for goal in goals:
+                    goal["progress"] = goal["goal"]
+                animations.append({"sender": card, "receiver":recipient, "size":power, "image":"pics/speed-icon.png"})
+
         case "gems":
             recipients = target_groups[0]
             #Maybe refactor so that recipient also has a missed section returned in another list
@@ -834,7 +859,7 @@ def create_random_action(action):
 animations = []
 #Run update on all rooms with sessions instead of just on players in single session
 rooms_table = {}
-default_session_table = {"ais":{},"players":{},"teams":{"good":{"losses":0},"evil":{"losses":0}},"send_reset":1, "level":1, "max_level":7, "first":1, "reward":1, "trader_level":5}
+default_session_table = {"ais":{},"players":{},"teams":{"good":{"losses":0},"evil":{"losses":0}},"send_reset":1, "level":1, "max_level":7, "first":1, "reward":1, "trader_level":5, "trader":4, "max_trader":4}
 session_table = copy.deepcopy(default_session_table)
 random_table = load({"file":"json/random.json"})
 decks_table = load({"file":"json/decks.json"})
@@ -1045,7 +1070,8 @@ def initialize_player(team,ai,username, deck="beginner"):
             ],
             "deck": [],
             "discard": [],
-            "held": [],
+            "loaded": [],
+            "cooldown": [],
             #If I want shop on each player instead of one for everyone this is a start. Individual shops would be best for rpg style.
             #"shop": [0,0,0],
             "trash": [],
@@ -1117,12 +1143,15 @@ def initialize_card(card_name,username,location,index):
         if "cost" in baby_card.keys():
             baby_card["value"] = baby_card["cost"]
 
+    if not baby_card.get("cooldown"):
+        baby_card["cooldown"] = 10
+
     if not baby_card.get("scaling"):
         baby_card["scaling"] = 0.2
     if not baby_card.get("max_hype"):
-        baby_card["max_hype"] = 2
+        baby_card["max_hype"] = 5
     if not baby_card.get("max_level"):
-        baby_card["max_level"] = 3
+        baby_card["max_level"] = 10
 
     baby_card["id"] = get_unique_id()
     baby_card["shield"] = 0
@@ -1152,6 +1181,7 @@ def refresh_card(card):
         card["triggers"] = baby_card["triggers"]
         card["effects"].clear()
         card["max_health"] = baby_card["health"]
+        card["hype"] = 0
         card["health"] = baby_card["health"]
         card["shield"] = 0
         card["max_shield"] = 20
@@ -1376,13 +1406,16 @@ def strip_keys_copy(keys, table):
 def owner_card(owner):
     return game_table["entities"][owner]["locations"]["tent"][0]
 
-def find_triggers_with_action_name(card, action):
-    triggers = []
-    for trigger in card["triggers"]:
-        for action in trigger["actions"]:
-            if "action_name" == action["action"]:
-                triggers.append(trigger)
-                continue
+def find_goals_with_action_name(target_action,card):
+    results = []
+    for event, goals in card["triggers"].items():
+        for goal in goals:
+            for action in goal["actions"]:
+                if action["action"] == target_action["action"]:
+                    results.append(goal)
+    print("results")
+    print(results)
+    return results
 
 def get_team(username):
     return game_table["entities"][username]["team"]
@@ -1540,6 +1573,13 @@ def reset_session(command):
     global session_table
     session_table = copy.deepcopy(default_session_table)
     reset_state()
+
+def skip_trader(command):
+    if session_table["trader"] < session_table["max_trader"]:
+        session_table["trader"] += 1
+    else:
+        session_table["trader"] = 1
+    initialize_trader("trader" + str(session_table["trader"]))
 
 def win_game(command):
     session_table["reward"] = 1

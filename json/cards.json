@@ -13,9 +13,20 @@
                 {"goal":20, "main":"green","progress":0, "actions":[
                     {"action":"move","target":"self","to": {"location": "discard","index": "append","entity": "owner"}}
                 ]}
-            ],
-            "forgotten": [
-                {"goal":3, "progress":0, "actions":[
+            ]
+        }
+    },
+    "progressy":{
+        "health":2,
+        "cost":2,
+        "targets": ["","","my_tent"],
+        "icons": ["","","speed"],
+        "triggers": {
+            "timer": [
+                {"goal":1, "progress":0, "actions":[
+                    {"action":"accelerate","target":"allies","what": "move","amount":4}
+                ]},
+                {"goal":20, "main":"green","progress":0, "actions":[
                     {"action":"move","target":"self","to": {"location": "discard","index": "append","entity": "owner"}}
                 ]}
             ]
@@ -29,11 +40,6 @@
             "timer": [
                 {"goal":2, "main":"red","progress":0, "actions":[
                     {"action":"damage","target":"enemy_base","amount":1},
-                    {"action":"move","target":"self","to": {"location": "discard","index": "append","entity": "owner"}}
-                ]}
-            ],
-            "forgotten": [
-                {"goal":3, "progress":0, "actions":[
                     {"action":"move","target":"self","to": {"location": "discard","index": "append","entity": "owner"}}
                 ]}
             ]
@@ -55,15 +61,27 @@
                 {"actions":[
                     {"action":"damage","target":"across","amount":2}
                 ]}
-            ],
-            "forgotten": [
-                {"goal":3, "progress":0, "actions":[
+            ]
+        }
+    },
+    "bird-abduct":{
+        "description": "Steals a card from your opponent.",
+        "health":4,
+        "cost":10,
+        "targets": ["","enemy_board",""],
+        "icons": ["","abduct",""],
+        "triggers": {
+            "timer": [
+                {"goal":2, "progress":0, "actions":[
+                    {"action":"damage","target":"across", "kill":"abduct", "amount": 1}
+                ]},
+                {"goal":10, "main":"brown","progress":0, "actions":[
                     {"action":"move","target":"self","to": {"location": "discard","index": "append","entity": "owner"}}
                 ]}
             ]
         }
     },
-    "bird-thefty":{
+    "bird-thefty2":{
         "description": "Steals money from your opponent.",
         "health":4,
         "cost":10,
@@ -74,11 +92,6 @@
                 {"goal":10, "main":"red" ,"progress":0, "actions":[
                     {"action":"income","target":"enemies","amount":-10},
                     {"action":"income","target":"allies","amount":5},
-                    {"action":"move","target":"self","to": {"location": "discard","index": "append","entity": "owner"}}
-                ]}
-            ],
-            "forgotten": [
-                {"goal":3, "progress":0, "actions":[
                     {"action":"move","target":"self","to": {"location": "discard","index": "append","entity": "owner"}}
                 ]}
             ]
@@ -98,11 +111,6 @@
             "enter": [
                 {"actions":[
                     {"action":"damage","target":"all_board","amount":25}
-                ]}
-            ],
-            "forgotten": [
-                {"goal":3, "progress":0, "actions":[
-                    {"action":"move","target":"self","to": {"location": "discard","index": "append","entity": "owner"}}
                 ]}
             ]
         }
@@ -131,11 +139,6 @@
                     {"action":"move","target":"on_me","to": {"location": "discard","index": "append","entity": "owner"}},
                     {"action":"empty_storage","target":"self"}
                 ]}
-            ],
-            "forgotten": [
-                {"goal":3, "progress":0, "actions":[
-                    {"action":"move","target":"self","to": {"location": "discard","index": "append","entity": "owner"}}
-                ]}
             ]
        }
     },
@@ -150,11 +153,6 @@
                     {"action":"damage","target":"across", "kill":"trash", "amount": 1}
                 ]},
                 {"goal":10, "main":"brown","progress":0, "actions":[
-                    {"action":"move","target":"self","to": {"location": "discard","index": "append","entity": "owner"}}
-                ]}
-            ],
-            "forgotten": [
-                {"goal":3, "progress":0, "actions":[
                     {"action":"move","target":"self","to": {"location": "discard","index": "append","entity": "owner"}}
                 ]}
             ]
@@ -181,25 +179,20 @@
                     {"action":"move","target":"on_me","to": {"location": "discard","index": "append","entity": "owner"}},
                     {"action":"empty_storage","target":"self"}
                 ]}
-            ],
-            "forgotten": [
-                {"goal":3, "progress":0, "actions":[
-                    {"action":"move","target":"self","to": {"location": "discard","index": "append","entity": "owner"}}
-                ]}
             ]
         }
     },
-    "beaver-duplicate":{
+    "beaver-upgrade":{
         "description": "Duplicates the card in storage.",
         "health":1,
         "cost":8,
         "targets": ["","","on_me"],
-        "icons": ["","","move"],
+        "icons": ["","","level"],
         "storage": ["",""],
         "triggers": {
             "timer": [
                 {"goal":10, "main":"green","progress":0, "actions":[
-                    {"action":"level","target":"on_me", "amount": 3},
+                    {"action":"upgrade","target":"on_me", "amount": 5},
                     {"action":"move","target":"on_me","to": {"location": "discard","index": "append","entity": "owner"}},
                     {"action":"empty_storage","target":"self"},
                     {"action":"move","target":"self","to": {"location": "discard","index": "append","entity": "owner"}}
@@ -210,9 +203,33 @@
                     {"action":"move","target":"on_me","to": {"location": "discard","index": "append","entity": "owner"}},
                     {"action":"empty_storage","target":"self"}
                 ]}
-            ],
-            "forgotten": [
-                {"goal":3, "progress":0, "actions":[
+            ]
+        }
+    },
+    "beaver-wood":{
+        "description": "Adds flack to your opponents deck.",
+        "health":1,
+        "cost":4,
+        "targets": ["","","enemy_board"],
+        "icons": ["","","wood"],
+        "triggers": {
+            "timer": [
+                {"goal":10, "main":"green","progress":0, "actions":[
+                    {"action":"create","what":"wood","target":"enemies", "amount": 2},
+                    {"action":"move","target":"self","to": {"location": "discard","index": "append","entity": "owner"}}
+                ]}
+            ]
+        }
+    },
+    "wood":{
+        "description": "Does nothing.",
+        "health":1,
+        "cost":0,
+        "targets": ["","",""],
+        "icons": ["","",""],
+        "triggers": {
+            "timer": [
+                {"goal":1, "main":"green","progress":0, "actions":[
                     {"action":"move","target":"self","to": {"location": "discard","index": "append","entity": "owner"}}
                 ]}
             ]
@@ -223,7 +240,7 @@
         "cost":2,
         "targets": ["my_board","",""],
         "icons": ["armor","",""],
-        "scaling": 0.5,
+        "scaling": 0.1,
         "triggers": {
             "timer": [
                 {"goal":30, "main":"black","progress":0, "actions":[
@@ -233,11 +250,6 @@
             "enter": [
                 {"actions":[
                     {"action": "effect_relative", "target": "all_in_my_location", "effect_function":{"name":"armor","function":"add","value":0.4}, "end_trigger":"exit"}
-                ]}
-            ],
-            "forgotten": [
-                {"goal":3, "progress":0, "actions":[
-                    {"action":"move","target":"self","to": {"location": "discard","index": "append","entity": "owner"}}
                 ]}
             ]
         }
@@ -253,11 +265,6 @@
                     {"action":"income","target":"allies","amount":2}
                 ]},
                 {"goal":10, "main":"yellow","progress":0, "actions": [
-                    {"action":"move","target":"self","to": {"location": "discard","index": "append","entity": "owner"}}
-                ]}
-            ],
-            "forgotten": [
-                {"goal":3, "progress":0, "actions":[
                     {"action":"move","target":"self","to": {"location": "discard","index": "append","entity": "owner"}}
                 ]}
             ]
@@ -278,11 +285,6 @@
                 {"goal":20, "main":"pink","progress":0, "actions":[
                     {"action":"move","target":"self","to": {"location": "discard","index": "append","entity": "owner"}}
                 ]}
-            ],
-            "forgotten": [
-                {"goal":3, "progress":0, "actions":[
-                    {"action":"move","target":"self","to": {"location": "discard","index": "append","entity": "owner"}}
-                ]}
             ]
         }
     },
@@ -299,11 +301,6 @@
                 {"goal":9, "main":"blue","progress":0, "actions":[
                     {"action":"move","target":"self","to": {"location": "discard","index": "append","entity": "owner"}}
                 ]}
-            ],
-            "forgotten": [
-                {"goal":3, "progress":0, "actions":[
-                    {"action":"move","target":"self","to": {"location": "discard","index": "append","entity": "owner"}}
-                ]}
             ]
         }
     },
@@ -315,11 +312,6 @@
             "timer": [
                 {"goal":20, "main":"red","progress":0, "actions":[
                     {"action":"damage","target":"enemy_base","amount":3},
-                    {"action":"move","target":"self","to": {"location": "discard","index": "append","entity": "owner"}}
-                ]}
-            ],
-            "forgotten": [
-                {"goal":3, "progress":0, "actions":[
                     {"action":"move","target":"self","to": {"location": "discard","index": "append","entity": "owner"}}
                 ]}
             ]
@@ -336,11 +328,6 @@
                     {"action":"damage","target":"fork","amount":1}
                 ]},
                 {"goal":10, "main":"red","progress":0, "actions":[
-                    {"action":"move","target":"self","to": {"location": "discard","index": "append","entity": "owner"}}
-                ]}
-            ],
-            "forgotten": [
-                {"goal":3, "progress":0, "actions":[
                     {"action":"move","target":"self","to": {"location": "discard","index": "append","entity": "owner"}}
                 ]}
             ]
@@ -360,11 +347,6 @@
                 {"actions":[
                     {"action": "effect_relative", "target": ["my_base"], "effect_function":{"name":"armor","function":"add","value":1.2}, "end_trigger":"exit"}
                 ]}
-            ],
-            "forgotten": [
-                {"goal":3, "progress":0, "actions":[
-                    {"action":"move","target":"self","to": {"location": "discard","index": "append","entity": "owner"}}
-                ]}
             ]
         }
     },
@@ -379,11 +361,6 @@
                     {"action":"income","target":"allies","amount":4}
                 ]},
                 {"goal":10, "main":"yellow", "progress":0, "actions": [
-                    {"action":"move","target":"self","to": {"location": "discard","index": "append","entity": "owner"}}
-                ]}
-            ],
-            "forgotten": [
-                {"goal":3, "progress":0, "actions":[
                     {"action":"move","target":"self","to": {"location": "discard","index": "append","entity": "owner"}}
                 ]}
             ]
@@ -402,11 +379,6 @@
                 {"goal":9, "main":1,"progress":0, "actions":[
                     {"action":"move","target":"self","to": {"location": "discard","index": "append","entity": "owner"}}
                 ]}
-            ],
-            "forgotten": [
-                {"goal":3, "progress":0, "actions":[
-                    {"action":"move","target":"self","to": {"location": "discard","index": "append","entity": "owner"}}
-                ]}
             ]
         }
     },
@@ -423,11 +395,6 @@
                 {"goal":20, "main":"green","progress":0, "actions":[
                     {"action":"move","target":"self","to": {"location": "discard","index": "append","entity": "owner"}}
                 ]}
-            ],
-            "forgotten": [
-                {"goal":3, "progress":0, "actions":[
-                    {"action":"move","target":"self","to": {"location": "discard","index": "append","entity": "owner"}}
-                ]}
             ]
         }
     },
@@ -442,11 +409,6 @@
             "enter": [
                 {"actions":[
                     {"action": "effect_relative", "target": ["my_base"], "effect_function":{"name":"armor","function":"add","value":0.9}, "end_trigger":"exit"}
-                ]}
-            ],
-            "forgotten": [
-                {"goal":3, "progress":0, "actions":[
-                    {"action":"move","target":"self","to": {"location": "discard","index": "append","entity": "owner"}}
                 ]}
             ]
         }

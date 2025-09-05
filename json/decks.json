@@ -15,10 +15,9 @@
     "shop4":["attack2","bomb","shield3"],
     "shop5":["attack2","loot","draw","shield","shield2"],
     "shop6":["attack2","loot","bomb","draw","shield2"],
-    "trader1":["looty","miney","bomby","tanky","attacky","dealy","speedy"],
+    "trader1":["looty","miney","bomby","tanky","attacky","dealy","speedy","progressy"],
     "trader2":["bear-looty","bear-miney","bear-bomby","bear-tanky","bear-attacky","bear-dealy"],
-    "trader3":["nuke","trash-attacky","trash","bird-thefty"],
-    "trader4":["beaver-duplicate"],
-    "trader5":["beaver-duplicate"],
+    "trader3":["nuke","trash-attacky","trash","bird-thefty2","bird-abduct"],
+    "trader4":["beaver-duplicate","beaver-upgrade","beaver-wood"],
     "shop7":["attack2","loot","bomb","draw","shield2"]
 }

@@ -177,6 +177,10 @@ font-style: normal;
     z-index: 1000;
     visibility : hidden;
 }
+.inspectionDeck {
+    width: calc(var(--scale)*80vw);
+    height: calc(var(--scale)*10vw);
+}
 
 .count {
     text-shadow: 0.04vw 0 0 #000, 0 -0.04vw 0 #000, 0 0.04vw 0 #000, -0.04vw 0 0 #000;
@@ -210,12 +214,24 @@ font-style: normal;
     height: calc(var(--scale)*1.75vw);
     pointer-events: none;
 }
+.inspectSectionDiv {
+    display: block;
+    position: relative;
+}
+.inspectCardDiv {
+    display: inline-block;
+    position: relative;
+    width: calc(var(--scale)*2.5vw);
+    height: calc(var(--scale)*3.5vw);
+    pointer-events: none;
+}
 .smallDiv {
     position: absolute;
     width: 120%;
     height: 30%;
     pointer-events: none;
 }
+/*
 .smallDiv::after {
     content:" ";
     position: absolute;
@@ -271,6 +287,7 @@ font-style: normal;
 #tent_container{
     background-color: var(--my_tent);
 }
+*/
 /*Going to need classes for each of the target areas then simply add that class and have the color set*/
 
 .bigDiv {
@@ -299,7 +316,11 @@ font-style: normal;
 }
 .bottomRight{
     bottom: -5%;
-    right: -10%;
+    right: -15%;
+}
+.bottomLeft{
+    bottom: -5%;
+    left: -15%;
 }
 .leftProgress{
     bottom: 35%;
@@ -315,11 +336,11 @@ font-style: normal;
 }
 .left{
     left: -15%;
-    top: 17%;
+    top: 25%;
 }
 .right{
     right: -15%;
-    top: 17%;
+    top: 25%;
 }
 .storage1{
     right: -10%;

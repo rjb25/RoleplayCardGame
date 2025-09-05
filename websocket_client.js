@@ -6,6 +6,7 @@ function full(){
         });
 }
 gameState = {}
+myself = ""
 my_team = "good";
 enemy_team = "evil";
 lastMissing = [];
@@ -24,7 +25,7 @@ socketname = "localhost:12345";
 buttonContainers = ["#enemy_base_container", "#situations_container", "#ally_base_container", "#plans_container", "#tent_container", "#cards_container", "#discard_container", "#merchant_container", "#shop_container", "#trash_container"];
 buttonContainerLocations = ["base", "board", "base", "board", "tent", "hand", "discard", "stall", "shop", "trash"];
 buttonContainerNames = [enemy_team, enemy_team, my_team, my_team, "me", "me", "me", "trader", "trader", "trader"];
-menuButtons = ["remove_ai", "reset_session", "pause", "add_ai_evil", "add_ai_good", "join_good", "join_evil"/*, "save_game","load_game","save_user","load_user"*/];
+menuButtons = ["remove_ai", "reset_session", "pause", "add_ai_evil", "add_ai_good", "join_good", "join_evil", "skip_trader"/*,"load_game","save_user","load_user"*/];
 //This is what you run if you want to reconnect to server
 //socketname = prompt("WebSocketURL no http://")
 const websocketClient = new WebSocket("ws://" + socketname);
@@ -135,6 +136,7 @@ function makeConnectButton(title) {
 
 function inspect(slot) {
     inspection = slot.querySelector('.inspection');
+    inspection.innerHTML = "";
     if(inspection.info){
         inspection.style.visibility = "hidden";
         inspection.info = false
@@ -146,6 +148,27 @@ function inspect(slot) {
     if (cardButton) {
         var card = cardButton.card;
         if (card) {
+            if (card.location == "tent"){
+                inspection.classList.add("inspectionDeck");
+                locations = ["deck","discard"];
+                locations.forEach((location) => {
+                    cards = gameState["entities"][myself]["locations"][location];
+                    sectionDiv = document.createElement("div");
+                    sectionDiv.classList.add("inspectSectionDiv");
+                    sectionDiv.innerHTML += location;
+                    cards.forEach((ca) => {
+                        cardDiv = document.createElement("div");
+                        cardDiv.classList.add("inspectCardDiv");
+                        cardImage = new Image();
+                        cardImage.classList.add("picture");
+                        cardImage.src = "pics/" + ca["title"] + ".png";
+                        cardImage.alt = ca["title"];
+                        cardDiv.appendChild(cardImage);
+                        sectionDiv.appendChild(cardDiv);
+                    });
+                    inspection.appendChild(sectionDiv);
+                });
+            } else {
             infoText = "Health: " + card["health"] + "<br>Cost:" + card["cost"] + "<br>Shield:" + card["shield"] + "<br>";
 
             triggersText = "";
@@ -180,6 +203,7 @@ function inspect(slot) {
                 });
             });
             inspection.innerHTML = infoText + triggersText;
+            }
             /*
             var infoImage = new Image();
             infoImage.draggable = false;
@@ -214,6 +238,10 @@ function updateCardButton(cardButton, card) {
             discard.innerHTML = mContainer.playerState.discardLength;
             deck = cardButton.querySelector(".leftText");
             deck.innerHTML = mContainer.playerState.deckLength;
+            cooldown = cardButton.querySelector(".bottomRightText");
+            cooldown.innerHTML = 0;//mContainer.playerState.cooldownLength;
+            loaded = cardButton.querySelector(".bottomLeftText");
+            loaded.innerHTML = 0;//mContainer.playerState.cooldownLength;
         }
     }
     if (["shop"].includes(card["location"])){
@@ -245,8 +273,9 @@ function updateCardButton(cardButton, card) {
         }
     }
     if (["board","hand"].includes(card["location"])) {
-        if (card["level"]){
-            topLeftText.innerHTML = parseFloat(card["level"].toFixed(1));
+        if (card["hype"] || card["level"]){
+            bonus = card["hype"]+card["level"];
+            topLeftText.innerHTML = parseFloat(bonus.toFixed(1));
             topLeftImage.src = "pics/level-icon.png";
             topLeftImage.style.display = "inline-block";
         }else {
@@ -367,9 +396,11 @@ function addImage(image, size, location, target = "", storage = ""){
 
     MyDiv = document.createElement("div");
     MyDiv.classList.add(size+"Div",location);
+    /*
     if (target){
         MyDiv.classList.add(target);
     }
+     */
     MyText = document.createElement("p");
     MyText.classList.add("count",location+"Text");
     MyImage = new Image();
@@ -379,11 +410,6 @@ function addImage(image, size, location, target = "", storage = ""){
         MyImage.alt = "pics/" + image + ".png";
     MyDiv.appendChild(MyImage);
     MyDiv.appendChild(MyText);
-    if(target){
-        MyCorner = document.createElement("div");
-        MyCorner.classList.add(size+"DivCorner",location);
-        MyDiv.appendChild(MyCorner);
-    }
     if(storage){
         InnerImage = new Image();
         InnerDiv = document.createElement("div");
@@ -476,6 +502,8 @@ function generateCardButton(card) {
     if (card["location"] == "tent") {
         cardButton.appendChild(addImage("discard", "big", "right"));
         cardButton.appendChild(addImage("deck", "big", "left"));
+        cardButton.appendChild(addImage("cooldown", "big", "bottomRight"));
+        cardButton.appendChild(addImage("loaded", "big", "bottomLeft"));
     }
 
     //The bar that contains effects like armor etc.
@@ -829,6 +857,7 @@ document.addEventListener('DOMContentLoaded', function () {
             gameState = messageJson["game_table"]
             teamsState = gameState["teams"]
             me = messageJson["me"];
+            myself = me;
             mContainer = fetch("#messages_container");
             mContainer.message = messageJson;
             playerState = gameState["entities"][me]["locations"]["tent"][0];
