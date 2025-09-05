@@ -189,20 +189,26 @@
             ]
         }
     },
-    "beaver-duplicate-bak":{
+    "beaver-duplicate":{
         "description": "Duplicates the card in storage.",
         "health":1,
-        "cost":1,
+        "cost":8,
         "targets": ["","","on_me"],
         "icons": ["","","move"],
         "storage": ["",""],
         "triggers": {
             "timer": [
                 {"goal":10, "main":"green","progress":0, "actions":[
-                    {"action":"duplicate","target":"on_me"},
+                    {"action":"level","target":"on_me", "amount": 3},
                     {"action":"move","target":"on_me","to": {"location": "discard","index": "append","entity": "owner"}},
                     {"action":"empty_storage","target":"self"},
                     {"action":"move","target":"self","to": {"location": "discard","index": "append","entity": "owner"}}
+                ]}
+            ],
+            "discarded": [
+                {"actions":[
+                    {"action":"move","target":"on_me","to": {"location": "discard","index": "append","entity": "owner"}},
+                    {"action":"empty_storage","target":"self"}
                 ]}
             ],
             "forgotten": [
@@ -675,7 +681,7 @@
         }
     },
     "evil1":{
-        "health":30,
+        "health":10,
         "cost":0,
         "targets": ["","my_tent","my_tent"],
         "icons": ["","income","gems"],

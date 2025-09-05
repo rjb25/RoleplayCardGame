@@ -501,9 +501,9 @@ def get_power(action, card):
         power += action["amount"]
     if card:
         if card.get("hype"):
-            power += card["hype"] * scaling
+            power += card["hype"] * card["scaling"]
         if card.get("level"):
-            power += card["level"]
+            power += card["level"] * card["scaling"]
     return power
 
 def acting(action, card =""):
@@ -592,6 +592,11 @@ def acting(action, card =""):
             victim = victims[0]
             victim["level"] += action["amount"]
 
+        case "empower":
+            victims = target_groups[0]
+            victim = victims[0]
+            victim["hype"] += action["amount"]
+
         case "hype":
             victims = target_groups[0]
             victim = victims[0]
@@ -608,7 +613,7 @@ def acting(action, card =""):
                                 "to": {"entity": card["owner"], "location": "held", "index": "append"}})
                         break
             else:
-                acting({"action": "level", "target": victim, "amount":0.2}, card)
+                acting({"action": "empower", "target": victim, "amount":1}, card)
                 acting({"action": "move", "target": card, "to": {"entity":"owner","location": "discard", "index": "append"}}, card)
 
             ## end trigger stored on effected card
@@ -1113,7 +1118,11 @@ def initialize_card(card_name,username,location,index):
             baby_card["value"] = baby_card["cost"]
 
     if not baby_card.get("scaling"):
-        baby_card["scaling"] = 1
+        baby_card["scaling"] = 0.2
+    if not baby_card.get("max_hype"):
+        baby_card["max_hype"] = 2
+    if not baby_card.get("max_level"):
+        baby_card["max_level"] = 3
 
     baby_card["id"] = get_unique_id()
     baby_card["shield"] = 0
