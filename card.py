@@ -408,11 +408,7 @@ def get_cards(zone, select_function, args, action, card):
                     result.append(zone[index])
             return result
         case "amount":
-            power = 0
-            if card and card.get("level"):
-                power = math.floor(action["amount"] + card["level"])
-            else:
-                power = action["amount"]
+            power = math.floor(get_power(action,card))
             return actual_zone[-power:]
         case _:
         #Case for if an literal index is passed
@@ -499,15 +495,21 @@ def extend_nested(data, keys, value):
     else:
         data[keys[-1]] = value
 
+def get_power(action, card):
+    power = 0
+    if action.get("amount"):
+        power += action["amount"]
+    if card:
+        if card.get("hype"):
+            power += card["hype"] * scaling
+        if card.get("level"):
+            power += card["level"]
+    return power
+
 def acting(action, card =""):
     target_groups = get_target_groups(action, card)
     destinations = action.get("to")
-    power = 0
-    if action.get("amount"):
-        power = action.get("amount")
-        if card and card.get("level"):
-            power += card.get("level")
-
+    power = get_power(action,card)
     #try:
     match action["action"]:
         case "forgotten":
@@ -571,7 +573,7 @@ def acting(action, card =""):
             #{"action": "effect-relative", "target": ["my_base"], "effect_function":{"name":"armor","function":"add","value":1}, "end_trigger":"exit"}
             effect_function = action["effect_function"]
             if effect_function.get("value"):
-                effect_function["value"] += card.get("level")
+                effect_function["value"] += get_power(action,card)
             target = action["target"]
             effect = {"effect_function":effect_function,"target":target, "card_id":card["id"], "id": get_unique_id()}
             game_table["ids"][effect["id"]] = effect
@@ -1110,11 +1112,15 @@ def initialize_card(card_name,username,location,index):
         if "cost" in baby_card.keys():
             baby_card["value"] = baby_card["cost"]
 
+    if not baby_card.get("scaling"):
+        baby_card["scaling"] = 1
+
     baby_card["id"] = get_unique_id()
     baby_card["shield"] = 0
     baby_card["effects"] = {}
     baby_card["max_shield"] = 20
     baby_card["level"] = 0
+    baby_card["hype"] = 0
     baby_card["index"] = "in the void"
     #for trigger in baby_card["trigger"]:
     #   for action in trigger:

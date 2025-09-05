@@ -217,6 +217,7 @@
         "cost":2,
         "targets": ["my_board","",""],
         "icons": ["armor","",""],
+        "scaling": 0.5,
         "triggers": {
             "timer": [
                 {"goal":30, "main":"black","progress":0, "actions":[
