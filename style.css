@@ -175,7 +175,7 @@ font-style: normal;
     position: absolute;
     pointer-events: none;
     z-index: 1000;
-    visibility : hidden;
+    display: none;
 }
 .inspectionDeck {
     width: calc(var(--scale)*80vw);

@@ -138,10 +138,10 @@ function inspect(slot) {
     inspection = slot.querySelector('.inspection');
     inspection.innerHTML = "";
     if(inspection.info){
-        inspection.style.visibility = "hidden";
+        inspection.style.display = "none";
         inspection.info = false
     }else {
-        inspection.style.visibility = "visible";
+        inspection.style.display = "block";
         inspection.info = true
     }
     cardButton = slot.querySelector('.cardWhole');
@@ -151,6 +151,8 @@ function inspect(slot) {
             if (card.location == "tent"){
                 inspection.classList.add("inspectionDeck");
                 locations = ["deck","discard"];
+                //If I wanted to combine multiple do an if with vvvv
+                //cards.push(...gameState["entities"][myself]["locations"]["discard"]);
                 locations.forEach((location) => {
                     cards = gameState["entities"][myself]["locations"][location];
                     sectionDiv = document.createElement("div");
@@ -169,7 +171,7 @@ function inspect(slot) {
                     inspection.appendChild(sectionDiv);
                 });
             } else {
-            infoText = "Health: " + card["health"] + "<br>Cost:" + card["cost"] + "<br>Shield:" + card["shield"] + "<br>";
+            infoText = "Health: " + card["health"] + /*"<br>Cost:" + card["cost"] + "<br>Shield:" + card["shield"] +*/ "<br>";
 
             triggersText = "";
             Object.entries(card["triggers"]).forEach(([triggerType, events]) => {
@@ -202,7 +204,11 @@ function inspect(slot) {
                     });
                 });
             });
-            inspection.innerHTML = infoText + triggersText;
+            description = "";
+            if (card["description"]){
+                description = card["description"]+ "<br>";
+            }
+            inspection.innerHTML = description + infoText; //+ triggersText;
             }
             /*
             var infoImage = new Image();
@@ -238,10 +244,12 @@ function updateCardButton(cardButton, card) {
             discard.innerHTML = mContainer.playerState.discardLength;
             deck = cardButton.querySelector(".leftText");
             deck.innerHTML = mContainer.playerState.deckLength;
+            /*
             cooldown = cardButton.querySelector(".bottomRightText");
             cooldown.innerHTML = 0;//mContainer.playerState.cooldownLength;
             loaded = cardButton.querySelector(".bottomLeftText");
             loaded.innerHTML = 0;//mContainer.playerState.cooldownLength;
+             */
         }
     }
     if (["shop"].includes(card["location"])){
@@ -324,6 +332,7 @@ function updateCardButton(cardButton, card) {
             if (!storageBar.existing.includes(card["storage"][i]) && card["storage"][i]) {
                 storageBar.existing.push(card["storage"][i]);
                 innerImage = cardButton.querySelector(".storage"+(i+1)+"Inner");
+                innerImage.parentNode.style.visibility = "visible";
 
                 //innerImage.draggable = false;
                 innerImage.classList.add("image");
@@ -414,7 +423,7 @@ function addImage(image, size, location, target = "", storage = ""){
         InnerImage = new Image();
         InnerDiv = document.createElement("div");
         InnerDiv.classList.add("inner");
-        //InnerDiv.hidden = "hidden";
+        InnerDiv.style.visibility = "hidden";
         //InnerImage.draggable = false;
         InnerImage.classList.add("image",location+"Inner");
         //InnerImage.src = "pics/" + image + ".png";
@@ -502,8 +511,8 @@ function generateCardButton(card) {
     if (card["location"] == "tent") {
         cardButton.appendChild(addImage("discard", "big", "right"));
         cardButton.appendChild(addImage("deck", "big", "left"));
-        cardButton.appendChild(addImage("cooldown", "big", "bottomRight"));
-        cardButton.appendChild(addImage("loaded", "big", "bottomLeft"));
+        //cardButton.appendChild(addImage("cooldown", "big", "bottomRight"));
+        //cardButton.appendChild(addImage("loaded", "big", "bottomLeft"));
     }
 
     //The bar that contains effects like armor etc.
