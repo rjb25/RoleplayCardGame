@@ -725,7 +725,7 @@ def acting(action, card =""):
                 goals = find_goals_with_action_name({"action":action["what"]}, recipient)
                 for goal in goals:
                     goal["progress"] += power
-                animations.append({"sender": card, "receiver":recipient, "size":power, "image":"pics/speed-icon.png"})
+                #animations.append({"sender": card, "receiver":recipient, "size":power, "image":"pics/speed-icon.png"})
 
         case "finish":
             recipients = target_groups[0]
@@ -1346,7 +1346,7 @@ def move_triggers(card, to, card_was, card_is):
             #if cooldown:
             acting({"action": "move", "target": "my_discard",
                     "to": {"entity": card["owner"], "location": "deck", "index": "append"}}, {"owner":card_owner})
-            acting({"action": "accelerate", "target": "my_tent", "what": "move", "amount": -10}, card)
+            acting({"action": "accelerate", "target": "my_tent", "what": "move", "amount": -5}, card)
             random.shuffle(deck)
     if to_location == "discard":
         triggering(card, "discarded")
