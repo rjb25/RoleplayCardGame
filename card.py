@@ -1343,9 +1343,10 @@ def move_triggers(card, to, card_was, card_is):
         if len(deck) <= 0:
             #player_data["locations"]["deck"] = player_data["locations"]["discard"]
             #player_data["locations"]["discard"] = []
-            #if cooled_down:
+            #if cooldown:
             acting({"action": "move", "target": "my_discard",
                     "to": {"entity": card["owner"], "location": "deck", "index": "append"}}, {"owner":card_owner})
+            acting({"action": "accelerate", "target": "my_tent", "what": "move", "amount": -10}, card)
             random.shuffle(deck)
     if to_location == "discard":
         triggering(card, "discarded")
