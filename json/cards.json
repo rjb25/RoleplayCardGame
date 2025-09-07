@@ -1,6 +1,75 @@
 {
     "current_name": 0,
-    "dealy":{
+    "bunny-tanky":{
+        "health":2,
+        "cost":2,
+        "targets": ["my_board","",""],
+        "icons": ["armor","",""],
+        "scaling": 0.1,
+        "triggers": {
+            "timer": [
+                {"goal":30, "main":"black","progress":0, "actions":[
+                    {"action":"move","target":"self","to": {"location": "discard","index": "append","entity": "owner"}}
+                ]}
+            ],
+            "enter": [
+                {"actions":[
+                    {"action": "effect_relative", "target": "all_in_my_location", "effect_function":{"name":"armor","function":"add","value":0.4}, "end_trigger":"exit"}
+                ]}
+            ]
+        }
+    },
+    "bunny-looty":{
+        "health":2,
+        "cost":2,
+        "targets": ["","my_tent",""],
+        "icons": ["","income",""],
+        "triggers": {
+            "timer": [
+                {"goal":2, "progress":0, "actions":[
+                    {"action":"income","target":"allies","amount":2}
+                ]},
+                {"goal":10, "main":"yellow","progress":0, "actions": [
+                    {"action":"move","target":"self","to": {"location": "discard","index": "append","entity": "owner"}}
+                ]}
+            ]
+        }
+    },
+    "bunny-speedy":{
+        "health":2,
+        "cost":2,
+        "targets": ["my_board","",""],
+        "icons": ["speed","",""],
+        "triggers": {
+            "enter": [
+                {"actions":[
+                    {"action": "effect_relative", "target": "all_in_my_location", "effect_function":{"name":"speed","function":"add","value":1}, "end_trigger":"exit"}
+                ]}
+            ],
+            "timer": [
+                {"goal":20, "main":"pink","progress":0, "actions":[
+                    {"action":"move","target":"self","to": {"location": "discard","index": "append","entity": "owner"}}
+                ]}
+            ]
+        }
+    },
+    "bunny-miney":{
+        "health":2,
+        "cost":2,
+        "targets": ["","my_tent",""],
+        "icons": ["","gems",""],
+        "triggers": {
+            "timer": [
+                {"goal":3, "progress":0, "actions":[
+                    {"action":"gems","target":"allies","amount":1}
+                ]},
+                {"goal":9, "main":"blue","progress":0, "actions":[
+                    {"action":"move","target":"self","to": {"location": "discard","index": "append","entity": "owner"}}
+                ]}
+            ]
+        }
+    },
+    "bunny-dealy":{
         "health":2,
         "cost":2,
         "targets": ["","my_cards",""],
@@ -16,7 +85,7 @@
             ]
         }
     },
-    "progressy":{
+    "bunny-progressy":{
         "health":2,
         "cost":2,
         "targets": ["","","my_tent"],
@@ -32,7 +101,7 @@
             ]
         }
     },
-    "bomby":{"health":2,
+    "bunny-bomby":{"health":2,
         "cost":2,
         "targets": ["","","enemy_base"],
         "icons": ["","","victory"],
@@ -45,7 +114,7 @@
             ]
         }
     },
-    "attacky":{
+    "bunny-attacky":{
         "description": "Quickly attacks the card in front of it.",
         "health":2,
         "cost":2,
@@ -97,7 +166,7 @@
             ]
         }
     },
-    "nuke":{
+    "bird-nuke":{
         "health":30,
         "cost":10,
         "targets": ["all_board","",""],
@@ -115,7 +184,7 @@
             ]
         }
     },
-    "trash":{
+    "bird-trash":{
         "health":1,
         "cost":1,
         "targets": ["","","on_me"],
@@ -142,7 +211,7 @@
             ]
        }
     },
-    "trash-attacky":{
+    "bird-trash-attacky":{
         "health":10,
         "cost":10,
         "targets": ["","enemy_board",""],
@@ -230,75 +299,6 @@
         "triggers": {
             "timer": [
                 {"goal":1, "main":"green","progress":0, "actions":[
-                    {"action":"move","target":"self","to": {"location": "discard","index": "append","entity": "owner"}}
-                ]}
-            ]
-        }
-    },
-    "tanky":{
-        "health":2,
-        "cost":2,
-        "targets": ["my_board","",""],
-        "icons": ["armor","",""],
-        "scaling": 0.1,
-        "triggers": {
-            "timer": [
-                {"goal":30, "main":"black","progress":0, "actions":[
-                    {"action":"move","target":"self","to": {"location": "discard","index": "append","entity": "owner"}}
-                ]}
-            ],
-            "enter": [
-                {"actions":[
-                    {"action": "effect_relative", "target": "all_in_my_location", "effect_function":{"name":"armor","function":"add","value":0.4}, "end_trigger":"exit"}
-                ]}
-            ]
-        }
-    },
-    "looty":{
-        "health":2,
-        "cost":2,
-        "targets": ["","my_tent",""],
-        "icons": ["","income",""],
-        "triggers": {
-            "timer": [
-                {"goal":2, "progress":0, "actions":[
-                    {"action":"income","target":"allies","amount":2}
-                ]},
-                {"goal":10, "main":"yellow","progress":0, "actions": [
-                    {"action":"move","target":"self","to": {"location": "discard","index": "append","entity": "owner"}}
-                ]}
-            ]
-        }
-    },
-    "speedy":{
-        "health":2,
-        "cost":2,
-        "targets": ["my_board","",""],
-        "icons": ["speed","",""],
-        "triggers": {
-            "enter": [
-                {"actions":[
-                    {"action": "effect_relative", "target": "all_in_my_location", "effect_function":{"name":"speed","function":"add","value":1}, "end_trigger":"exit"}
-                ]}
-            ],
-            "timer": [
-                {"goal":20, "main":"pink","progress":0, "actions":[
-                    {"action":"move","target":"self","to": {"location": "discard","index": "append","entity": "owner"}}
-                ]}
-            ]
-        }
-    },
-    "miney":{
-        "health":2,
-        "cost":2,
-        "targets": ["","my_tent",""],
-        "icons": ["","gems",""],
-        "triggers": {
-            "timer": [
-                {"goal":3, "progress":0, "actions":[
-                    {"action":"gems","target":"allies","amount":1}
-                ]},
-                {"goal":9, "main":"blue","progress":0, "actions":[
                     {"action":"move","target":"self","to": {"location": "discard","index": "append","entity": "owner"}}
                 ]}
             ]
@@ -643,7 +643,7 @@
         }
     },
     "evil1":{
-        "health":15,
+        "health":20,
         "cost":0,
         "targets": ["","my_tent","my_tent"],
         "icons": ["","income","gems"],

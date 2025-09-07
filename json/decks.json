@@ -1,7 +1,7 @@
 {
     "standard":["aggression","aggression","draw","draw","draw","attack","attack","attack","loot","loot","loot"],
-    "beginner":["miney","bomby","attacky","looty","dealy","tanky"],
-    "ai1":["miney","bomby","attacky","looty","dealy"],
+    "beginner":["bunny-miney","bunny-bomby","bunny-attacky","bunny-looty","bunny-dealy","bunny-tanky"],
+    "ai1":["bunny-miney","bunny-bomby","bunny-attacky","bunny-looty","bunny-dealy"],
     "ai7":["tank","tank","tank","shield2","loot","attack2","attack2","draw","attack","attack","attack","bomb","bomb","bomb"],
     "ai2":["shield2","shield2","tank","tank","attack","attack","attack"],
     "ai3":["shield","shield","shield","shield","shield","attack","attack","attack","attack","attack","attack","bomb","bomb","bomb"],
@@ -15,9 +15,9 @@
     "shop4":["attack2","bomb","shield3"],
     "shop5":["attack2","loot","draw","shield","shield2"],
     "shop6":["attack2","loot","bomb","draw","shield2"],
-    "trader1":["looty","miney","bomby","tanky","attacky","dealy","speedy","progressy"],
+    "trader1":["bunny-looty","bunny-miney","bunny-bomby","bunny-tanky","bunny-attacky","bunny-dealy","bunny-speedy","bunny-progressy"],
     "trader2":["bear-looty","bear-miney","bear-bomby","bear-tanky","bear-attacky","bear-dealy"],
-    "trader3":["nuke","trash-attacky","trash","bird-thefty2","bird-abduct"],
+    "trader3":["bird-nuke","bird-trash-attacky","bird-trash","bird-thefty2","bird-abduct"],
     "trader4":["beaver-duplicate","beaver-upgrade","beaver-wood"],
     "shop7":["attack2","loot","bomb","draw","shield2"]
 }

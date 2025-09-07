@@ -427,6 +427,15 @@ def triggering(card, event_type):
             match event_type:
                 case "timer":
                     timer = event
+                    when = []
+                    if timer.get("when"):
+                        when = timer.get("when")
+                    else:
+                        when = ["board","tent","stall","base"]
+                    #When is a way to have timers only tick in certain areas
+                    if card["location"] not in when:
+                        continue;
+
                     if timer["progress"] >= timer["goal"]:
                         timer["progress"] -= timer["goal"]
                         for action in timer["actions"]:
@@ -621,7 +630,11 @@ def acting(action, card =""):
                                 "to": {"entity": card["owner"], "location": "held", "index": "append"}})
                         break
             else:
-                acting({"action": "empower", "target": victim, "amount":1}, card)
+                hype = 1
+                if card.get("hype"):
+                    hype += card.get("hype")
+
+                acting({"action": "empower", "target": victim, "amount":hype}, card)
                 acting({"action": "move", "target": card, "to": {"entity":"owner","location": "discard", "index": "append"}}, card)
 
             ## end trigger stored on effected card
@@ -913,6 +926,8 @@ def location_tick():
     for player, player_data in table("players").items():
         tent = player_data["locations"]["tent"]
         tick_areas.append(tent)
+        discard = player_data["locations"]["discard"]
+        tick_areas.append(discard)
 
     for location_data in tick_areas:
         for card in location_data:
@@ -923,26 +938,6 @@ def location_tick():
                 if card.get("shield"):
                     shield = max(card["shield"]-(math.sqrt(card["shield"])*tick_rate()+0.2)/10,0)
                     card["shield"] = shield
-
-    #for team, team_data in table("teams").items():
-    #    stall = get_nested(game_table, ["entities", "trader", "locations", "stall"])
-    #    tick_areas = list(team_data["locations"].values())
-    #    print("ticket")
-    #    print_json(tick_areas)
-    #    tick_areas.append(stall)
-    #    for location_data in tick_areas:
-    #        print("loco")
-    #        print_json(location_data)
-    #        for card in location_data:
-    #            print("card")
-    #            print_json(card)
-    #            if card:
-    #                triggering(card,"timer")
-    #                #Decay shield
-
-    #                if card.get("shield"):
-    #                    shield = max(card["shield"]-(math.sqrt(card["shield"])*tick_rate()+0.2)/10,0)
-    #                    card["shield"] = shield
 
 #Cleanup is really just a post tick.
 def cleanup_tick():
@@ -1070,8 +1065,6 @@ def initialize_player(team,ai,username, deck="beginner"):
             ],
             "deck": [],
             "discard": [],
-            "loaded": [],
-            "cooldown": [],
             #If I want shop on each player instead of one for everyone this is a start. Individual shops would be best for rpg style.
             #"shop": [0,0,0],
             "trash": [],
@@ -1138,6 +1131,7 @@ def initialize_card(card_name,username,location,index):
     if not("title" in baby_card.keys()):
         baby_card["title"] = card_name
     baby_card["name"] = card_name
+    animal = card_name.split("-")[0]
 
     if not baby_card.get("value"):
         if "cost" in baby_card.keys():
@@ -1147,11 +1141,17 @@ def initialize_card(card_name,username,location,index):
         baby_card["cooldown"] = 10
 
     if not baby_card.get("scaling"):
-        baby_card["scaling"] = 0.2
+        if animal == "bear":
+            baby_card["scaling"] = 0.4
+        else:
+            baby_card["scaling"] = 0.2
+
     if not baby_card.get("max_hype"):
-        baby_card["max_hype"] = 5
+        baby_card["max_hype"] = 10
+
     if not baby_card.get("max_level"):
-        baby_card["max_level"] = 10
+        baby_card["max_level"] = 20
+
 
     baby_card["id"] = get_unique_id()
     baby_card["shield"] = 0
@@ -1179,6 +1179,10 @@ def refresh_card(card):
     try:
         baby_card = copy.deepcopy(cards_table[card["name"]])
         card["triggers"] = baby_card["triggers"]
+        baby_card["triggers"]["timer"].append(
+            {"goal": 30, "when": ["discard"], "progress": 0, "actions": [
+                {"action": "move", "target": "self", "to": {"location": "deck", "index": "append", "entity": "owner"}}]}
+        )
         card["effects"].clear()
         card["max_health"] = baby_card["health"]
         card["hype"] = 0
@@ -1336,18 +1340,18 @@ def move_triggers(card, to, card_was, card_is):
         triggering(card, "enter")
     if from_location == "board" and to_location != "board":
         triggering(card,"exit")
-    elif from_location == "deck" or from_location == "discard":
-        card_owner = card["owner"]
-        player_data = table("players").get(card_owner)
-        deck = player_data["locations"]["deck"]
-        if len(deck) <= 0:
+    #elif from_location == "deck" or from_location == "discard":
+        #card_owner = card["owner"]
+        #player_data = table("players").get(card_owner)
+        #deck = player_data["locations"]["deck"]
+        #if len(deck) <= 0:
             #player_data["locations"]["deck"] = player_data["locations"]["discard"]
             #player_data["locations"]["discard"] = []
             #if cooldown:
-            acting({"action": "move", "target": "my_discard",
-                    "to": {"entity": card["owner"], "location": "deck", "index": "append"}}, {"owner":card_owner})
-            acting({"action": "accelerate", "target": "my_tent", "what": "move", "amount": -5}, card)
-            random.shuffle(deck)
+            #acting({"action": "move", "target": "my_discard",
+                    #"to": {"entity": card["owner"], "location": "deck", "index": "append"}}, {"owner":card_owner})
+            #acting({"action": "accelerate", "target": "my_tent", "what": "move", "amount": -20}, card)
+            #random.shuffle(deck)
     if to_location == "discard":
         triggering(card, "discarded")
         refresh_card(card)
