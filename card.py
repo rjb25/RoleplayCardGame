@@ -409,7 +409,7 @@ def get_cards(zone, select_function, args, action, card):
             return result
         case "amount":
             power = math.floor(get_power(action,card))
-            return actual_zone[-power:]
+            return actual_zone[:power]
         case _:
         #Case for if an literal index is passed
             return [zone[select_function]]
@@ -968,7 +968,7 @@ def ai_tick():
                 {"action": "play", "target": ["my_hand"], "to": {"entity":player_data["team"],"location": "board", "index": "random"}, "amount": 1}
                 ,{"owner":player}
             )
-            acting({"action": "buy", "target": ["random_shop"], "to": {"entity":player,"location":"discard", "index": "append"}})
+            #acting({"action": "buy", "target": ["random_shop"], "to": {"entity":player,"location":"discard", "index": "append"}})
 
 async def tick():
     while True:
@@ -1099,7 +1099,7 @@ def initialize_players():
 def initialize_situation():
     set_nested(game_table,["entities","situation"],{"team":"gaia","type":"gaia","locations":{"events":[]}})
 
-def initialize_trader(trader = "trader4"):
+def initialize_trader(trader = "trader1"):
     #Initialize some cards to the shop on player startup
     #baby_card = initialize_card(card_name, username)
     #if session_table["reward"]:
@@ -1601,7 +1601,7 @@ def add_ai_evil(command):
 
 def add_ai_good(command):
     username = "ai" + get_unique_id()
-    initialize_player("good",1,username)
+    initialize_player("good",1,username,"ai1")
 
 def quit(command):
     raise websockets.ConnectionClosed("Intentional")
@@ -1642,7 +1642,7 @@ def handle_play(command):
         acting({"action": "move", "target": card, "to": {"entity":card["owner"],"location":"discard", "index": "append"}})
     if card_to == "hand":
         if card_from == "shop":
-            acting({"action": "buy", "target": card, "to": {"entity":username,"location":"discard", "index": "append"}})
+            acting({"action": "buy", "target": card, "to": {"entity":username,"location":"deck", "index": "append"}})
         if card_from == "hand":
             to_hype = game_table["entities"][username]["locations"]["hand"][card_index]
             if to_hype and card_index != card["index"]:
