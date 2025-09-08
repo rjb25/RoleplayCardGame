@@ -1,44 +1,25 @@
 #!/usr/bin/env python
 #TODO
-#Only your cards should have corner colors for targetting. Enemy cards should not since they don't make sense
-#Make a card that allows for stacking cards. It multiplies amount for all.
-#bidding/buying is a tap. minimum bid for a card received at end of timer
-#Switch between auction and price mode
-#Remove multiple ais fix indexing
-#Need to make it so that you can configure the corner to be the correct Color.
-#Have Main list a color
-#Just have labels that you add to the card actions that look up one level for the progress bar
-#Zoom buttons update CSS scale variable
+#bidding/buying is a tap. minimum bid for a card received at end of timer #Switch between auction and price mode
 #When a main action is identified, you can have a generic amount, speed, health, cost, hype. Hype could even tie into one of these traits for any given card. Or random trait temporarily?
-#The items stacked on left are lightning
-#The items stacked on right are exit
-#The items in line in middle happen an amount of times till it finishes.
+#Zoom buttons update CSS scale variable
 #The number on each image indicates the amount of the effect.
-#Top left says what the interaction of adding a card to another card is.
-#So Crate indicates add on.o
-#Or actually just make any crate type action have a bigger image. Then lay the card image on top. Three deletes? Just have three empty trash images and slap the three cards on top.
-#Option to hide info in the game. Or to pull along a dial for more information.
-#Make it so that the basek provides gems. Your player provides cards, and cards can be discarded for discount. Guarantee that you can always play.
-#The progress bars.
-#The first progress bar is the only progress bar.
-#Bomb effects are laid verically on right side with numbers in them.
-#Progress effects are laid horizontally and diminish each time it completes. Numbers on images. Max of 4?
-#Entrance effects are laid vertically on the left side.
-#You could if you really want have multiple effects but they would overlap.
 #Make info tab more visual. Have cards list their effect
-#Add hype
-#Don't allow sell. Make a trashing card that cards can be played on. When a card is played on another card leave a mini image of it on.
-#Make sell cooldown
 #Make race base stats, Other items modify the default stats
-#Shop is same for both players and rotates between shop keepers?
 #Have damage pass through by default, then certain cards bypass and certain cards do not
-#Add some kind of label to the sections. Preferrably images
-#Allow one card to be trashed per round. FIX TRASHING
 #Readme card/ button people can click for a general explanation
-#Have a cooldown timer on cards so that you need a larger deck. Fast deck isn't good enough. So draw, discard, and waiting sections.
 #Have glass cards that are used once then they trash themselves.
+#Mute sound effect option
+#Victory screen
+#Mercenary cards in the shop that take an action for the highest bidder.
+#make some kind of campaign co-op. Maybe just the versus ai.
 
 #TODO TODONE
+#Have Main list a color
+#Need to make it so that you can configure the corner to be the correct Color.
+#Remove multiple ais fix indexing
+#Make a card that allows for stacking cards. It multiplies amount for all.
+#Only your cards should have corner colors for targetting. Enemy cards should not since they don't make sense
 #Make refresh work
 #Add images
 #Make it so you can play against yourself
@@ -1550,6 +1531,8 @@ def pause(command):
         game_table["running"] = 0
     else:
         game_table["running"] = 1
+def no_audio(command):
+    log(command["username"] + "muted")
 
 def add_random_card(command):
     username = command["username"]

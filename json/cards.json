@@ -1,10 +1,12 @@
 {
     "current_name": 0,
     "bunny-tanky":{
+        "description": "Reduces damage taken by cards in play.",
         "health":2,
         "cost":2,
         "targets": ["my_board","",""],
         "icons": ["armor","",""],
+        "values": ["0.4","",""],
         "scaling": 0.1,
         "triggers": {
             "timer": [
@@ -20,10 +22,12 @@
         }
     },
     "bunny-looty":{
+        "description": "Gives you gold to play more cards.",
         "health":2,
         "cost":2,
         "targets": ["","my_tent",""],
         "icons": ["","income",""],
+        "values": ["","2",""],
         "triggers": {
             "timer": [
                 {"goal":2, "progress":0, "actions":[
@@ -54,6 +58,7 @@
         }
     },
     "bunny-miney":{
+        "description": "Gives gems used to buy from the shop.",
         "health":2,
         "cost":2,
         "targets": ["","my_tent",""],
@@ -70,6 +75,7 @@
         }
     },
     "bunny-dealy":{
+        "description": "Gives you cards from your deck.",
         "health":2,
         "cost":2,
         "targets": ["","my_cards",""],
@@ -102,6 +108,7 @@
         }
     },
     "bunny-bomby":{"health":2,
+        "description": "Quickly scores one victory point.",
         "cost":2,
         "targets": ["","","enemy_base"],
         "icons": ["","","victory"],
@@ -160,13 +167,14 @@
             "timer": [
                 {"goal":10, "main":"red" ,"progress":0, "actions":[
                     {"action":"income","target":"enemies","amount":-10},
-                    {"action":"income","target":"allies","amount":5},
+                    {"action":"income","target":"allies","amount":10},
                     {"action":"move","target":"self","to": {"location": "discard","index": "append","entity": "owner"}}
                 ]}
             ]
         }
     },
     "bird-nuke":{
+        "description": "Clears both teams boards.",
         "health":30,
         "cost":10,
         "targets": ["all_board","",""],
@@ -185,6 +193,7 @@
         }
     },
     "bird-trash":{
+        "description": "Trashes cards held in storage.",
         "health":1,
         "cost":1,
         "targets": ["","","on_me"],
@@ -212,6 +221,7 @@
        }
     },
     "bird-trash-attacky":{
+        "description": "Trashes the enemy card across from this card if it deals the killing blow.",
         "health":10,
         "cost":10,
         "targets": ["","enemy_board",""],
@@ -311,7 +321,7 @@
     "wood":{
         "description": "Does nothing. Cannot be discarded.",
         "health":1,
-        "cost":0,
+        "cost":1,
         "targets": ["","",""],
         "icons": ["","",""],
         "triggers": {
@@ -323,6 +333,7 @@
         }
     },
     "bear-bomby":{"health":3,
+        "description": "Scores 3 victory points slowly.",
         "cost":5,
         "targets": ["","","enemy_base"],
         "icons": ["","","victory"],
@@ -336,6 +347,7 @@
         }
     },
     "bear-attacky":{
+        "description": "Attacks the 3 cards across from it.",
         "health":3,
         "cost":5,
         "targets": ["","enemy_board",""],
@@ -352,6 +364,7 @@
         }
     },
     "bear-tanky":{"health":3,
+        "description": "Decreases each instance of victory scored by opponent by 1.2.",
         "cost":5,
         "targets": ["my_board","",""],
         "icons": ["armor","",""],
@@ -369,6 +382,7 @@
         }
     },
     "bear-looty":{
+        "description": "Gives 20 gold total.",
         "health":3,
         "cost":5,
         "targets": ["","my_tent",""],
@@ -385,6 +399,7 @@
         }
     },
     "bear-miney":{
+        "description": "Gives 12 gems total.",
         "health":4,
         "cost":5,
         "targets": ["","my_tent",""],
@@ -401,6 +416,7 @@
         }
     },
     "bear-dealy":{
+        "description": "Deals more cards from your deck.",
         "health":10,
         "cost":5,
         "targets": ["","my_cards",""],
@@ -408,7 +424,7 @@
         "triggers": {
             "timer": [
                 {"goal":2, "progress":0, "actions":[
-                    {"action":"move","target":["my_deck"],"to":{"entity":"owner","location": "hand","index": "append"},"amount":1}
+                    {"action":"move","target":["my_deck"],"to":{"entity":"owner","location": "hand","index": "append"},"amount":2}
                 ]},
                 {"goal":20,"marks":10, "main":"green","progress":0, "actions":[
                     {"action":"move","target":"self","to": {"location": "discard","index": "append","entity": "owner"}}
@@ -432,119 +448,6 @@
         }
     },
 
-    "bomb":{"health":3,
-        "cost":10,
-        "triggers":{
-            "timer": [
-                {"goal":12, "main":1,"progress":0, "actions":[
-                    {"action":"damage","target":"enemy_base","amount":3},
-                    {"action":"move","target":"self","to": {"location": "discard","index": "append","entity": "owner"}}
-                ]}
-            ]
-        }
-    },
-
-    "attack":{
-        "health":3,
-        "cost":3,
-        "triggers": {
-            "timer": [
-                {"goal":2, "progress":0, "actions":[
-                    {"action":"damage","target":"across","amount":1}
-                ]},
-                {"goal":10, "main":1,"progress":0, "actions":[
-                    {"action":"move","target":"self","to": {"location": "discard","index": "append","entity": "owner"}}
-                ]}
-            ],
-            "enter": [
-                {"actions":[
-                    {"action":"damage","target":"across","amount":1}
-                ]}
-            ]
-        }
-    },
-    "fork":{
-        "health":2,
-        "cost":8,
-        "triggers": {
-            "timer": [
-                {"goal":2, "progress":0, "actions":[
-                    {"action":"damage","target":"fork","amount":1}
-                ]},
-                {"goal":10, "progress":0, "actions":[
-                    {"action":"damage","target":"enemy_base","amount":1},
-                    {"action":"move","target":"self","to": {"location": "discard","index": "append","entity": "owner"}}
-                ]}
-            ]
-        }
-    },
-    "tank":{
-        "health":2,
-        "cost":8,
-        "triggers": {
-            "timer": [
-                {"goal":2, "progress":0, "actions":[
-                    {"action":"damage","target":"across","amount":1}
-                ]},
-                {"goal":30, "progress":0, "actions":[
-                    {"action":"move","target":"self","to": {"location": "discard","index": "append","entity": "owner"}}
-                ]}
-            ],
-            "enter": [
-                {"actions":[
-                    {"action": "effect_relative", "target": "self", "effect_function":{"name":"armor","function":"add","value":0.75}, "end_trigger":"exit"},
-                    {"action": "effect_relative", "target": "neighbors", "effect_function":{"name":"armor","function":"add","value":0.4}, "end_trigger":"exit"}
-                ]}
-            ]
-        }
-    },
-    "attack2":{
-        "health":8,
-        "cost":12,
-        "triggers": {
-            "timer": [
-                {"goal":5, "progress":0, "actions":[
-                    {"action":"damage","target":"across","amount":3}
-                ]},
-                {"goal":20, "progress":0, "actions":[
-                    {"action":"damage","target":"enemy_base","amount":3},
-                    {"action":"move","target":"self","to": {"location": "discard","index": "append","entity": "owner"}}
-                ]}
-            ]
-        }
-    },
-    "loot":{
-        "health":3,
-        "cost":4,
-        "value":5,
-        "triggers": {
-            "timer": [
-                {"goal":2, "progress":0, "actions":[
-                    {"action":"income","target":"allies","amount":1}
-                ]},
-                {"goal":10, "progress":0, "actions": [
-                    {"action":"income","target":"allies","amount":5},
-                    {"action":"move","target":"self","to": {"location": "discard","index": "append","entity": "owner"}}
-                ]}
-            ]
-        }
-    },
-    "draw":{
-        "health":3,
-        "cost":10,
-        "value":10,
-        "triggers": {
-            "timer": [
-                {"goal":2, "progress":0, "actions":[
-                    {"action":"move","target":["my_deck"],"to":{"entity":"owner","location": "hand","index": "append"},"amount":1}
-                ]},
-                {"goal":10, "progress":0, "actions":[
-                    {"action":"move","target":["my_deck"],"to":{"entity":"owner","location": "hand","index": "append"},"amount":5},
-                    {"action":"move","target":"self","to": {"location": "discard","index": "append","entity": "owner"}}
-                ]}
-            ]
-        }
-    },
     "shield2":{
         "health":3,
         "cost":3,

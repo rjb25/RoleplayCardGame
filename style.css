@@ -155,11 +155,22 @@ font-style: normal;
     text-align: center;
     margin: 0;
 }
+.healthBar {
+    display: block;
+    width: 100%;
+    position: absolute;
+    height: calc(var(--scale)*0.4vw);
+}
 .health {
+    -webkit-box-sizing: border-box; /* Safari/Chrome, other WebKit */
+    -moz-box-sizing: border-box;    /* Firefox, other Gecko */
+    box-sizing: border-box;         /* Opera/IE 8+ */
     display: inline-block;
-  color: black;
-  height: 0.2vw;
-  position: absolute;
+    color: black;
+    height: 100%;
+    /*margin: 0 0.3%;*/
+    border: 0.5px solid rgba(0, 0, 0, .5);
+    border-radius: calc(var(--scale)*1vw);
 }
 .cooldown {
     position: absolute;

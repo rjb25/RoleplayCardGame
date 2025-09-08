@@ -7,6 +7,7 @@ function full(){
 }
 gameState = {}
 myself = ""
+mute = false;
 my_team = "good";
 enemy_team = "evil";
 lastMissing = [];
@@ -25,13 +26,16 @@ socketname = "localhost:12345";
 buttonContainers = ["#enemy_base_container", "#situations_container", "#ally_base_container", "#plans_container", "#tent_container", "#cards_container", "#discard_container", "#merchant_container", "#shop_container", "#trash_container"];
 buttonContainerLocations = ["base", "board", "base", "board", "tent", "hand", "discard", "stall", "shop", "trash"];
 buttonContainerNames = [enemy_team, enemy_team, my_team, my_team, "me", "me", "me", "trader", "trader", "trader"];
-menuButtons = ["remove_ai", "reset_session", "pause", "add_ai_evil", "add_ai_good", "join_good", "join_evil", "skip_trader"/*,"load_game","save_user","load_user"*/];
+menuButtons = ["remove_ai", "reset_session", "pause", "add_ai_evil", "add_ai_good", "join_good", "join_evil", "skip_trader","no_audio"/*,"save_user","load_user"*/];
 //This is what you run if you want to reconnect to server
 //socketname = prompt("WebSocketURL no http://")
 const websocketClient = new WebSocket("ws://" + socketname);
 
 function pause() {
     changeBackground("DodgerBlue");
+}
+function no_audio() {
+    mute = !mute;
 }
 
 function join_good() {
@@ -82,8 +86,10 @@ function play(cardId, targ, locat) {
         index: targ,
         location: locat
     }));
-    audio = new Audio("audio/play4.mp3");
-    audio.play();
+    if (!mute){
+        audio = new Audio("audio/play4.mp3");
+        audio.play();
+    }
 };
 
 function changeBackground(color) {
@@ -225,7 +231,7 @@ function inspect(slot) {
 //TODO make this happen less frequently. It's the most expensive
 function updateCardButton(cardButton, card) {
     cardButton.card = card;
-    var health = cardButton.querySelector(".health");
+    var healthBar = cardButton.querySelector(".healthBar");
     var shield = cardButton.querySelector(".shield");
     var topRightImage = cardButton.querySelector(".topRightImage");
     var topLeftImage = cardButton.querySelector(".topLeftImage");
@@ -244,6 +250,11 @@ function updateCardButton(cardButton, card) {
             discard.innerHTML = mContainer.playerState.discardLength;
             deck = cardButton.querySelector(".leftText");
             deck.innerHTML = mContainer.playerState.deckLength;
+            if (mContainer.playerState.deckLength === 0) {
+                deck.style.color = "crimson";
+            } else {
+                deck.style.color = "white";
+            }
             /*
             cooldown = cardButton.querySelector(".bottomRightText");
             cooldown.innerHTML = 0;//mContainer.playerState.cooldownLength;
@@ -291,21 +302,45 @@ function updateCardButton(cardButton, card) {
             topLeftImage.style.display = "none";
         }
     }
-    if (!["shop","stall"].includes(card["location"]) ){
-        let percent = 100 * card["health"] / card["max_health"];
-        health.style.width = Math.max(percent, 0) + "%";
-        //Have heart icons below the bar instead maybe?
-        health.style.height = 4.0 /* + card["max_health"] / 2.0*/ + "%";
-        if (percent > 75) {
-            health.style.background = "rgba(0, 255, 0, 0.8)";
-        } else if (percent > 40) {
-            health.style.background = "rgba(255, 255, 0, 0.8)";
-        } else if (percent > 0) {
-            health.style.background = "rgba(255, 0, 0, 0.8)";
+    if (!["stall"].includes(card["location"]) ){
+        currentHealth = card["health"];
+        let percent = 100 * currentHealth / card["max_health"];
+        hpWidth = (100 * 1 / card["max_health"]);
+        hpChange =  currentHealth % 1;
+        healths = healthBar.querySelectorAll(".health");
+        margin = 0;
+
+        for (i = 0; i < card["max_health"]; i++){
+            hp = healths[i];
+            if (hp){
+                // less health
+            if (i === Math.floor(currentHealth) && hpChange > 0.001){
+                hp.style.width = (hpWidth * hpChange -margin)+ "%";
+                hp.style.visibility = "visible";
+            } else {
+                // full health
+                if(i < Math.ceil(currentHealth)){
+                    hp.style.width = (Math.max(hpWidth, 0) -margin) + "%";
+                    hp.style.visibility = "visible";
+                } else {
+                    hp.style.width = "0%";
+                    hp.style.visibility = "hidden";
+                }
+            }
+            //Have heart icons below the bar instead maybe?
+            //health.style.height = 100 /* + card["max_health"] / 2.0*/ + "%";
+            if (percent > 75) {
+                hp.style.background = "rgba(0, 255, 0, 0.8)";
+            } else if (percent > 40) {
+                hp.style.background = "rgba(255, 255, 0, 0.8)";
+            } else if (percent > 0) {
+                hp.style.background = "rgba(255, 0, 0, 0.8)";
+            }
+            }
+            //percent = 100 * card["shield"] / card["max_shield"];
+            //shield.style.width = Math.max(percent, 0) + "%";
+            //shield.style.background = "rgba(30,144,255,0.9)";
         }
-        percent = 100 * card["shield"] / card["max_shield"];
-        shield.style.width = Math.max(percent, 0) + "%";
-        shield.style.background = "rgba(30,144,255,0.9)";
     }
     if (!["shop","tent","hand"].includes(card["location"])){
         topRightText.innerHTML = "";
@@ -315,10 +350,10 @@ function updateCardButton(cardButton, card) {
         topLeftText.innerHTML = "";
         topLeftImage.style.display = "none";
     }
-    //currentBottom = 0;
-    //Should be reversed at some point to match input data
     progressBar = cardButton.querySelector(".progress");
     if (progressBar) {
+        var topRightText = cardButton.querySelector(".topRightText");
+        var topLeftText = cardButton.querySelector(".topLeftText");
         eventDict = card["triggers"][progressBar.triggerType][progressBar.triggerIndex];
         percent = 100 * eventDict["progress"] / eventDict["goal"]
         percent_limit = Math.min(percent, 100);
@@ -460,13 +495,21 @@ function generateCardButton(card) {
     cardImage.setAttribute("ondragstart", "drag(event)");
     cardImage.id = card["id"];
 
-    health = document.createElement("div");
-    health.classList.add("health");
+    healthBar = document.createElement("div");
+    healthBar.classList.add("healthBar");
+    for(i = 0; i < card["health"]; i++) {
+        health = document.createElement("div");
+        health.classList.add("health");
+        //healthSub = document.createElement("div");
+       // healthSub.classList.add("healthSub");
+       // health.appendChild(healthSub);
+        healthBar.appendChild(health);
+    }
     shield = document.createElement("div");
     shield.classList.add("shield");
 
     cardButton.appendChild(cardImage);
-    cardButton.appendChild(health);
+    cardButton.appendChild(healthBar);
     cardButton.appendChild(shield);
     found = 0;
     cardProgress = document.createElement("div");
@@ -484,11 +527,9 @@ function generateCardButton(card) {
                     progressBar.style.background = "dodgerblue";//All progress same color for clarity//eventDict["main"];
                     marks = eventDict["marks"]
                     if (marks){
-                        console.log("MARKIT");
                         markList = document.createElement("ul");
                         markList.classList.add("markerList");
                         for (i =0; i < marks; i++) {
-                            console.log("MAKEME");
                             mark = document.createElement("li");
                             mark.classList.add("marker");
                             mark.style.top = 0.2 + (i/marks * 100) + "%";

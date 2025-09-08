@@ -18,7 +18,7 @@
     "trader1":["bunny-looty","bunny-miney","bunny-bomby","bunny-attacky","bunny-dealy"],
     "trader2":["bear-looty","bear-miney","bear-bomby","bear-tanky","bear-attacky","bear-dealy"],
     "trader3":["bird-nuke","bird-trash-attacky","bird-trash","bird-thefty2","bird-abduct"],
-    "trader4":["beaver-duplicate","beaver-upgrade","beaver-wood","beaver-discard"],
+    "trader4":["beaver-duplicate","beaver-upgrade","beaver-wood","beaver-discard","bunny-tanky"],
     "trader5":["bunny-tanky","bunny-speedy","bunny-progressy"],
     "shop7":["attack2","loot","bomb","draw","shield2"]
 }
