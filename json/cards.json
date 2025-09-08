@@ -26,10 +26,10 @@
         "icons": ["","income",""],
         "triggers": {
             "timer": [
-                {"goal":2, "marks":5,"progress":0, "actions":[
+                {"goal":2, "progress":0, "actions":[
                     {"action":"income","target":"allies","amount":2}
                 ]},
-                {"goal":10, "main":"yellow","progress":0, "actions": [
+                {"goal":10, "marks":5,"main":"yellow","progress":0, "actions": [
                     {"action":"move","target":"self","to": {"location": "discard","index": "append","entity": "owner"}}
                 ]}
             ]
@@ -661,7 +661,7 @@
         }
     },
     "evil1":{
-        "health":30,
+        "health":25,
         "cost":0,
         "targets": ["","my_tent","my_tent"],
         "icons": ["","income","gems"],

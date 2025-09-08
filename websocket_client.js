@@ -491,7 +491,7 @@ function generateCardButton(card) {
                             console.log("MAKEME");
                             mark = document.createElement("li");
                             mark.classList.add("marker");
-                            mark.style.top = (i/marks * 100) + "%";
+                            mark.style.top = 0.2 + (i/marks * 100) + "%";
                             markList.appendChild(mark);
                         }
                         cardProgress.appendChild(markList);
