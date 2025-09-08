@@ -482,6 +482,20 @@ function generateCardButton(card) {
                     progressBar.triggerType = triggerType;
                     progressBar.triggerIndex = i;
                     progressBar.style.background = "dodgerblue";//All progress same color for clarity//eventDict["main"];
+                    marks = eventDict["marks"]
+                    if (marks){
+                        console.log("MARKIT");
+                        markList = document.createElement("ul");
+                        markList.classList.add("markerList");
+                        for (i =0; i < marks; i++) {
+                            console.log("MAKEME");
+                            mark = document.createElement("li");
+                            mark.classList.add("marker");
+                            mark.style.top = (i/marks * 100) + "%";
+                            markList.appendChild(mark);
+                        }
+                        cardProgress.appendChild(markList);
+                    }
                     cardProgress.appendChild(progressBar);
                     found = 1;
                 }

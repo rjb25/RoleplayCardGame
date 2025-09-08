@@ -26,7 +26,7 @@
         "icons": ["","income",""],
         "triggers": {
             "timer": [
-                {"goal":2, "progress":0, "actions":[
+                {"goal":2, "marks":5,"progress":0, "actions":[
                     {"action":"income","target":"allies","amount":2}
                 ]},
                 {"goal":10, "main":"yellow","progress":0, "actions": [
@@ -63,7 +63,7 @@
                 {"goal":3, "progress":0, "actions":[
                     {"action":"gems","target":"allies","amount":1}
                 ]},
-                {"goal":9, "main":"blue","progress":0, "actions":[
+                {"goal":9, "marks":3, "main":"blue","progress":0, "actions":[
                     {"action":"move","target":"self","to": {"location": "discard","index": "append","entity": "owner"}}
                 ]}
             ]
@@ -79,7 +79,7 @@
                 {"goal":2, "progress":0, "actions":[
                     {"action":"move","target":["my_deck"],"to":{"entity":"owner","location": "hand","index": "append"},"amount":1}
                 ]},
-                {"goal":20, "main":"green","progress":0, "actions":[
+                {"goal":20, "marks":10,"main":"green","progress":0, "actions":[
                     {"action":"move","target":"self","to": {"location": "discard","index": "append","entity": "owner"}}
                 ]}
             ]
@@ -92,10 +92,10 @@
         "icons": ["","","speed"],
         "triggers": {
             "timer": [
-                {"goal":1, "progress":0, "actions":[
+                {"goal":4, "progress":0, "actions":[
                     {"action":"accelerate","target":"allies","what": "move","amount":4}
                 ]},
-                {"goal":20, "main":"green","progress":0, "actions":[
+                {"goal":20, "marks":5,"main":"green","progress":0, "actions":[
                     {"action":"move","target":"self","to": {"location": "discard","index": "append","entity": "owner"}}
                 ]}
             ]
@@ -144,7 +144,7 @@
                 {"goal":2, "progress":0, "actions":[
                     {"action":"damage","target":"across", "kill":"abduct", "amount": 1}
                 ]},
-                {"goal":10, "main":"brown","progress":0, "actions":[
+                {"goal":10, "marks":5, "main":"brown","progress":0, "actions":[
                     {"action":"move","target":"self","to": {"location": "discard","index": "append","entity": "owner"}}
                 ]}
             ]
@@ -221,7 +221,7 @@
                 {"goal":2, "progress":0, "actions":[
                     {"action":"damage","target":"across", "kill":"trash", "amount": 1}
                 ]},
-                {"goal":10, "main":"brown","progress":0, "actions":[
+                {"goal":10, "marks":5, "main":"brown","progress":0, "actions":[
                     {"action":"move","target":"self","to": {"location": "discard","index": "append","entity": "owner"}}
                 ]}
             ]
@@ -247,6 +247,24 @@
                 {"actions":[
                     {"action":"move","target":"on_me","to": {"location": "discard","index": "append","entity": "owner"}},
                     {"action":"empty_storage","target":"self"}
+                ]}
+            ]
+        }
+    },
+    "beaver-discard":{
+        "description": "Moves enemies deck into their discard. Placing cards on cooldown.",
+        "health":1,
+        "cost":8,
+        "targets": ["","enemy_deck",""],
+        "icons": ["","discard",""],
+
+        "triggers": {
+            "timer": [
+                {"goal":10, "progress":0, "actions":[
+                    {"action":"move","target":"enemy_deck","to": {"location": "discard","index": "append","entity": "owner"}}
+                ]},
+                {"goal":20, "marks": 2, "main":"green","progress":0, "actions":[
+                    {"action":"move","target":"self","to": {"location": "discard","index": "append","entity": "owner"}}
                 ]}
             ]
         }
@@ -291,7 +309,7 @@
         }
     },
     "wood":{
-        "description": "Does nothing.",
+        "description": "Does nothing. Cannot be discarded.",
         "health":1,
         "cost":0,
         "targets": ["","",""],
@@ -327,7 +345,7 @@
                 {"goal":2, "progress":0, "actions":[
                     {"action":"damage","target":"fork","amount":1}
                 ]},
-                {"goal":10, "main":"red","progress":0, "actions":[
+                {"goal":10, "marks": 5, "main":"red","progress":0, "actions":[
                     {"action":"move","target":"self","to": {"location": "discard","index": "append","entity": "owner"}}
                 ]}
             ]
@@ -360,7 +378,7 @@
                 {"goal":2, "progress":0, "actions":[
                     {"action":"income","target":"allies","amount":4}
                 ]},
-                {"goal":10, "main":"yellow", "progress":0, "actions": [
+                {"goal":10,"marks":5, "main":"yellow", "progress":0, "actions": [
                     {"action":"move","target":"self","to": {"location": "discard","index": "append","entity": "owner"}}
                 ]}
             ]
@@ -376,7 +394,7 @@
                 {"goal":3, "progress":0, "actions":[
                     {"action":"gems","target":"allies","amount":4}
                 ]},
-                {"goal":9, "main":1,"progress":0, "actions":[
+                {"goal":9, "marks":3,"main":1,"progress":0, "actions":[
                     {"action":"move","target":"self","to": {"location": "discard","index": "append","entity": "owner"}}
                 ]}
             ]
@@ -390,9 +408,9 @@
         "triggers": {
             "timer": [
                 {"goal":2, "progress":0, "actions":[
-                    {"action":"move","target":["my_deck"],"to":{"entity":"owner","location": "hand","index": "append"},"amount":4}
+                    {"action":"move","target":["my_deck"],"to":{"entity":"owner","location": "hand","index": "append"},"amount":1}
                 ]},
-                {"goal":20, "main":"green","progress":0, "actions":[
+                {"goal":20,"marks":10, "main":"green","progress":0, "actions":[
                     {"action":"move","target":"self","to": {"location": "discard","index": "append","entity": "owner"}}
                 ]}
             ]

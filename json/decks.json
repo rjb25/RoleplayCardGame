@@ -1,6 +1,6 @@
 {
     "standard":["aggression","aggression","draw","draw","draw","attack","attack","attack","loot","loot","loot"],
-    "beginner":["bunny-bomby","bunny-bomby","bunny-bomby","bunny-bomby","bunny-bomby","bunny-bomby"],
+    "beginner":["bunny-bomby"],
     "ai1":["bunny-bomby","bunny-bomby","bunny-bomby","bunny-bomby","bunny-bomby","bunny-bomby"],
     "ai7":["tank","tank","tank","shield2","loot","attack2","attack2","draw","attack","attack","attack","bomb","bomb","bomb"],
     "ai2":["shield2","shield2","tank","tank","attack","attack","attack"],
@@ -18,7 +18,7 @@
     "trader1":["bunny-looty","bunny-miney","bunny-bomby","bunny-attacky","bunny-dealy"],
     "trader2":["bear-looty","bear-miney","bear-bomby","bear-tanky","bear-attacky","bear-dealy"],
     "trader3":["bird-nuke","bird-trash-attacky","bird-trash","bird-thefty2","bird-abduct"],
-    "trader4":["beaver-duplicate","beaver-upgrade","beaver-wood"],
+    "trader4":["beaver-duplicate","beaver-upgrade","beaver-wood","beaver-discard"],
     "trader5":["bunny-tanky","bunny-speedy","bunny-progressy"],
     "shop7":["attack2","loot","bomb","draw","shield2"]
 }

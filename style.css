@@ -103,6 +103,24 @@ body {
     background: white;
 }
 
+.markerList {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    position: absolute;
+    top: 0;
+    left: 0;
+    height: 100%;
+    width: 100%;
+}
+
+.markerList .marker {
+    position: absolute;
+    left: 5%;
+    width: 50%;
+    height: calc(var(--scale)*0.1vw);
+    background-color: dodgerblue;
+}
 .progress {
   width: 100%;
   position: absolute;

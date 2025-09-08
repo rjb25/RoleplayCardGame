@@ -12,6 +12,7 @@
     "my_base":{"location":"base","entity":"allies"},
     "my_tent":{"location":"tent","entity":"owner","index": 0},
     "my_deck":{"location":"deck","entity":"owner","index":"amount"},
+    "enemy_deck":{"location":"deck","entity":"enemies","index":"all"},
     "my_discard":{"location":"discard","entity":"owner","index":"all"},
     "my_hand":{"location":"hand","entity":"owner","index":"amount"},
     "all_hand":{"location":"hand","entity":"owner","index":"all"},

@@ -961,7 +961,6 @@ def cleanup_tick():
                             kill_card(card)
 
 def ai_tick():
-    #Could be refactored to just run play_action
     for player, player_data in table("players").items():
         if player_data["ai"]:
             acting(
@@ -1066,7 +1065,7 @@ def initialize_player(team,ai,username, deck="beginner"):
             "deck": [],
             "discard": [],
             #If I want shop on each player instead of one for everyone this is a start. Individual shops would be best for rpg style.
-            #"shop": [0,0,0],
+            "shop": [0,0,0,0,0],
             "trash": [],
             "tent": [
                 0
@@ -1099,11 +1098,13 @@ def initialize_players():
 def initialize_situation():
     set_nested(game_table,["entities","situation"],{"team":"gaia","type":"gaia","locations":{"events":[]}})
 
-def initialize_trader(trader = "trader1"):
+#def set_trader():
+
+def initialize_trader(trader = "trader1",entity="trader"):
     #Initialize some cards to the shop on player startup
     #baby_card = initialize_card(card_name, username)
     #if session_table["reward"]:
-    set_nested(game_table,["entities","trader"],{"team":"gaia","type":"gaia","locations":{"stall":[0],"trash":[0],"shop":[0,0,0,0,0]}})
+    set_nested(game_table,["entities",entity],{"team":"gaia","type":"gaia","locations":{"stall":[0],"trash":[0],"shop":[0,0,0,0,0]}})
     shop_deck = decks_table[trader]
     random.shuffle(shop_deck)
     for index, slot in enumerate(game_table["entities"]["trader"]["locations"]["shop"]):
@@ -1638,14 +1639,14 @@ def handle_play(command):
     if card_to == "board" and card_from == "hand":
         if not game_table["entities"][team]["locations"]["board"][card_index]:
             acting({"action": "play", "target": card, "to": {"entity":team, "location":"board", "index": card_index}})
-    if card_to == "discard" and card_from == "hand":
+    if card_to == "discard" and card_from == "hand" and not card["title"] == "wood":
         acting({"action": "move", "target": card, "to": {"entity":card["owner"],"location":"discard", "index": "append"}})
     if card_to == "hand":
         if card_from == "shop":
             acting({"action": "buy", "target": card, "to": {"entity":username,"location":"deck", "index": "append"}})
         if card_from == "hand":
             to_hype = game_table["entities"][username]["locations"]["hand"][card_index]
-            if to_hype and card_index != card["index"]:
+            if to_hype and card_index != card["index"] and not card["title"] == "wood":
                 acting({"action": "hype", "target": to_hype}, card)
 
 
