@@ -630,12 +630,13 @@ def acting(action, card =""):
                                 "to": {"entity": card["owner"], "location": "held", "index": "append"}})
                         break
             else:
-                hype = 1
-                if card.get("hype"):
-                    hype += card.get("hype")
+                if not card["title"] == "wood":
+                    hype = 1
+                    if card.get("hype"):
+                        hype += card.get("hype")
 
-                acting({"action": "empower", "target": victim, "amount":hype}, card)
-                acting({"action": "move", "target": card, "to": {"entity":"owner","location": "discard", "index": "append"}}, card)
+                    acting({"action": "empower", "target": victim, "amount":hype}, card)
+                    acting({"action": "move", "target": card, "to": {"entity":"owner","location": "discard", "index": "append"}}, card)
 
             ## end trigger stored on effected card
             #effect_function = action["effect_function"]
@@ -1646,7 +1647,7 @@ def handle_play(command):
             acting({"action": "buy", "target": card, "to": {"entity":username,"location":"deck", "index": "append"}})
         if card_from == "hand":
             to_hype = game_table["entities"][username]["locations"]["hand"][card_index]
-            if to_hype and card_index != card["index"] and not card["title"] == "wood":
+            if to_hype and card_index != card["index"]:
                 acting({"action": "hype", "target": to_hype}, card)
 
 
