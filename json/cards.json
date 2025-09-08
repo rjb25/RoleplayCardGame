@@ -654,7 +654,7 @@
                 {"goal":4, "progress":0, "actions":[
                     {"action":"income","target":"allies","amount":1}
                 ]},
-                {"goal":16, "main":"green", "progress":0, "actions":[
+                {"goal":20,"marks":5, "main":"green", "progress":0, "actions":[
                     {"action":"gems","target":"allies","amount":1}
                 ]}
             ]
@@ -669,6 +669,9 @@
             "timer": [
                 {"goal":4, "progress":0, "actions":[
                     {"action":"income","target":"allies","amount":1}
+                ]},
+                {"goal":20, "marks":5,"main":"green", "progress":0, "actions":[
+                    {"action":"gems","target":"allies","amount":1}
                 ]}
             ]
         }
