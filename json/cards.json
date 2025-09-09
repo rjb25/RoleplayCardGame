@@ -306,7 +306,7 @@
     "beaver-wood":{
         "description": "Adds flack to your opponents deck.",
         "health":1,
-        "cost":4,
+        "cost":8,
         "targets": ["","","enemy_board"],
         "icons": ["","","wood"],
         "triggers": {
