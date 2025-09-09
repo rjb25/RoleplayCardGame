@@ -548,16 +548,16 @@
         }
     },
     "good":{
-        "health":30,
+        "health":25,
         "cost":0,
         "targets": ["","my_tent","my_tent"],
         "icons": ["","income","gems"],
         "triggers": {
             "timer": [
-                {"goal":4, "progress":0, "actions":[
+                {"goal":10, "progress":0, "actions":[
                     {"action":"income","target":"allies","amount":1}
                 ]},
-                {"goal":20,"marks":5, "main":"green", "progress":0, "actions":[
+                {"goal":20,"marks":2, "main":"green", "progress":0, "actions":[
                     {"action":"gems","target":"allies","amount":1}
                 ]}
             ]
@@ -570,10 +570,10 @@
         "icons": ["","income","gems"],
         "triggers": {
             "timer": [
-                {"goal":4, "progress":0, "actions":[
+                {"goal":10, "progress":0, "actions":[
                     {"action":"income","target":"allies","amount":1}
                 ]},
-                {"goal":20, "marks":5,"main":"green", "progress":0, "actions":[
+                {"goal":20, "marks":2,"main":"green", "progress":0, "actions":[
                     {"action":"gems","target":"allies","amount":1}
                 ]}
             ]

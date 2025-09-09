@@ -9,12 +9,13 @@
 #Have damage pass through by default, then certain cards bypass and certain cards do not
 #Readme card/ button people can click for a general explanation
 #Have glass cards that are used once then they trash themselves.
-#Mute sound effect option
 #Victory screen
 #Mercenary cards in the shop that take an action for the highest bidder.
 #make some kind of campaign co-op. Maybe just the versus ai.
+#Add numbers for actions
 
 #TODO TODONE
+#Mute sound effect option
 #Have Main list a color
 #Need to make it so that you can configure the corner to be the correct Color.
 #Remove multiple ais fix indexing
@@ -613,8 +614,9 @@ def acting(action, card =""):
             else:
                 if not card["title"] == "wood":
                     hype = 1
-                    if card.get("hype"):
-                        hype += card.get("hype")
+                    #Permanent hype
+                    #if card.get("hype"):
+                        #hype += card.get("hype")
 
                     acting({"action": "empower", "target": victim, "amount":hype}, card)
                     acting({"action": "move", "target": card, "to": {"entity":"owner","location": "discard", "index": "append"}}, card)
@@ -930,6 +932,11 @@ def cleanup_tick():
                     if card["health"] <= 0:
                         if card["location"] == "base":
                             session_table["teams"][get_team(card["owner"])]["losses"] += 1
+                            #This needs to be able to target only one player instead of going global
+                            #animations.append(
+                            #    {"sender": card,
+                            #     "receiver": card,
+                            #     "size": 100, "image": "pics/" +  "defeat.png"})
                             if get_team(card["owner"]) == "evil":
                                 if session_table["level"] < session_table["max_level"]:
                                     session_table["reward"] = 1
@@ -1168,7 +1175,8 @@ def refresh_card(card):
         )
         card["effects"].clear()
         card["max_health"] = baby_card["health"]
-        card["hype"] = 0
+        #Permanent hype
+        #card["hype"] = 0
         card["health"] = baby_card["health"]
         card["shield"] = 0
         card["max_shield"] = 20
@@ -1407,7 +1415,8 @@ def find_goals_with_action_name(target_action,card):
     return results
 
 def get_team(username):
-    return game_table["entities"][username]["team"]
+    if game_table["entities"].get(username):
+        return game_table["entities"][username]["team"]
 
 def get_board(username):
     return table("teams")[get_team(username)]["locations"]["board"]
@@ -1626,12 +1635,12 @@ def handle_play(command):
     if card_to == "discard" and card_from == "hand" and not card["title"] == "wood":
         acting({"action": "move", "target": card, "to": {"entity":card["owner"],"location":"discard", "index": "append"}})
     if card_to == "hand":
-        if card_from == "shop":
-            acting({"action": "buy", "target": card, "to": {"entity":username,"location":"deck", "index": "append"}})
         if card_from == "hand":
             to_hype = game_table["entities"][username]["locations"]["hand"][card_index]
             if to_hype and card_index != card["index"]:
                 acting({"action": "hype", "target": to_hype}, card)
+    if card_from == "shop" and card_to != "shop":
+        acting({"action": "buy", "target": card, "to": {"entity":username,"location":"deck", "index": "append"}})
 
 
 #There's also a full log in javascript message container

@@ -147,7 +147,7 @@ function inspect(slot) {
         inspection.style.display = "none";
         inspection.info = false
     }else {
-        inspection.style.display = "block";
+        inspection.style.display = "inline-block";
         inspection.info = true
     }
     cardButton = slot.querySelector('.cardWhole');
@@ -352,8 +352,8 @@ function updateCardButton(cardButton, card) {
     }
     progressBar = cardButton.querySelector(".progress");
     if (progressBar) {
-        var topRightText = cardButton.querySelector(".topRightText");
-        var topLeftText = cardButton.querySelector(".topLeftText");
+        var topRightText = cardButton.querySelector(".topRightProgressText");
+        var topLeftText = cardButton.querySelector(".topLeftProgressText");
         eventDict = card["triggers"][progressBar.triggerType][progressBar.triggerIndex];
         percent = 100 * eventDict["progress"] / eventDict["goal"]
         percent_limit = Math.min(percent, 100);
@@ -606,6 +606,7 @@ function createSlots(container, length, location) {
         slot.classList.add("slot");
         slot.setAttribute("ondrop", "drop(event)");
         slot.setAttribute("ondragover", "allowDrop(event)");
+        /*
         if (location === "shop"){
                 slot.onclick = function () {
                     cardButton = this.querySelector('.card')
@@ -614,11 +615,12 @@ function createSlots(container, length, location) {
                     }
                 };
         } else {
+         */
             slot.onclick = function () {
                 inspect(this);
             };
 
-        }
+        //}
         container.append(slot);
     }
 }
