@@ -14,6 +14,9 @@
 #make some kind of campaign co-op. Maybe just the versus ai.
 #Add numbers for actions
 #Set up a way to indicate if power is being used with amount or if amount is flat. Something like goal - power * scaling shouldn't be undoable
+#Set 3 main stats, power, speed and health? Speed includes cooldown and how many times something triggers. Power changes trigger effect and storage size? Healths is well... health.
+#Need some way to tell how long something takes in total.
+#Bidding war is next. That should be very fun
 
 #TODO TODONE
 #Mute sound effect option
@@ -489,10 +492,6 @@ def get_power(action, card):
             power += card["hype"] * card["scaling"]
         if card.get("level"):
             power += card["level"] * card["scaling"]
-        if card.get("values"):
-            for index, value in enumerate(card["base_values"]):
-                if value:
-                    card["values"][index] = int(value) + power
     return power
 
 def acting(action, card =""):
@@ -501,7 +500,6 @@ def acting(action, card =""):
     power = get_power(action,card)
     #try:
     match action["action"]:
-
         case "play":
             for played in target_groups[0]:
                 username = played["owner"]
@@ -547,9 +545,10 @@ def acting(action, card =""):
         case "duplicate":
             cards = target_groups[0]
             username = card["owner"]
-            for ca in cards:
-                baby_card = initialize_card(ca["name"], username, "deck", "append")
-                animations.append({"sender": card, "receiver": owner_card(username), "size": 1, "image": "pics/cards.png"})
+            for i in range(math.floor(power)):
+                for ca in cards:
+                    baby_card = initialize_card(ca["name"], username, "deck", "append")
+                    animations.append({"sender": card, "receiver": owner_card(username), "size": 1, "image": "pics/cards.png"})
     #Card to trash
         case "trash":
             #Move is a great example. What the real functions need are a couple target_groups and parameters
@@ -584,13 +583,21 @@ def acting(action, card =""):
             #If destination is just append to entities location, no need to zip
             for victim in victims:
                 if victim["level"] < victim["max_level"]:
-                    victim["level"] += action["amount"]
+                    victim["level"] += power
+                if victim.get("values"):
+                    for index, value in enumerate(victim["values"]):
+                        if value:
+                            victim["real_values"][index] = get_power({"amount":int(victim["values"][index])},victim)
 
         case "empower":
             victims = target_groups[0]
             victim = victims[0]
             if victim["hype"] < victim["max_hype"]:
                 victim["hype"] += action["amount"]
+            if victim.get("values"):
+                for index, value in enumerate(victim["values"]):
+                    if value:
+                        victim["real_values"][index] = get_power({"amount":int(victim["values"][index])},victim)
 
         case "abduct":
             victims = target_groups[0]
@@ -1149,8 +1156,8 @@ def initialize_card(card_name,username,location,index):
 
 
     if baby_card.get("values"):
-        if not baby_card.get("base_values"):
-            baby_card["base_values"] = baby_card["values"]
+        if not baby_card.get("real_values"):
+            baby_card["real_values"] = copy.deepcopy(baby_card["values"])
     baby_card["id"] = get_unique_id()
     baby_card["shield"] = 0
     baby_card["effects"] = {}

@@ -278,6 +278,18 @@ function updateCardButton(cardButton, card) {
         }
     }
     if (["hand"].includes(card["location"])){
+        if ("real_values" in card) {
+            texts = cardButton.querySelectorAll('[class*="ProgressText"]')
+            text = 0
+            for (i = 0; i < card["real_values"].length; i++){
+                //Should be evaluated on drag drop?
+                console.log("iteration station");
+                if (card["real_values"][i]){
+                    texts[text].innerHTML = card["real_values"][i];
+                    text++;
+                }
+            }
+        }
         if("cost" in card) {
             topRightText.innerHTML = card["cost"];
             mContainer = fetch("#messages_container");
@@ -557,10 +569,10 @@ function generateCardButton(card) {
                     target = "none";
                 }
                 text = "";
-                if (card["values"]) {
+                if (card["real_values"]) {
                     console.log("evaluate");
-                    console.log(card["values"][i]);
-                    text = card["values"][i];
+                    console.log(card["real_values"][i]);
+                    text = card["real_values"][i];
                 }
                 cardProgress.appendChild(addImage(card["icons"][i] + "-icon", "small", locations[i], target, "",text));
             }
@@ -679,6 +691,7 @@ function updateSlots(container, messageJson, name, location) {
             }
         } else {
             //Update
+            //Update could use some trimming
             if (newCard) {
                 updateCardButton(oldCardButton, newCard);
             }

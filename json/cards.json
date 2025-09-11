@@ -99,6 +99,7 @@
         "cost":2,
         "targets": ["","","my_tent"],
         "icons": ["","","speed"],
+        "values": ["","",4],
         "triggers": {
             "timer": [
                 {"goal":4, "progress":0, "actions":[
@@ -151,6 +152,7 @@
         "cost":10,
         "targets": ["","enemy_board",""],
         "icons": ["","abduct",""],
+        "values": ["",1,""],
         "triggers": {
             "timer": [
                 {"goal":2, "progress":0, "actions":[
@@ -166,8 +168,10 @@
         "description": "Steals money from your opponent.",
         "health":4,
         "cost":10,
+        "scaling": 0.5,
         "targets": ["","",""],
         "icons": ["","","theft"],
+        "values": ["","",10],
         "triggers": {
             "timer": [
                 {"goal":10, "main":"red" ,"progress":0, "actions":[
@@ -184,6 +188,7 @@
         "cost":10,
         "targets": ["all_board","",""],
         "icons": ["damage","",""],
+        "values": [25,"",""],
         "triggers": {
             "timer": [
                 {"goal":10, "main":"black","progress":0, "actions":[
@@ -229,8 +234,10 @@
         "description": "Trashes the enemy card across from this card if it deals the killing blow.",
         "health":10,
         "cost":10,
+        "scaling": 0.3,
         "targets": ["","enemy_board",""],
         "icons": ["","trash",""],
+        "values": ["",1,""],
         "triggers": {
             "timer": [
                 {"goal":2, "progress":0, "actions":[
@@ -248,11 +255,13 @@
         "cost":8,
         "targets": ["","","on_me"],
         "icons": ["","","move"],
+        "values": ["","",1],
+        "scaling": 0.1,
         "storage": ["",""],
         "triggers": {
             "timer": [
                 {"goal":10, "main":"green","progress":0, "actions":[
-                    {"action":"duplicate","target":"on_me"},
+                    {"action":"duplicate","target":"on_me", "amount": 1},
                     {"action":"move","target":"on_me","to": {"location": "discard","index": "append","entity": "owner"}},
                     {"action":"empty_storage","target":"self"},
                     {"action":"move","target":"self","to": {"location": "discard","index": "append","entity": "owner"}}
@@ -290,6 +299,7 @@
         "cost":8,
         "targets": ["","","on_me"],
         "icons": ["","","level"],
+        "values": ["","",5],
         "storage": ["",""],
         "triggers": {
             "timer": [
@@ -314,6 +324,7 @@
         "cost":8,
         "targets": ["","","enemy_board"],
         "icons": ["","","wood"],
+        "values": ["","",2],
         "triggers": {
             "timer": [
                 {"goal":10, "main":"green","progress":0, "actions":[
@@ -342,6 +353,7 @@
         "cost":5,
         "targets": ["","","enemy_base"],
         "icons": ["","","victory"],
+        "values": ["","",3],
         "triggers":{
             "timer": [
                 {"goal":20, "main":"red","progress":0, "actions":[
@@ -357,6 +369,7 @@
         "cost":5,
         "targets": ["","enemy_board",""],
         "icons": ["","damage",""],
+        "values": ["",1,""],
         "triggers": {
             "timer": [
                 {"goal":2, "progress":0, "actions":[
@@ -373,6 +386,7 @@
         "cost":5,
         "targets": ["my_board","",""],
         "icons": ["armor","",""],
+        "values": [1.2,"",""],
         "triggers":{
             "timer": [
                 {"goal":20, "main":"black","progress":0, "actions":[
@@ -392,6 +406,7 @@
         "cost":5,
         "targets": ["","my_tent",""],
         "icons": ["","income",""],
+        "values": ["",4,""],
         "triggers": {
             "timer": [
                 {"goal":2, "progress":0, "actions":[
@@ -409,6 +424,7 @@
         "cost":5,
         "targets": ["","my_tent",""],
         "icons": ["","gems",""],
+        "values": ["",4,""],
         "triggers": {
             "timer": [
                 {"goal":3, "progress":0, "actions":[
@@ -426,6 +442,7 @@
         "cost":5,
         "targets": ["","my_cards",""],
         "icons": ["","move",""],
+        "values": ["",2,""],
         "triggers": {
             "timer": [
                 {"goal":2, "progress":0, "actions":[
@@ -492,6 +509,7 @@
         "gems_limit":50,
         "targets": ["","","my_cards"],
         "icons": ["","","move"],
+        "values": ["","",1],
         "triggers":{
             "timer": [
                 {"goal":8, "main": "green","progress":0, "actions":[
@@ -557,6 +575,7 @@
         "cost":0,
         "targets": ["","my_tent","my_tent"],
         "icons": ["","income","gems"],
+        "values": ["",1,1],
         "triggers": {
             "timer": [
                 {"goal":10, "progress":0, "actions":[
@@ -573,6 +592,7 @@
         "cost":0,
         "targets": ["","my_tent","my_tent"],
         "icons": ["","income","gems"],
+        "values": ["",1,1],
         "triggers": {
             "timer": [
                 {"goal":10, "progress":0, "actions":[
