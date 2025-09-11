@@ -44,6 +44,7 @@
         "cost":2,
         "targets": ["my_board","",""],
         "icons": ["speed","",""],
+        "values": ["1","",""],
         "triggers": {
             "enter": [
                 {"actions":[
@@ -63,6 +64,7 @@
         "cost":2,
         "targets": ["","my_tent",""],
         "icons": ["","gems",""],
+        "values": ["","2",""],
         "triggers": {
             "timer": [
                 {"goal":3, "progress":0, "actions":[
@@ -80,6 +82,7 @@
         "cost":2,
         "targets": ["","my_cards",""],
         "icons": ["","move",""],
+        "values": ["",1,""],
         "triggers": {
             "timer": [
                 {"goal":2, "progress":0, "actions":[
@@ -112,6 +115,7 @@
         "cost":2,
         "targets": ["","","enemy_base"],
         "icons": ["","","victory"],
+        "values": ["","",1],
         "triggers":{
             "timer": [
                 {"goal":2, "main":"red","progress":0, "actions":[
@@ -127,6 +131,7 @@
         "cost":2,
         "targets": ["enemy_board","",""],
         "icons": ["damage","",""],
+        "values": [2,"",""],
         "triggers": {
             "timer": [
                 {"goal":1, "main":"red" ,"progress":0, "actions":[

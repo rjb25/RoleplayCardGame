@@ -352,8 +352,6 @@ function updateCardButton(cardButton, card) {
     }
     progressBar = cardButton.querySelector(".progress");
     if (progressBar) {
-        var topRightText = cardButton.querySelector(".topRightProgressText");
-        var topLeftText = cardButton.querySelector(".topLeftProgressText");
         eventDict = card["triggers"][progressBar.triggerType][progressBar.triggerIndex];
         percent = 100 * eventDict["progress"] / eventDict["goal"]
         percent_limit = Math.min(percent, 100);
@@ -436,7 +434,7 @@ function arrayRemove(array, item) {
         array.splice(index, 1);
     }
 }
-function addImage(image, size, location, target = "", storage = ""){
+function addImage(image, size, location, target = "", storage = "", text = ""){
 
     MyDiv = document.createElement("div");
     MyDiv.classList.add(size+"Div",location);
@@ -447,6 +445,7 @@ function addImage(image, size, location, target = "", storage = ""){
      */
     MyText = document.createElement("p");
     MyText.classList.add("count",location+"Text");
+    MyText.innerHTML = text;
     MyImage = new Image();
     //MyImage.draggable = false;
     MyImage.classList.add("image",location+"Image");
@@ -553,12 +552,20 @@ function generateCardButton(card) {
         for(i = 0; i < card["icons"].length; i++){
             if (card["icons"][i]) {
                 if(showTarget){
-                    target = card["targets"][i]
+                    target = card["targets"][i];
                 } else {
-                    target = "none"
+                    target = "none";
                 }
-                cardProgress.appendChild(addImage(card["icons"][i]+"-icon", "small", locations[i], target));
+                text = "";
+                if (card["values"]) {
+                    console.log("evaluate");
+                    console.log(card["values"][i]);
+                    text = card["values"][i];
+                }
+                cardProgress.appendChild(addImage(card["icons"][i] + "-icon", "small", locations[i], target, "",text));
             }
+            //var topRightText = cardButton.querySelector(".topRightProgressText");
+            //var topLeftText = cardButton.querySelector(".topLeftProgressText");
         }
     }
     //PROGRESS

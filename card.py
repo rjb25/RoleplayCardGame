@@ -13,6 +13,7 @@
 #Mercenary cards in the shop that take an action for the highest bidder.
 #make some kind of campaign co-op. Maybe just the versus ai.
 #Add numbers for actions
+#Set up a way to indicate if power is being used with amount or if amount is flat. Something like goal - power * scaling shouldn't be undoable
 
 #TODO TODONE
 #Mute sound effect option
@@ -488,6 +489,10 @@ def get_power(action, card):
             power += card["hype"] * card["scaling"]
         if card.get("level"):
             power += card["level"] * card["scaling"]
+        if card.get("values"):
+            for index, value in enumerate(card["base_values"]):
+                if value:
+                    card["values"][index] = int(value) + power
     return power
 
 def acting(action, card =""):
@@ -1143,6 +1148,9 @@ def initialize_card(card_name,username,location,index):
         baby_card["max_level"] = 20
 
 
+    if baby_card.get("values"):
+        if not baby_card.get("base_values"):
+            baby_card["base_values"] = baby_card["values"]
     baby_card["id"] = get_unique_id()
     baby_card["shield"] = 0
     baby_card["effects"] = {}
@@ -1428,7 +1436,14 @@ def get_enemy_team(team):
         return "evil"
 
 def initialize_time():
-    timer_handle = asyncio.create_task(tick())
+    try:
+        timer_handle = asyncio.create_task(tick())
+    except Exception as e:
+        log("Time failure refrabulating terrazoids.")
+        log(e)
+        log_json(card)
+        initialize_time()
+
 
 def print_json(json_message):
     #no_circ = remove_circular_refs(copy.deepcopy(json_message))
