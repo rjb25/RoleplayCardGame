@@ -20,5 +20,6 @@
     "trader3":["bird-nuke","bird-trash-attacky","bird-trash","bird-thefty2","bird-abduct"],
     "trader4":["beaver-duplicate","beaver-upgrade","beaver-wood","beaver-discard","bunny-tanky"],
     "trader5":["bunny-tanky","bunny-speedy","bunny-progressy"],
+    "auction":["fox-foxy","fox-bomby2","fox-gem3"],
     "shop7":["attack2","loot","bomb","draw","shield2"]
 }

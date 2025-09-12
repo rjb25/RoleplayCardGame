@@ -454,6 +454,86 @@
             ]
         }
     },
+    "fox-foxy":{
+        "description": "Shower me with money.<br>Gives 10 money and all money spent on it to the team that spends the most.",
+        "cost":5,
+        "targets": ["","","enemy_base"],
+        "icons": ["","","income"],
+        "values": ["","",10],
+        "bid": {"good": 0, "evil": 0},
+        "triggers":{
+            "sold": [
+                {"actions":[
+                    {"action": "income", "target": "winner", "allbid":1,"amount": 10}
+                ]}
+            ]
+        }
+    },
+    "fox-bomby2":{
+        "description": "I hit pretty hard.<br>Deals 5 damage to the team that pays the least.",
+        "cost":5,
+        "targets": ["","","enemy_base"],
+        "icons": ["","","victory"],
+        "values": ["","",5],
+        "bid": {"good": 0, "evil": 0},
+        "triggers":{
+            "sold": [
+                {"actions":[
+                    {"action":"damage","target":"loser_base","amount":5}
+                ]}
+            ]
+        }
+    },
+    "fox-gem3":{
+        "description": "I am FABULOUS.<br>Gives 10 gems to the highest bidder.",
+        "cost":5,
+        "targets": ["","","enemy_base"],
+        "icons": ["","","gems"],
+        "values": ["","",10],
+        "bid": {"good": 0, "evil": 0},
+        "triggers":{
+            "sold": [
+                {"actions":[
+                    {"action":"gems","target":"winner","amount":10}
+                ]}
+            ]
+        }
+    },
+    "fox-hype":{
+        "description": "Totally raaaaad.<br>Gives 3 hype to all cards of the highest bidding team.",
+        "cost":5,
+        "targets": ["","","enemy_base"],
+        "icons": ["","","gems"],
+        "values": ["","",10],
+        "bid": {"good": 0, "evil": 0},
+        "triggers":{
+            "sold": [
+                {"actions":[
+                    {"action":"damage","target":"winner","amount":10}
+                ]}
+            ]
+        }
+    },
+    "fox-create":{
+        "description": "I try so hard.<br>Gives a copy of the cards in storage to the winning team.",
+        "cost":5,
+        "targets": ["","","enemy_base"],
+        "icons": ["","","gems"],
+        "values": ["","",10],
+        "bid": {"good": 0, "evil": 0},
+        "triggers":{
+            "init": [
+                {"actions":[
+                    {"action":"create","target":"winner","amount":10}
+                ]}
+            ],
+            "sold": [
+                {"actions":[
+                    {"action":"damage","target":"winner","amount":10}
+                ]}
+            ]
+        }
+    },
     "shield":{"health":3,
         "cost":3,
         "triggers":{

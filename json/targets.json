@@ -1,4 +1,5 @@
 {
+    "loser_base":{"location":"base","entity":"loser"},
     "enemy_base":{"location":"base","entity":"enemy"},
     "across":{"location":"board","entity":"enemy","index":"card"},
     "fork":{"location":"board","entity":"enemy","index":"fork"},
@@ -8,6 +9,7 @@
     "all_board":{"location":"board","entity":"all","index":"all"},
     "allies":{"location":"tent","entity":"allies"},
     "enemies":{"location":"tent","entity":"enemy"},
+    "winner":{"location":"tent","entity":"winner"},
     "ally_base":{"location":"base","entity":"allies"},
     "my_base":{"location":"base","entity":"allies"},
     "my_tent":{"location":"tent","entity":"owner","index": 0},

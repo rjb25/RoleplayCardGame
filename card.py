@@ -17,6 +17,8 @@
 #Set 3 main stats, power, speed and health? Speed includes cooldown and how many times something triggers. Power changes trigger effect and storage size? Healths is well... health.
 #Need some way to tell how long something takes in total.
 #Bidding war is next. That should be very fun
+#Hype all your cards by 2.
+#Create a random card but show what beforehand
 
 #TODO TODONE
 #Mute sound effect option
@@ -287,6 +289,16 @@ def resolve_entity_alias(entity_alias, card):
             entities.append([table("entities")[card["entity"]]])
         case "owner":
             entities.append([table("entities")[card["owner"]]])
+        case "loser":
+            winning_team = get_winner(card)
+            for entity_data in table("entities").values():
+                if winning_team and entity_data["team"] == get_enemy_team(winning_team):
+                    entities.append([entity_data])
+        case "winner":
+            winning_team = get_winner(card)
+            for entity_data in table("entities").values():
+                    if entity_data["team"] == winning_team:
+                        entities.append([entity_data])
         case "enemies" | "enemy":
             for entity_data in table("entities").values():
                 if entity_data["team"] != card["team"]:
@@ -432,7 +444,6 @@ def triggering(card, event_type):
                     timer["progress"] += tick_rate() * speed
                 case _:
                     for action in event["actions"]:
-                            print(action,card)
                             acting(action, card)
             if event.get("once"):
                 events.remove(event)
@@ -485,6 +496,9 @@ def extend_nested(data, keys, value):
 
 def get_power(action, card):
     power = 0
+    if action.get("allbid"):
+        for team, bid in card["bid"].items():
+            power += bid
     if action.get("amount"):
         power += action["amount"]
     if card:
@@ -493,6 +507,17 @@ def get_power(action, card):
         if card.get("level"):
             power += card["level"] * card["scaling"]
     return power
+
+def get_winner(card):
+    winning_team = ""
+    best_bid = 0
+    for team, bid in card["bid"].items():
+        if bid == best_bid:
+            winning_team = ""
+        if bid > best_bid:
+            winning_team = team
+            best_bid = bid
+    return winning_team
 
 def acting(action, card =""):
     target_groups = get_target_groups(action, card)
@@ -509,6 +534,16 @@ def acting(action, card =""):
                     captain["gold"] -= played["cost"]
                     destination = destinations
                     move(played,destination)
+        case "bid":
+            prizes = target_groups[0]
+            for prize in prizes:
+                username = card["owner"]
+                captain = owner_card(username)
+                if captain["gold"] >= card["cost"]:
+                    game_table["running"] = 1
+                    captain["gold"] -= card["cost"]
+                    acting({"action": "move", "target": card, "to": {"entity":"owner","location": "discard", "index": "append"}}, card)
+                    prize["bid"][get_team(card["owner"])] += card["cost"]
         case "buy":
             for shop_copy in target_groups[0]:
                 username = destinations["entity"]
@@ -707,6 +742,11 @@ def acting(action, card =""):
                 victim["shield"] = max(remaining_shield, 0)
                 damage = -1 * negative_remaining_damage
                 damage = max(0, damage - armor)
+                if not victim.get("health"):
+                    print("hitting that which cannot be hit !!!!!!!!!!")
+                    print(victim)
+                    print(card)
+                    print(action)
                 victim["health"] -= damage
                 if victim["health"] <= 0 and action.get("kill"):
                     victim["kill"] = action["kill"]
@@ -1102,10 +1142,23 @@ def initialize_situation():
 #def set_trader():
 
 def initialize_trader(trader = "trader1",entity="trader"):
-    #Initialize some cards to the shop on player startup
-    #baby_card = initialize_card(card_name, username)
-    #if session_table["reward"]:
-    set_nested(game_table,["entities",entity],{"team":"gaia","type":"gaia","locations":{"stall":[0],"trash":[0],"shop":[0,0,0,0,0]}})
+
+    #Resolve last auction
+
+    if game_table["entities"].get("trader") and game_table["entities"]["trader"]["locations"]["auction"][0]:
+        auction = game_table["entities"]["trader"]["locations"]["auction"]
+        triggering(auction[0],"sold")
+
+    #Set new trader
+    set_nested(game_table,["entities",entity],{"team":"gaia","type":"gaia","locations":{"auction":[0],"stall":[0],"trash":[0],"shop":[0,0,0,0,0]}})
+
+    #Set new auction reward
+    auction_deck = decks_table["auction"]
+    random.shuffle(auction_deck)
+    auction = game_table["entities"]["trader"]["locations"]["auction"]
+    auction[0] = initialize_card(auction_deck[0], "trader", "auction", 0)
+
+    #Set up new shop
     shop_deck = decks_table[trader]
     random.shuffle(shop_deck)
     for index, slot in enumerate(game_table["entities"]["trader"]["locations"]["shop"]):
@@ -1171,8 +1224,9 @@ def initialize_card(card_name,username,location,index):
     #           baby_card["
     game_table["ids"][baby_card["id"]] = baby_card
     possess_card(baby_card,username)
-    move(baby_card,{"location":location, "index":index})
+    move(baby_card,{"location":location, "index":index, "entity":username})
     refresh_card(baby_card)
+    triggering(baby_card,"init")
     return baby_card
 
 ###CARD###
@@ -1256,6 +1310,7 @@ def move(card, to):
 
 def move_defaults(card, to):
     if "entity" not in to.keys():
+        log("move default owner")
         log(card["owner"])
         to["entity"] = card["owner"]
     if "location" not in to.keys():
@@ -1425,8 +1480,6 @@ def find_goals_with_action_name(target_action,card):
             for action in goal["actions"]:
                 if action["action"] == target_action["action"]:
                     results.append(goal)
-    print("results")
-    print(results)
     return results
 
 def get_team(username):
@@ -1654,13 +1707,21 @@ def handle_play(command):
     if card_to == "board" and card_from == "hand":
         if not game_table["entities"][team]["locations"]["board"][card_index]:
             acting({"action": "play", "target": card, "to": {"entity":team, "location":"board", "index": card_index}})
+
+    if card_to == "auction" and card_from == "hand":
+        if game_table["entities"]["trader"]["locations"]["auction"][card_index]:
+            to_bid = game_table["entities"]["trader"]["locations"]["auction"][card_index]
+            acting({"action": "bid", "target": to_bid}, card)
+
     if card_to == "discard" and card_from == "hand" and not card["title"] == "wood":
         acting({"action": "move", "target": card, "to": {"entity":card["owner"],"location":"discard", "index": "append"}})
+
     if card_to == "hand":
         if card_from == "hand":
             to_hype = game_table["entities"][username]["locations"]["hand"][card_index]
             if to_hype and card_index != card["index"]:
                 acting({"action": "hype", "target": to_hype}, card)
+
     if card_from == "shop" and card_to != "shop":
         acting({"action": "buy", "target": card, "to": {"entity":username,"location":"deck", "index": "append"}})
 

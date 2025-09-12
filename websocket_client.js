@@ -23,9 +23,9 @@ var running = false;
 var target = 0;
 socketname = "localhost:12345";
 //These need to be variables
-buttonContainers = ["#enemy_base_container", "#situations_container", "#ally_base_container", "#plans_container", "#tent_container", "#cards_container", "#discard_container", "#merchant_container", "#shop_container", "#trash_container"];
-buttonContainerLocations = ["base", "board", "base", "board", "tent", "hand", "discard", "stall", "shop", "trash"];
-buttonContainerNames = [enemy_team, enemy_team, my_team, my_team, "me", "me", "me", "trader", "trader", "trader"];
+buttonContainers = ["#enemy_base_container", "#situations_container", "#ally_base_container", "#plans_container", "#auction_container","#tent_container", "#cards_container", "#discard_container", "#merchant_container", "#shop_container"];
+buttonContainerLocations = ["base", "board", "base", "board", "auction","tent", "hand", "discard", "stall", "shop"];
+buttonContainerNames = [enemy_team, enemy_team, my_team, my_team, "trader", "me", "me", "me", "trader", "trader"];
 menuButtons = ["remove_ai", "reset_session", "pause", "add_ai_evil", "add_ai_good", "join_good", "join_evil", "skip_trader","no_audio"/*,"save_user","load_user"*/];
 //This is what you run if you want to reconnect to server
 //socketname = prompt("WebSocketURL no http://")
@@ -177,7 +177,7 @@ function inspect(slot) {
                     inspection.appendChild(sectionDiv);
                 });
             } else {
-            infoText = "Health: " + card["health"] + /*"<br>Cost:" + card["cost"] + "<br>Shield:" + card["shield"] +*/ "<br>";
+            infoText = /*"Health: " + card["health"] + "<br>Cost:" + card["cost"] + "<br>Shield:" + card["shield"] +*/ "<br>";
 
             triggersText = "";
             Object.entries(card["triggers"]).forEach(([triggerType, events]) => {
@@ -214,7 +214,7 @@ function inspect(slot) {
             if (card["description"]){
                 description = card["description"]+ "<br>";
             }
-            inspection.innerHTML = description + infoText; //+ triggersText;
+            inspection.innerHTML = description;// + infoText; //+ triggersText;
             }
             /*
             var infoImage = new Image();
@@ -314,6 +314,9 @@ function updateCardButton(cardButton, card) {
             topLeftImage.style.display = "none";
         }
     }
+    if (["auction"].includes(card["location"])) {
+        topRightText.innerHTML = card["bid"][my_team];
+    }
     if (!["stall"].includes(card["location"]) ){
         currentHealth = card["health"];
         let percent = 100 * currentHealth / card["max_health"];
@@ -354,7 +357,7 @@ function updateCardButton(cardButton, card) {
             //shield.style.background = "rgba(30,144,255,0.9)";
         }
     }
-    if (!["shop","tent","hand"].includes(card["location"])){
+    if (!["shop","tent","hand","auction"].includes(card["location"])){
         topRightText.innerHTML = "";
         topRightImage.style.display = "none";
     }
