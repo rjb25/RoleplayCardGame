@@ -10,6 +10,7 @@
     "allies":{"location":"tent","entity":"allies"},
     "enemies":{"location":"tent","entity":"enemy"},
     "winner":{"location":"tent","entity":"winner"},
+    "winner_cards":{"location":"deck","entity":"winner","index": "all"},
     "ally_base":{"location":"base","entity":"allies"},
     "my_base":{"location":"base","entity":"allies"},
     "my_tent":{"location":"tent","entity":"owner","index": 0},

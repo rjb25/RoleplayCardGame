@@ -307,7 +307,7 @@ function updateCardButton(cardButton, card) {
         if (card["hype"] || card["level"]){
             bonus = card["hype"]+card["level"];
             topLeftText.innerHTML = parseFloat(bonus.toFixed(1));
-            topLeftImage.src = "pics/level-icon.png";
+            topLeftImage.src = "pics/level.png";
             topLeftImage.style.display = "inline-block";
         }else {
             topLeftText.innerHTML = "";
@@ -419,7 +419,7 @@ function updateCardButton(cardButton, card) {
             effectImage = new Image(20,20);
             //effectImage.draggable = false;
             effectImage.classList.add("image");
-            effectImage.src = "pics/" + effectType + "-icon.png";
+            effectImage.src = "pics/" + effectType + ".png";
             effectImage.alt = effectType;
 
             effectDiv.appendChild(amountText);
@@ -577,7 +577,7 @@ function generateCardButton(card) {
                     console.log(card["real_values"][i]);
                     text = card["real_values"][i];
                 }
-                cardProgress.appendChild(addImage(card["icons"][i] + "-icon", "small", locations[i], target, "",text));
+                cardProgress.appendChild(addImage(card["icons"][i] , "small", locations[i], target, "",text));
             }
             //var topRightText = cardButton.querySelector(".topRightProgressText");
             //var topLeftText = cardButton.querySelector(".topLeftProgressText");

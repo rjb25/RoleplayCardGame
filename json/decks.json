@@ -20,6 +20,7 @@
     "trader3":["bird-nuke","bird-trash-attacky","bird-trash","bird-thefty2","bird-abduct"],
     "trader4":["beaver-duplicate","beaver-upgrade","beaver-wood","beaver-discard","bunny-tanky"],
     "trader5":["bunny-tanky","bunny-speedy","bunny-progressy"],
-    "auction":["fox-foxy","fox-bomby2","fox-gem3"],
+    "random":["bear-looty","bear-miney","bear-bomby","bear-tanky","bear-attacky","bear-dealy","bird-nuke","bird-trash-attacky","bird-trash","bird-thefty2","bird-abduct","bunny-speedy","bunny-progressy","beaver-duplicate","beaver-upgrade","beaver-wood","beaver-discard","bunny-tanky"],
+    "auction":["fox-foxy","fox-bomby2","fox-gem3","fox-create","fox-hype"],
     "shop7":["attack2","loot","bomb","draw","shield2"]
 }

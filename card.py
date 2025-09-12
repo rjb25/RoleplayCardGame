@@ -534,6 +534,7 @@ def acting(action, card =""):
                     captain["gold"] -= played["cost"]
                     destination = destinations
                     move(played,destination)
+
         case "bid":
             prizes = target_groups[0]
             for prize in prizes:
@@ -544,6 +545,7 @@ def acting(action, card =""):
                     captain["gold"] -= card["cost"]
                     acting({"action": "move", "target": card, "to": {"entity":"owner","location": "discard", "index": "append"}}, card)
                     prize["bid"][get_team(card["owner"])] += card["cost"]
+
         case "buy":
             for shop_copy in target_groups[0]:
                 username = destinations["entity"]
@@ -570,11 +572,25 @@ def acting(action, card =""):
                 if destination["location"] == "hand":
                     animations.append({"sender": card, "receiver": ca, "size": 1, "image": "pics/cards.png"})
 
+        case "random_select":
+            victims = target_groups[0]
+            random_deck = decks_table["random"]
+            random.shuffle(random_deck)
+            for victim in victims:
+                victim["random"] = random_deck[0]
+                for index, icon in enumerate(victim["icons"]):
+                    if icon == "random":
+                        victim["icons"][index] = random_deck[0]
+
         case "create":
             victims = target_groups[0]
+            what = action["what"]
+            if card.get("random"):
+                what = card["random"]
+
             for i in range(math.floor(power)):
                 for victim in victims:
-                    baby_card = initialize_card(action["what"], victim["owner"], "deck", "append")
+                    baby_card = initialize_card(what, victim["owner"], "deck", "append")
                     #animations.append({"sender": card, "receiver": owner_card(username), "size": 1, "image": "pics/cards.png"})
 
         case "duplicate":
@@ -584,7 +600,7 @@ def acting(action, card =""):
                 for ca in cards:
                     baby_card = initialize_card(ca["name"], username, "deck", "append")
                     animations.append({"sender": card, "receiver": owner_card(username), "size": 1, "image": "pics/cards.png"})
-    #Card to trash
+
         case "trash":
             #Move is a great example. What the real functions need are a couple target_groups and parameters
             #Each target is either a path or a card.
@@ -613,6 +629,7 @@ def acting(action, card =""):
             if storage:
                 for index, slot in enumerate(storage):
                     storage[index] = ""
+
         case "upgrade":
             victims = target_groups[0]
             #If destination is just append to entities location, no need to zip
@@ -622,7 +639,7 @@ def acting(action, card =""):
                 if victim.get("values"):
                     for index, value in enumerate(victim["values"]):
                         if value:
-                            victim["real_values"][index] = get_power({"amount":int(victim["values"][index])},victim)
+                            victim["real_values"][index] = get_power({"amount":int(float(victim["values"][index]))},victim)
 
         case "empower":
             victims = target_groups[0]
@@ -632,7 +649,7 @@ def acting(action, card =""):
             if victim.get("values"):
                 for index, value in enumerate(victim["values"]):
                     if value:
-                        victim["real_values"][index] = get_power({"amount":int(victim["values"][index])},victim)
+                        victim["real_values"][index] = get_power({"amount":int(float(victim["values"][index]))},victim)
 
         case "abduct":
             victims = target_groups[0]
@@ -645,41 +662,41 @@ def acting(action, card =""):
 
         case "hype":
             victims = target_groups[0]
-            victim = victims[0]
             #If you are storing a card that has it's own storage, clear that storage.
-            if card.get("storage"):
-                acting({"action": "move", "target": "on_me",
-                        "to": {"entity": card["owner"], "location": "discard", "index": "append"}},card)
-            storage = victim.get("storage")
-            if storage:
-                for index, slot in enumerate(storage):
-                    if not slot:
-                        storage[index] = card["id"]
-                        acting({"action": "move", "target": card,
-                                "to": {"entity": card["owner"], "location": "held", "index": "append"}})
-                        break
-            else:
-                if not card["title"] == "wood":
-                    hype = 1
-                    #Permanent hype
-                    #if card.get("hype"):
-                        #hype += card.get("hype")
+            for victim in victims:
+                if card.get("storage"):
+                    acting({"action": "move", "target": "on_me",
+                            "to": {"entity": card["owner"], "location": "discard", "index": "append"}},card)
+                storage = victim.get("storage")
+                if storage:
+                    for index, slot in enumerate(storage):
+                        if not slot:
+                            storage[index] = card["id"]
+                            acting({"action": "move", "target": card,
+                                    "to": {"entity": card["owner"], "location": "held", "index": "append"}})
+                            break
+                else:
+                    if not card["title"] == "wood":
+                        hype = action["amount"]
+                        #Permanent hype
+                        #if card.get("hype"):
+                            #hype += card.get("hype")
 
-                    acting({"action": "empower", "target": victim, "amount":hype}, card)
-                    acting({"action": "move", "target": card, "to": {"entity":"owner","location": "discard", "index": "append"}}, card)
+                        acting({"action": "empower", "target": victim, "amount":hype}, card)
+                        acting({"action": "move", "target": card, "to": {"entity":"owner","location": "discard", "index": "append"}}, card)
 
-            ## end trigger stored on effected card
-            #effect_function = action["effect_function"]
-            #target = action["target"]
-            ##For all of the target_groups of this action, add the effect
-            #for target_groups in get_target_groups(target,card):
-            #    for target_group in target_groups:
-            #        for targetted_card in target_group:
-            #            effect = {"effect_function": effect_function, "target": [targetted_card], "id":get_unique_id()}
-            #            game_table["ids"][effect["id"]] = effect
-            #            append_nested(targetted_card, ["triggers", action["end_trigger"]],{"action": "remove_effect", "effect_id": effect["id"]})
-            #            game_table["all_effect_recipes"].append(effect)
-            #            #No card below since the target_groups are evaluated upfront
+                ## end trigger stored on effected card
+                #effect_function = action["effect_function"]
+                #target = action["target"]
+                ##For all of the target_groups of this action, add the effect
+                #for target_groups in get_target_groups(target,card):
+                #    for target_group in target_groups:
+                #        for targetted_card in target_group:
+                #            effect = {"effect_function": effect_function, "target": [targetted_card], "id":get_unique_id()}
+                #            game_table["ids"][effect["id"]] = effect
+                #            append_nested(targetted_card, ["triggers", action["end_trigger"]],{"action": "remove_effect", "effect_id": effect["id"]})
+                #            game_table["all_effect_recipes"].append(effect)
+                #            #No card below since the target_groups are evaluated upfront
         case "effect_target":
             effect_function = action["effect_function"]
             target = action["target"]
@@ -1144,7 +1161,6 @@ def initialize_situation():
 def initialize_trader(trader = "trader1",entity="trader"):
 
     #Resolve last auction
-
     if game_table["entities"].get("trader") and game_table["entities"]["trader"]["locations"]["auction"][0]:
         auction = game_table["entities"]["trader"]["locations"]["auction"]
         triggering(auction[0],"sold")
@@ -1720,7 +1736,7 @@ def handle_play(command):
         if card_from == "hand":
             to_hype = game_table["entities"][username]["locations"]["hand"][card_index]
             if to_hype and card_index != card["index"]:
-                acting({"action": "hype", "target": to_hype}, card)
+                acting({"action": "hype", "target": to_hype, "amount":1}, card)
 
     if card_from == "shop" and card_to != "shop":
         acting({"action": "buy", "target": card, "to": {"entity":username,"location":"deck", "index": "append"}})

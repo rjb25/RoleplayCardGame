@@ -464,7 +464,7 @@
         "triggers":{
             "sold": [
                 {"actions":[
-                    {"action": "income", "target": "winner", "allbid":1,"amount": 10}
+                    {"action": "income", "target": "winner", "allbid": 1, "amount": 10}
                 ]}
             ]
         }
@@ -500,7 +500,7 @@
         }
     },
     "fox-hype":{
-        "description": "Totally raaaaad.<br>Gives 3 hype to all cards of the highest bidding team.",
+        "description": "Totally raaaaad.<br>Gives 3 hype to cards in the draw pile of the highest bidding team.",
         "cost":5,
         "targets": ["","","enemy_base"],
         "icons": ["","","gems"],
@@ -509,7 +509,7 @@
         "triggers":{
             "sold": [
                 {"actions":[
-                    {"action":"damage","target":"winner","amount":10}
+                    {"action":"hype", "target":"winner_cards", "amount":3}
                 ]}
             ]
         }
@@ -518,18 +518,18 @@
         "description": "I try so hard.<br>Gives a copy of the cards in storage to the winning team.",
         "cost":5,
         "targets": ["","","enemy_base"],
-        "icons": ["","","gems"],
-        "values": ["","",10],
+        "icons": ["","","random"],
+        "values": ["","",1],
         "bid": {"good": 0, "evil": 0},
         "triggers":{
             "init": [
                 {"actions":[
-                    {"action":"create","target":"winner","amount":10}
+                    {"action":"random_select","target":"self"}
                 ]}
             ],
             "sold": [
                 {"actions":[
-                    {"action":"damage","target":"winner","amount":10}
+                    {"action":"create", "what":"random","target":"winner", "amount":1}
                 ]}
             ]
         }
