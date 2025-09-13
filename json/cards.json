@@ -415,7 +415,7 @@
         "cost":5,
         "targets": ["my_board","",""],
         "icons": ["armor","",""],
-        "values": [1.2,"",""],
+        "values": [2,"",""],
         "triggers":{
             "timer": [
                 {"goal":20, "main":"black","progress":0, "actions":[
@@ -424,7 +424,7 @@
             ],
             "enter": [
                 {"actions":[
-                    {"action": "effect_relative", "target": ["my_base"], "effect_function":{"name":"armor","function":"add","value":1.2}, "end_trigger":"exit"}
+                    {"action": "effect_relative", "target": ["my_base"], "effect_function":{"name":"armor","function":"add","value":2}, "end_trigger":"exit"}
                 ]}
             ]
         }
@@ -610,16 +610,16 @@
         }
     },
     "fox-bomby2":{
-        "description": "I hit pretty hard.<br>Deals 5 damage to the team that pays the least.",
+        "description": "I hit pretty hard.<br>Deals 3 damage to the team that pays the least.",
         "cost":5,
         "targets": ["","","enemy_base"],
         "icons": ["","","victory"],
-        "values": ["","",5],
+        "values": ["","",3],
         "bid": {"good": 0, "evil": 0},
         "triggers":{
             "sold": [
                 {"actions":[
-                    {"action":"damage","target":"loser_base","amount":5}
+                    {"action":"damage","target":"loser_base","amount":3}
                 ]}
             ]
         }
