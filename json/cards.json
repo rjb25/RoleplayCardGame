@@ -309,15 +309,17 @@
         "health":1,
         "cost":8,
         "targets": ["","enemy_deck",""],
-        "icons": ["","discard",""],
+        "icons": ["discard","",""],
 
         "triggers": {
             "timer": [
-                {"goal":10, "progress":0, "actions":[
-                    {"action":"move","target":"enemy_deck","to": {"location": "discard","index": "append","entity": "owner"}}
-                ]},
                 {"goal":20, "marks": 2, "main":"green","progress":0, "actions":[
                     {"action":"move","target":"self","to": {"location": "discard","index": "append","entity": "owner"}}
+                ]}
+            ],
+            "enter": [
+                {"actions":[
+                    {"action":"move","target":"enemy_deck","to": {"location": "discard","index": "append","entity": "owner"}}
                 ]}
             ]
         }
@@ -640,7 +642,7 @@
         }
     },
     "fox-hype":{
-        "description": "Totally raaaaad.<br>Gives 3 hype to cards in the draw pile of the highest bidding team.",
+        "description": "Totally raaaaad.<br>Gives 3 hype to cards in the hands of the highest bidding team.",
         "cost":5,
         "targets": ["","","enemy_base"],
         "icons": ["","","level"],
