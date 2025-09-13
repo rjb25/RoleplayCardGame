@@ -261,12 +261,12 @@
         "loadable": 1,
         "triggers": {
             "timer": [
-                {"goal":10, "main":"green","progress":0, "actions":[
+                {"goal":10, "progress":0, "actions":[
                     {"action":"damage", "checks":["has_storage"],"target":"enemy_base","amount":2},
                     {"action":"trash","target":"on_me"},
                     {"action":"empty_storage","target":"self"}
                 ]},
-                {"goal":60, "progress":0, "actions":[
+                {"goal":60, "marks":6, "main":"green","progress":0, "actions":[
                     {"action":"move","target":"self","to": {"location": "discard","index": "append","entity": "owner"}}
                 ]}
             ],
