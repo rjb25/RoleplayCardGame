@@ -740,7 +740,7 @@ def acting(action, card =""):
                                     "to": {"entity": card["owner"], "location": "held", "index": "append"}})
                             break
                 else:
-                    if not card["title"] == "wood":
+                    if not card["title"] == "wood-card":
                         hype = action["amount"]
                         #Permanent hype
                         #if card.get("hype"):
@@ -1814,7 +1814,7 @@ def handle_play(command):
             to_bid = game_table["entities"]["trader"]["locations"]["auction"][card_index]
             acting({"action": "bid", "target": to_bid}, card)
 
-    if card_to == "discard" and card_from == "hand" and not card["title"] == "wood":
+    if card_to == "discard" and card_from == "hand" and not card["title"] == "wood-card":
         acting({"action": "move", "target": card, "to": {"entity":card["owner"],"location":"discard", "index": "append"}})
 
     if card_to == "hand":

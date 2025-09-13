@@ -357,7 +357,7 @@
         "triggers": {
             "timer": [
                 {"goal":10, "main":"green","progress":0, "actions": [
-                    {"action":"create","what":"wood","target":"enemies", "amount": 2},
+                    {"action":"create","what":"wood-card","target":"enemies", "amount": 2},
                     {"action":"move","target":"self","to": {"location": "discard","index": "append","entity": "owner"}}
                 ]}
             ]
