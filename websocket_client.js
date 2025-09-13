@@ -380,9 +380,9 @@ function updateCardButton(cardButton, card) {
     if(storageBar){
         for(i = 0; i < card["storage"].length; i++) {
             //Add dom div if the effect is not in existing keys.
+            innerImage = cardButton.querySelector(".storage"+(i+1)+"Inner");
             if (!storageBar.existing.includes(card["storage"][i]) && card["storage"][i]) {
                 storageBar.existing.push(card["storage"][i]);
-                innerImage = cardButton.querySelector(".storage"+(i+1)+"Inner");
                 innerImage.parentNode.style.visibility = "visible";
 
                 //innerImage.draggable = false;
@@ -393,6 +393,7 @@ function updateCardButton(cardButton, card) {
                 innerImage.alt = "stored";
 
             } else {
+                innerImage.parentNode.style.visibility = "hidden";
                 //Wipe out the image
                 //Need bonus image in center
                // storageDiv = storageBar.querySelector("." + storageType);
@@ -735,7 +736,7 @@ function makeFog(bound1, image = "pics/fogCardBest.webp") {
     }
 }
 
-function launchProjectile(dom1, dom2, size = 1, image = "pics/bang.png") {
+function launchProjectile(dom1, dom2, size = 1, image = "pics/bang.png", rate = 0.02) {
     //console.log(dom1,dom2)
     if (dom1 && dom2) {
         d1 = dom1;
@@ -746,7 +747,7 @@ function launchProjectile(dom1, dom2, size = 1, image = "pics/bang.png") {
         startY = d1.y + d1.height / 2 - pHeight / 2;
         endX = d2.x + d2.width / 2 - pWidth / 2;
         endY = d2.y + d2.height / 2 - pHeight / 2;
-        projectiles.push(new component(pWidth, pHeight, image, startX, startY, endX, endY, 0.02));
+        projectiles.push(new component(pWidth, pHeight, image, startX, startY, endX, endY, rate));
     }
 }
 
@@ -805,6 +806,10 @@ var myGameArea = {
 }
 
 function component(width, height, color, x, y, destX = 0, destY = 0, rate = false, text = "") {
+    if (color.includes("pics")) {
+        this.img = new Image();
+        this.img.src = color
+    }
     this.width = width;
     this.height = height;
     this.x = x;
@@ -822,10 +827,7 @@ function component(width, height, color, x, y, destX = 0, destY = 0, rate = fals
         ctx = myGameArea.context;
         if (this.visible) {
             if (color.includes("pics")) {
-                img = new Image();
-                img.src = color
-                ctx.drawImage(img, this.x, this.y, this.width, this.height)
-
+                ctx.drawImage(this.img, this.x, this.y, this.width, this.height)
             } else {
                 ctx.fillStyle = color;
                 ctx.fillRect(this.x, this.y, this.width, this.height);
@@ -877,17 +879,30 @@ document.addEventListener('DOMContentLoaded', function () {
                 firstUpdate = 0;
             }
             //console.log(JSON.stringify(messageJson));
-            //Get location for animation before update.
+            //Get starting location for animation before update.
             if ("animations" in messageJson && messageJson["animations"].length > 0) {
                 //If you know where the card is before tick, use that if you can't find the card after tick
                 messageJson["animations"].forEach(function (animation) {
-                    card1 = document.getElementById(animation["sender"].id)
-                    card2 = document.getElementById(animation["receiver"].id)
+                    forMe = true;
+                    if (animation["team"]) {
+                        if(![my_team].includes(animation["team"])){
+                            forMe = false
+                        }
+                    }
+                    if (forMe){
+                    mContainer = fetch("#myPlayArea");
+                    card1 = mContainer;
+                    card2 = mContainer;
+                    if (animation["sender"] && animation["receiver"]){
+                        card1 = document.getElementById(animation["sender"].id);
+                        card2 = document.getElementById(animation["receiver"].id);
+                    }
                     if (card1) {
                         animation["bound1"] = card1.getBoundingClientRect()
                     }
                     if (card2) {
                         animation["bound2"] = card2.getBoundingClientRect()
+                    }
                     }
                 })
             }
@@ -905,25 +920,42 @@ document.addEventListener('DOMContentLoaded', function () {
             if ("animations" in messageJson && messageJson["animations"].length > 0) {
                 //console.log(messageJson["animations"])
                 messageJson["animations"].forEach(function (animation) {
+                    forMe = true;
+                    if (animation["team"]) {
+                        if(![my_team].includes(animation["team"])){
+                            forMe = false
+                        }
+                    }
 
-                    card1 = document.getElementById(animation["sender"].id)
-                    card2 = document.getElementById(animation["receiver"].id)
-                    post1 = ""
-                    post2 = ""
-                    if (card1) {
-                        post1 = card1.getBoundingClientRect();
+                    if (forMe) {
+                        mContainer = fetch("#myPlayArea");
+                        card1 = mContainer;
+                        card2 = mContainer;
+                        if (animation["sender"] && animation["receiver"]) {
+                            card1 = document.getElementById(animation["sender"].id);
+                            card2 = document.getElementById(animation["receiver"].id);
+                        }
+                        post1 = ""
+                        post2 = ""
+                        if (card1) {
+                            post1 = card1.getBoundingClientRect();
+                        }
+                        if (card2) {
+                            post2 = card2.getBoundingClientRect();
+                        }
+                        if (!post1) {
+                            post1 = animation["bound1"]
+                        }
+                        if (!post2) {
+                            post2 = animation["bound2"]
+                        }
+                        if(animation["rate"]){
+                            console.log("has rate");
+                            launchProjectile(post1, post2, animation["size"], animation["image"],animation["rate"]);
+                        }else {
+                            launchProjectile(post1, post2, animation["size"], animation["image"]);
+                        }
                     }
-                    if (card2) {
-                        post2 = card2.getBoundingClientRect();
-                    }
-                    if (!post1) {
-                        post1 = animation["bound1"]
-                    }
-                    if (!post2) {
-                        post2 = animation["bound2"]
-                    }
-                    launchProjectile(post1,
-                        post2, animation["size"], animation["image"]);
                 })
             }
 

@@ -249,6 +249,35 @@
             ]
         }
     },
+    "beaver-slingshot":{
+        "description": "Periodically flings card in storage. Cards flung are trashed. Discards after 60 seconds.",
+        "health":5,
+        "cost":8,
+        "targets": ["","","on_me"],
+        "icons": ["","","trash-victory"],
+        "values": ["","",2],
+        "scaling": 0.1,
+        "storage": [""],
+        "loadable": 1,
+        "triggers": {
+            "timer": [
+                {"goal":10, "main":"green","progress":0, "actions":[
+                    {"action":"damage", "checks":["has_storage"],"target":"enemy_base","amount":2},
+                    {"action":"trash","target":"on_me"},
+                    {"action":"empty_storage","target":"self"}
+                ]},
+                {"goal":60, "progress":0, "actions":[
+                    {"action":"move","target":"self","to": {"location": "discard","index": "append","entity": "owner"}}
+                ]}
+            ],
+            "discarded": [
+                {"actions":[
+                    {"action":"move","target":"on_me","to": {"location": "discard","index": "append","entity": "owner"}},
+                    {"action":"empty_storage","target":"self"}
+                ]}
+            ]
+        }
+    },
     "beaver-duplicate":{
         "description": "Duplicates the card in storage.",
         "health":1,
@@ -327,14 +356,14 @@
         "values": ["","",2],
         "triggers": {
             "timer": [
-                {"goal":10, "main":"green","progress":0, "actions":[
+                {"goal":10, "main":"green","progress":0, "actions": [
                     {"action":"create","what":"wood","target":"enemies", "amount": 2},
                     {"action":"move","target":"self","to": {"location": "discard","index": "append","entity": "owner"}}
                 ]}
             ]
         }
     },
-    "wood":{
+    "wood-card":{
         "description": "Does nothing. Cannot be discarded.",
         "health":1,
         "cost":1,
@@ -454,6 +483,117 @@
             ]
         }
     },
+    "turtle-pierce":{
+        "description": "Deals damage to the card across. Or the enemy base if there is none.",
+        "health":5,
+        "cost":25,
+        "targets": ["","","on_me"],
+        "icons": ["","attack-victory"],
+        "values": ["",1,""],
+        "scaling": 0.1,
+        "loadable": 1,
+        "triggers": {
+            "timer": [
+                {"goal":3, "progress":0, "actions":[
+                    {"action":"damage", "checks":["has_across"],"target":"across","amount":1},
+                    {"action":"damage", "checks":["no_across"],"target":"enemy_base","amount":1}
+                ]},
+                {"goal":45, "marks":15, "main":"green","progress":0, "actions":[
+                    {"action":"move","target":"self","to": {"location": "discard","index": "append","entity": "owner"}}
+                ]}
+            ]
+        }
+    },
+    "turtle-spray":{
+        "description": "Deals light damage rapidly to random cards on the enemy board.",
+        "health":5,
+        "cost":25,
+        "targets": ["","","on_me"],
+        "icons": ["","damage",""],
+        "values": ["",0.5,""],
+        "scaling": 0.1,
+        "loadable": 1,
+        "triggers": {
+            "timer": [
+                {"goal":0.5, "progress":0, "actions":[
+                    {"action":"damage", "target":"random_across","amount":0.5}
+                ]},
+                {"goal":30, "marks":60, "main":"green","progress":0, "actions":[
+                    {"action":"move","target":"self","to": {"location": "discard","index": "append","entity": "owner"}}
+                ]}
+            ]
+        }
+    },
+    "turtle-traffic":{
+        "description": "Cards discarded while this is in play have modified cooldown times.",
+        "health":5,
+        "cost":25,
+        "targets": ["","","on_me"],
+        "icons": ["speed","",""],
+        "values": [2,"",""],
+        "scaling": 0.1,
+        "triggers": {
+            "timer": [
+                {"goal":30, "main":"green","progress":0, "actions":[
+                    {"action":"move","target":"self","to": {"location": "discard","index": "append","entity": "owner"}}
+                ]}
+            ],
+            "enter": [
+                {"actions":[
+                    {"action": "effect_relative", "target": "all_in_my_location", "effect_function":{"name":"discard","function":"add","value":0.5}, "end_trigger":"exit"},
+                    {"action": "effect_relative", "target": "enemy_board", "effect_function":{"name":"discard","function":"add","value":2}, "end_trigger":"exit"}
+                ]}
+            ]
+        }
+    },
+    "turtle-summon2":{
+        "description": "Creates random cards on the board while in play. The cards join your deck.",
+        "health":5,
+        "cost":25,
+        "targets": ["","","on_me"],
+        "icons": ["random","",""],
+        "values": [1,"",""],
+        "scaling": 0.1,
+        "triggers": {
+            "timer": [
+                {"goal":3, "progress":0, "actions":[
+                    {"action":"place", "what":"random","to":{"entity": "card", "location": "board", "index": "random"}, "amount":1},
+                    {"action":"random_select","target":"self"}
+                ]},
+                {"goal":30, "marks":10, "main":"green","progress":0, "actions":[
+                    {"action":"move","target":"self","to": {"location": "discard","index": "append","entity": "owner"}}
+                ]}
+            ],
+            "enter": [
+                {"actions":[
+                    {"action":"random_select","target":"self"}
+                ]}
+            ]
+        }
+    },
+    "turtle-trash":{
+        "description": "Trashes every one of the card held in storage for both teams.",
+        "health":1,
+        "cost":25,
+        "targets": ["","","on_me"],
+        "icons": ["","","trash"],
+        "storage": [""],
+        "triggers": {
+            "timer": [
+                {"goal":10, "main":"green","progress":0, "actions":[
+                    {"action":"obliterate", "target":"on_me"},
+                    {"action":"empty_storage","target":"self"},
+                    {"action":"move","target":"self","to": {"location": "discard","index": "random","entity": "card"}}
+                ]}
+            ],
+            "discarded": [
+                {"actions":[
+                    {"action":"move","target":"on_me","to": {"location": "discard","index": "append","entity": "owner"}},
+                    {"action":"empty_storage","target":"self"}
+                ]}
+            ]
+        }
+    },
     "fox-foxy":{
         "description": "Shower me with money.<br>Gives 10 money and all money spent on it to the team that spends the most.",
         "cost":5,
@@ -503,8 +643,8 @@
         "description": "Totally raaaaad.<br>Gives 3 hype to cards in the draw pile of the highest bidding team.",
         "cost":5,
         "targets": ["","","enemy_base"],
-        "icons": ["","","gems"],
-        "values": ["","",10],
+        "icons": ["","","level"],
+        "values": ["","",3],
         "bid": {"good": 0, "evil": 0},
         "triggers":{
             "sold": [
@@ -598,6 +738,19 @@
             ]
         }
     },
+    "trader0":{
+        "targets": ["","","none"],
+        "icons": ["","","move"],
+        "health":8,
+        "cost":0,
+        "triggers": {
+            "timer": [
+                {"goal":30, "main":"white", "progress":0, "actions":[
+                    {"action":"trader","next":"trader2"}
+                ]}
+            ]
+        }
+    },
     "trader1":{
         "targets": ["","","none"],
         "icons": ["","","move"],
@@ -645,12 +798,26 @@
         "triggers": {
             "timer": [
                 {"goal":30, "main":"white", "progress":0, "actions":[
+                    {"action":"trader","next":"trader5"}
+                ]}
+            ]
+        }
+    },
+    "trader5":{
+        "targets": ["","","none"],
+        "icons": ["","","move"],
+        "health":8,
+        "cost":0,
+        "triggers": {
+            "timer": [
+                {"goal":30, "main":"white", "progress":0, "actions":[
                     {"action":"trader","next":"trader1"}
                 ]}
             ]
         }
     },
     "good":{
+        "description": "Provides a constant income of gems and gold. Has the health bar for your team.",
         "health":25,
         "cost":0,
         "targets": ["","my_tent","my_tent"],
@@ -668,6 +835,7 @@
         }
     },
     "evil1":{
+        "description": "Provides a constant income of gems and gold. Has the health bar for enemy team.",
         "health":25,
         "cost":0,
         "targets": ["","my_tent","my_tent"],

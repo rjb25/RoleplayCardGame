@@ -20,6 +20,12 @@
 #Hype all your cards by 2.
 #Create a random card but show what beforehand
 
+#turtle Ban a card?
+#turtle attack all slots for one many times
+#Steal gems and money many times if there is not a card across from him.
+#double cooldown for enemy cards exiting while he is in play. Halves your cards.
+#Summons random cards to empty slots
+
 #TODO TODONE
 #Mute sound effect option
 #Have Main list a color
@@ -134,7 +140,7 @@ import functools
 import os
 import json
 from fractions import Fraction
-from operator import itemgetter
+from operator import itemgetter, truediv
 import math
 import random
 import traceback
@@ -381,7 +387,7 @@ def get_cards(zone, select_function, args, action, card):
                     return [zone[card["index"]]]
                 else:
                     return []
-            except KeyError as e:
+            except Exception as e:
                 log(e)
                 log("You likely discarded the following card then tried to target something based on it's index which is now gone.")
                 log_json(card)
@@ -519,10 +525,39 @@ def get_winner(card):
             best_bid = bid
     return winning_team
 
+def checking(action, card):
+    #Will need to change once multiple check start.
+    for check in action["checks"]:
+        match check:
+            case "has_storage":
+                if card["storage"][0]:
+                    return True
+                else:
+                    return False
+            case "has_across":
+                has_across = get_target_groups({"target":"across"},card)[0]
+                print("akon")
+                print(has_across)
+                if has_across:
+                    return True
+                else:
+                    return False
+            case "no_across":
+                has_across = get_target_groups({"target":"across"},card)[0]
+                print("akon NONO")
+                print(has_across)
+                if has_across:
+                    return False
+                else:
+                    return True
+    return True
+
 def acting(action, card =""):
     target_groups = get_target_groups(action, card)
     destinations = action.get("to")
     power = get_power(action,card)
+    if action.get("checks") and not checking(action,card):
+        return 0
     #try:
     match action["action"]:
         case "play":
@@ -573,16 +608,16 @@ def acting(action, card =""):
                     animations.append({"sender": card, "receiver": ca, "size": 1, "image": "pics/cards.png"})
 
         case "random_select":
+            global random_deck
             victims = target_groups[0]
-            random_deck = decks_table["random"]
             random.shuffle(random_deck)
             for victim in victims:
                 victim["random"] = random_deck[0]
                 for index, icon in enumerate(victim["icons"]):
                     if icon == "random":
                         victim["icons"][index] = random_deck[0]
-
         case "create":
+            #Need a to section and a move maybe?
             victims = target_groups[0]
             what = action["what"]
             if card.get("random"):
@@ -591,6 +626,21 @@ def acting(action, card =""):
             for i in range(math.floor(power)):
                 for victim in victims:
                     baby_card = initialize_card(what, victim["owner"], "deck", "append")
+                    #animations.append({"sender": card, "receiver": owner_card(username), "size": 1, "image": "pics/cards.png"})
+
+        case "place":
+            #Need a to section and a move maybe?
+            what = action["what"]
+            if card.get("random"):
+                what = card["random"]
+
+            for i in range(math.floor(power)):
+                print("MY CREATION")
+                print(destinations)
+                print(what)
+                my_copy = initialize_card(what,
+                                          get_team(card["owner"]), destinations["location"],
+                                          destinations["index"], card["owner"])
                     #animations.append({"sender": card, "receiver": owner_card(username), "size": 1, "image": "pics/cards.png"})
 
         case "duplicate":
@@ -609,6 +659,20 @@ def acting(action, card =""):
             for card in cards:
                 to =  {"entity": "owner", "location": "trash", "index": "append"}
                 move(card,to)
+        case "obliterate":
+            #Move is a great example. What the real functions need are a couple target_groups and parameters
+            #Each target is either a path or a card.
+            cards = target_groups[0]
+            #If destination is just append to entities location, no need to zip
+            for card in cards:
+                #card type to obliterate
+                card_type = card["title"]
+                all_cards = get_target_groups({"target":"all"}, card)
+                for target_group in all_cards:
+                    for ca in target_group:
+                        if ca["title"] == card_type:
+                            to =  {"entity": "owner", "location": "trash", "index": "append"}
+                            move(ca,to)
 
         case "effect_relative":
             # Following comment is the end trigger stored on casting card
@@ -748,6 +812,11 @@ def acting(action, card =""):
                 #Replace below with get effect which searches effect list
                 damage = max(0, steal - get_effect("armor",victim))
                 victim["health"] -= steal
+        case "fling":
+            #If card in storage call damage
+            if card.storage[0]:
+                victims = target_groups[0]
+
         case "damage":
             victims = target_groups[0]
             for victim in victims:
@@ -925,10 +994,11 @@ def create_random_action(action):
 animations = []
 #Run update on all rooms with sessions instead of just on players in single session
 rooms_table = {}
-default_session_table = {"ais":{},"players":{},"teams":{"good":{"losses":0},"evil":{"losses":0}},"send_reset":1, "level":1, "max_level":7, "first":1, "reward":1, "trader_level":5, "trader":4, "max_trader":4}
+default_session_table = {"ais":{},"players":{},"teams":{"good":{"losses":0},"evil":{"losses":0}},"send_reset":1, "level":1, "max_level":7, "first":1, "reward":1, "trader_level":5, "trader":4, "max_trader":5}
 session_table = copy.deepcopy(default_session_table)
 random_table = load({"file":"json/random.json"})
 decks_table = load({"file":"json/decks.json"})
+random_deck = decks_table["trader1"] + decks_table["trader2"] + decks_table["trader3"] + decks_table["trader4"] + decks_table["trader5"]
 cards_table = load({"file":"json/cards.json"})
 targets_table = load({"file":"json/targets.json"})
 static_lists = ["hand","board","tent","base","shop"]
@@ -1002,10 +1072,11 @@ def cleanup_tick():
                         if card["location"] == "base":
                             session_table["teams"][get_team(card["owner"])]["losses"] += 1
                             #This needs to be able to target only one player instead of going global
-                            #animations.append(
-                            #    {"sender": card,
-                            #     "receiver": card,
-                            #     "size": 100, "image": "pics/" +  "defeat.png"})
+                            animations.append(
+                                {"size": 15, "image": "pics/" +  "defeat.png", "team":get_team(card["owner"]),"rate":0.008})
+                            animations.append(
+                                {"size": 15, "image": "pics/" +  "win.png", "team":get_enemy_team(get_team(card["owner"])),"rate":0.008})
+                            print(animations)
                             if get_team(card["owner"]) == "evil":
                                 if session_table["level"] < session_table["max_level"]:
                                     session_table["reward"] = 1
@@ -1158,7 +1229,7 @@ def initialize_situation():
 
 #def set_trader():
 
-def initialize_trader(trader = "trader1",entity="trader"):
+def initialize_trader(trader = "trader0",entity="trader"):
 
     #Resolve last auction
     if game_table["entities"].get("trader") and game_table["entities"]["trader"]["locations"]["auction"][0]:
@@ -1197,7 +1268,9 @@ def initialize_game():
     #Workaround for versus
     #initialize_ais()
 
-def initialize_card(card_name,username,location,index):
+def initialize_card(card_name,entity,location,index,username=""):
+    if not username:
+        username = entity
     baby_card = copy.deepcopy(cards_table[card_name])
     if not("title" in baby_card.keys()):
         baby_card["title"] = card_name
@@ -1240,7 +1313,7 @@ def initialize_card(card_name,username,location,index):
     #           baby_card["
     game_table["ids"][baby_card["id"]] = baby_card
     possess_card(baby_card,username)
-    move(baby_card,{"location":location, "index":index, "entity":username})
+    move(baby_card,{"location":location, "index":index, "entity":entity})
     refresh_card(baby_card)
     triggering(baby_card,"init")
     return baby_card
@@ -1254,8 +1327,11 @@ def refresh_card(card):
     try:
         baby_card = copy.deepcopy(cards_table[card["name"]])
         card["triggers"] = baby_card["triggers"]
+        goal = 30
+        if get_effect("discard", card):
+            goal = 30 * get_effect("discard", card)
         baby_card["triggers"]["timer"].append(
-            {"goal": 30, "when": ["discard"], "progress": 0, "actions": [
+            {"goal": goal, "when": ["discard"], "progress": 0, "actions": [
                 {"action": "move", "target": "self", "to": {"location": "deck", "index": "append", "entity": "owner"}}]}
         )
         card["effects"].clear()
@@ -1310,6 +1386,7 @@ def update_path(path, card):
 
 
 # "to": {"location": "discard", "index": "append"}})
+#Need to make resolving to more similar to resolving targets. I know to expects empty spaces, but still they should be combined.
 def move(card, to):
     if "location" not in card.keys():
         card["location"] = "void"
@@ -1341,6 +1418,8 @@ def move_card(card, to):
     to_entity = to["entity"]
     if to_entity == "owner":
         to_entity = card["owner"]
+    if to_entity == "card":
+        to_entity = card["entity"]
     to_location = get_nested(game_table, ["entities", to_entity, "locations", to["location"]])
     from_location = get_nested(game_table, ["entities", card["entity"], "locations", card["location"]])
     to_static = to["location"] in static_lists
@@ -1450,6 +1529,8 @@ def is_team(target = ""):
 
 async def update_state(players):
     global animations
+    #print("anima")
+    #print(animations)
     missing_players = []
     present_players = []
     for player in session_table["players"]:
@@ -1721,8 +1802,12 @@ def handle_play(command):
             "amount": 3}, {"owner": username})
 
     if card_to == "board" and card_from == "hand":
-        if not game_table["entities"][team]["locations"]["board"][card_index]:
+        slot = game_table["entities"][team]["locations"]["board"][card_index]
+        if not slot:
             acting({"action": "play", "target": card, "to": {"entity":team, "location":"board", "index": card_index}})
+        elif slot["loadable"]:
+            acting({"action": "hype", "target": slot, "amount": 1}, card)
+
 
     if card_to == "auction" and card_from == "hand":
         if game_table["entities"]["trader"]["locations"]["auction"][card_index]:
