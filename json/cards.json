@@ -575,7 +575,7 @@
     },
     "turtle-trash":{
         "description": "Trashes every one of the card held in storage for both teams.",
-        "health":1,
+        "health":5,
         "cost":25,
         "targets": ["","","on_me"],
         "icons": ["","","trash"],
