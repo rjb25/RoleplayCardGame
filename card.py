@@ -1,38 +1,47 @@
 #!/usr/bin/env python
 #TODO
-#bidding/buying is a tap. minimum bid for a card received at end of timer #Switch between auction and price mode
-#When a main action is identified, you can have a generic amount, speed, health, cost, hype. Hype could even tie into one of these traits for any given card. Or random trait temporarily?
+#Have kill effect cards mark cards instead of needing kill shots.
 #Zoom buttons update CSS scale variable
-#The number on each image indicates the amount of the effect.
-#Make info tab more visual. Have cards list their effect
+
+#Readme card/ button people can click for a general explanation
+
+#Have glass cards that are used once then they trash themselves.
+#make some kind of campaign co-op. Maybe just the versus ai.
+
+#magpie cards steal
+#When a main action is identified, you can have a generic amount, speed, health, cost, hype. Hype could even tie into one of these traits for any given card. Or random trait temporarily?
+#Hype the main action since you know what it is.
+#Set 3 main stats, power, speed and health? Speed includes cooldown and how many times something triggers. Power changes trigger effect and storage size? Healths is well... health.
+#Set up a way to indicate if power is being used with amount or if amount is flat. Something like goal - power * scaling shouldn't be undoable
+#Power adds hmmm
+#Speed increase rate of progress
+#Health... duh
+
+
+
+#TODO TODONE
+#You can tell if you won the auction now.
+#Make info tab more visual. Have cards list their effect. Made it a description
 #Make race base stats, Other items modify the default stats
 #Have damage pass through by default, then certain cards bypass and certain cards do not
-#Readme card/ button people can click for a general explanation
-#Have glass cards that are used once then they trash themselves.
 #Victory screen
 #Mercenary cards in the shop that take an action for the highest bidder.
-#make some kind of campaign co-op. Maybe just the versus ai.
-#Add numbers for actions
-#Set up a way to indicate if power is being used with amount or if amount is flat. Something like goal - power * scaling shouldn't be undoable
-#Set 3 main stats, power, speed and health? Speed includes cooldown and how many times something triggers. Power changes trigger effect and storage size? Healths is well... health.
-#Need some way to tell how long something takes in total.
+#Add numbers for actions icons
+#bidding/buying is a tap. minimum bid for a card received at end of timer #Switch between auction and price mode
+#Fox has a countdown now
 #Bidding war is next. That should be very fun
 #Hype all your cards by 2.
-#Create a random card but show what beforehand
-
-#Client side performance and animation fix
-#Server side performance. Fixed by shortening the wait by duration of function.
-#magpie cards steal
+#Animations were corrected by improving client performance fingers crossed.
 #Victory screens weird.
 #Animation weird.
-
+#Server side performance. Fixed by shortening the wait by duration of function.
+#Client side performance tanks since shop doesn't delete it's cards. Trashed doesn't mean deleted.
+#Shuffle the deck so I don't think so hard.
 #turtle Ban a card?
 #turtle attack all slots for one many times
 #Steal gems and money many times if there is not a card across from him.
 #double cooldown for enemy cards exiting while he is in play. Halves your cards.
 #Summons random cards to empty slots
-
-#TODO TODONE
 #Mute sound effect option
 #Have Main list a color
 #Need to make it so that you can configure the corner to be the correct Color.
@@ -441,7 +450,7 @@ def triggering(card, event_type):
                     if timer.get("when"):
                         when = timer.get("when")
                     else:
-                        when = ["board","tent","stall","base"]
+                        when = ["board","tent","stall","auction","base"]
                     #When is a way to have timers only tick in certain areas
                     if card["location"] not in when:
                         continue;
@@ -542,16 +551,12 @@ def checking(action, card):
                     return False
             case "has_across":
                 has_across = get_target_groups({"target":"across"},card)[0]
-                print("akon")
-                print(has_across)
                 if has_across:
                     return True
                 else:
                     return False
             case "no_across":
                 has_across = get_target_groups({"target":"across"},card)[0]
-                print("akon NONO")
-                print(has_across)
                 if has_across:
                     return False
                 else:
@@ -641,9 +646,6 @@ def acting(action, card =""):
                 what = card["random"]
 
             for i in range(math.floor(power)):
-                print("MY CREATION")
-                print(destinations)
-                print(what)
                 my_copy = initialize_card(what,
                                           get_team(card["owner"]), destinations["location"],
                                           destinations["index"], card["owner"])
@@ -1050,6 +1052,8 @@ def location_tick():
     for team, team_data in table("teams").items():
         tick_areas.extend(list(team_data["locations"].values()))
     stall = get_nested(game_table, ["entities", "trader", "locations", "stall"])
+    auction = get_nested(game_table, ["entities", "trader", "locations", "auction"])
+    tick_areas.append(auction)
     tick_areas.append(stall)
 
     for player, player_data in table("players").items():
@@ -1074,6 +1078,9 @@ def cleanup_tick():
         for location, cards in team_data["locations"].items():
             for card in cards:
                 if card:
+                    #Memory cleanup
+                    if location == "trash":
+                        del game_table["ids"][card["id"]]
                     if card["health"] <= 0:
                         if card["location"] == "base":
                             session_table["teams"][get_team(card["owner"])]["losses"] += 1
@@ -1082,18 +1089,20 @@ def cleanup_tick():
                                 {"size": 15, "image": "pics/" +  "defeat.png", "team":get_team(card["owner"]),"rate":0.008})
                             animations.append(
                                 {"size": 15, "image": "pics/" +  "win.png", "team":get_enemy_team(get_team(card["owner"])),"rate":0.008})
-                            print(animations)
                             if get_team(card["owner"]) == "evil":
                                 if session_table["level"] < session_table["max_level"]:
                                     session_table["reward"] = 1
                                     # Versus workaround
-                                    #session_table["level"] += 1
+                                    session_table["level"] += 1
                                 reset_state()
                             else:
                                 #session_table["level"] -= 1
                                 reset_state()
                         else:
                             kill_card(card)
+            # Memory cleanup
+            if location == "trash":
+                del location[:]
 
 def ai_tick():
     for player, player_data in table("players").items():
@@ -1123,7 +1132,8 @@ async def tick():
 
         end_tick = time.perf_counter()
         duration_tick = end_tick - start_tick
-        await asyncio.sleep(game_table["tick_duration"]-duration_tick)
+        #print(duration_tick)
+        await asyncio.sleep(game_table["tick_duration"]-duration_tick-0.01)
 
 def tick_rate():
     return game_table["tick_duration"]*game_table["tick_value"]
@@ -1243,8 +1253,31 @@ def initialize_trader(trader = "trader0",entity="trader"):
 
     #Resolve last auction
     if game_table["entities"].get("trader") and game_table["entities"]["trader"]["locations"]["auction"][0]:
-        auction = game_table["entities"]["trader"]["locations"]["auction"]
-        triggering(auction[0],"sold")
+        auction_card = game_table["entities"]["trader"]["locations"]["auction"][0]
+        winning_team = get_winner(auction_card)
+        animations.append(
+            {"sender": auction_card, "receiver": auction_card,"size": 4, "image": "pics/" + "fail.png", "team": get_enemy_team(winning_team), "rate": 0.008})
+        animations.append(
+            {"sender": auction_card, "receiver": auction_card,"size": 4, "image": "pics/" + "success.png", "team": winning_team, "rate": 0.008})
+        #Tie
+        if not winning_team:
+            animations.append(
+                {"sender": auction_card, "receiver": auction_card, "size": 4, "image": "pics/" + "tie.png",
+                  "rate": 0.008})
+
+        triggering(auction_card,"sold")
+
+    # Memory cleanup
+    if get_nested(game_table, ["entities", "trader"]):
+        for spot in ["auction","stall","trash","shop"]:
+            location = get_nested(game_table, ["entities", "trader", "locations", spot])
+            for card in location:
+                if card:
+                    del game_table["ids"][card["id"]]
+            #Maybe don't need this since the reference is dropped later
+            del location[:]
+
+
 
     #Set new trader
     set_nested(game_table,["entities",entity],{"team":"gaia","type":"gaia","locations":{"auction":[0],"stall":[0],"trash":[0],"shop":[0,0,0,0,0]}})
@@ -1253,6 +1286,7 @@ def initialize_trader(trader = "trader0",entity="trader"):
     auction_deck = decks_table["auction"]
     random.shuffle(auction_deck)
     auction = game_table["entities"]["trader"]["locations"]["auction"]
+    print("auction start")
     auction[0] = initialize_card(auction_deck[0], "trader", "auction", 0)
 
     #Set up new shop
@@ -1279,6 +1313,7 @@ def initialize_game():
     #initialize_ais()
 
 def initialize_card(card_name,entity,location,index,username=""):
+    print(card_name)
     if not username:
         username = entity
     baby_card = copy.deepcopy(cards_table[card_name])
@@ -1322,9 +1357,13 @@ def initialize_card(card_name,entity,location,index,username=""):
     #       if "main" in action.keys():
     #           baby_card["
     game_table["ids"][baby_card["id"]] = baby_card
+    print("possess"+card_name)
     possess_card(baby_card,username)
+    print("move"+card_name)
     move(baby_card,{"location":location, "index":index, "entity":entity})
+    print("refresh"+card_name)
     refresh_card(baby_card)
+    print("trigger"+card_name)
     triggering(baby_card,"init")
     return baby_card
 
@@ -1334,16 +1373,28 @@ def possess_card(card, owner):
     card["team"] = get_team(owner)
 
 def refresh_card(card):
-    try:
+    #try:
+        print("refresh" + card["name"])
         baby_card = copy.deepcopy(cards_table[card["name"]])
         card["triggers"] = baby_card["triggers"]
         goal = 30
         if get_effect("discard", card):
             goal = 30 * get_effect("discard", card)
-        baby_card["triggers"]["timer"].append(
-            {"goal": goal, "when": ["discard"], "progress": 0, "actions": [
-                {"action": "move", "target": "self", "to": {"location": "deck", "index": "append", "entity": "owner"}}]}
-        )
+
+
+        append_nested(baby_card, ["triggers", "timer"],
+                      {"goal": goal, "when": ["discard"], "progress": 0, "actions": [
+                                    {"action": "move", "target": "self", "to": {"location": "deck", "index": "append", "entity": "owner"}}
+                                ]
+                            }
+                      )
+        if "fox" in card["title"]:
+            print("FOXY")
+            append_nested(baby_card, ["triggers", "timer"],
+                          {"goal": 30, "main": "green","progress": 0, "actions": [
+                                      ]
+                                   }
+                          )
         card["effects"].clear()
         card["max_health"] = baby_card["health"]
         #Permanent hype
@@ -1351,8 +1402,9 @@ def refresh_card(card):
         card["health"] = baby_card["health"]
         card["shield"] = 0
         card["max_shield"] = 20
-    except KeyError:
-        pass
+    #except KeyError:
+        #log("You have had a serious key error.")
+        #pass
 
 def get_card_index(hand):
     #should get all card indexes than random select
@@ -1432,6 +1484,9 @@ def move_card(card, to):
         to_entity = card["entity"]
     to_location = get_nested(game_table, ["entities", to_entity, "locations", to["location"]])
     from_location = get_nested(game_table, ["entities", card["entity"], "locations", card["location"]])
+    if card["location"] == "deck":
+        random.shuffle(from_location)
+
     to_static = to["location"] in static_lists
     from_static = card["location"] in static_lists
     card_index = card.get("index")
@@ -1479,6 +1534,7 @@ def move_card(card, to):
         else:
             if "index" in card.keys():
                 del card["index"]
+
     if from_location:
         if from_static:
             from_location[card_index] = 0
@@ -1539,8 +1595,6 @@ def is_team(target = ""):
 
 async def update_state(players):
     global animations
-    #print("anima")
-    #print(animations)
     missing_players = []
     present_players = []
     for player in session_table["players"]:
@@ -1757,7 +1811,7 @@ def reset_session(command):
     reset_state()
 
 def refresh(command):
-    print("mmm yes")
+    log("Refreshed")
 
 def skip_trader(command):
     if session_table["trader"] < session_table["max_trader"]:
@@ -1787,6 +1841,7 @@ def quit(command):
 
 def remove_ai(command):
     #Needs to mark for removal then remove after tick to avoid issues
+    #Need memory clean up on ids of their cards
     for player, player_data in table("players").items():
         if player_data["ai"]:
             player_data["quit"] = 1

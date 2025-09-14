@@ -580,8 +580,9 @@ function generateCardButton(card) {
                 }
                 text = "";
                 if (card["real_values"]) {
-                    console.log("evaluate");
-                    console.log(card["real_values"][i]);
+                    //Bad performance
+                    //console.log("evaluate");
+                    //console.log(card["real_values"][i]);
                     text = card["real_values"][i];
                 }
                 cardProgress.appendChild(addImage(card["icons"][i] , "small", locations[i], target, "",text));
@@ -858,9 +859,22 @@ document.addEventListener('DOMContentLoaded', function () {
     //HAVE A list of targets under an attack cards with the images of what's being targetted. Pulse green for good things red for bad targets.
     websocketClient.onopen = function () {
         console.log("Client connected!");
+
+        duration = 0;
+        wait = 0;
+        oldStart = 0;
+        //To buffer I would need to make another section for processing that is not on message
         websocketClient.onmessage = function (message) {
+
+            start = performance.now();
+            wait = start - oldStart;
+            //console.log("Period ", wait);
+            oldStart = start;
             messageJson = JSON.parse(message.data.replace(/'/g, '"'));
-            //console.log(messageJson);
+            const sizeInBytes = new TextEncoder().encode(JSON.stringify(messageJson)).length;
+            const kiloBytes = sizeInBytes / 1024;
+            //console.log("payload kb " + kiloBytes);
+
             if (firstUpdate) {
                 changeBackground("dodgerBlue");
                 buttonContainers.forEach(function (container, index) {
@@ -887,9 +901,10 @@ document.addEventListener('DOMContentLoaded', function () {
                 //If you know where the card is before tick, use that if you can't find the card after tick
                 messageJson["animations"].forEach(function (animation) {
                     forMe = true;
-                    if (animation["team"]) {
-                        if(![my_team].includes(animation["team"])){
-                            forMe = false
+                    if ("team" in animation) {
+                        console.log("team anima");
+                        if(my_team !== animation["team"]){
+                            forMe = false;
                         }
                     }
                     if (forMe){
@@ -924,9 +939,10 @@ document.addEventListener('DOMContentLoaded', function () {
                 //console.log(messageJson["animations"])
                 messageJson["animations"].forEach(function (animation) {
                     forMe = true;
-                    if (animation["team"]) {
-                        if(![my_team].includes(animation["team"])){
-                            forMe = false
+                    if ("team" in animation) {
+                        console.log("team anima");
+                        if(my_team !== animation["team"]){
+                            forMe = false;
                         }
                     }
 
@@ -1002,7 +1018,11 @@ document.addEventListener('DOMContentLoaded', function () {
             } else {
                 changeBackground("DodgerBlue");
             }
+        end = performance.now();
+        duration = end-start;
 
+        console.log("to interpret");
+        console.log(duration);
         };
     };
 }, false);

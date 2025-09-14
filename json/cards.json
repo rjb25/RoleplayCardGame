@@ -119,7 +119,7 @@
         "values": ["","",1],
         "triggers":{
             "timer": [
-                {"goal":2, "main":"red","progress":0, "actions":[
+                {"goal":4, "main":"red","progress":0, "actions":[
                     {"action":"damage","target":"enemy_base","amount":1},
                     {"action":"move","target":"self","to": {"location": "discard","index": "append","entity": "owner"}}
                 ]}
@@ -597,6 +597,7 @@
         }
     },
     "fox-foxy":{
+        "health":5,
         "description": "Shower me with money.<br>Gives 10 money and all money spent on it to the team that spends the most.",
         "cost":5,
         "targets": ["","","enemy_base"],
@@ -612,6 +613,7 @@
         }
     },
     "fox-bomby2":{
+        "health":5,
         "description": "I hit pretty hard.<br>Deals 3 damage to the team that pays the least.",
         "cost":5,
         "targets": ["","","enemy_base"],
@@ -627,6 +629,7 @@
         }
     },
     "fox-gem3":{
+        "health":5,
         "description": "I am FABULOUS.<br>Gives 10 gems to the highest bidder.",
         "cost":5,
         "targets": ["","","enemy_base"],
@@ -642,6 +645,7 @@
         }
     },
     "fox-hype":{
+        "health":5,
         "description": "Totally raaaaad.<br>Gives 3 hype to cards in the hands of the highest bidding team.",
         "cost":5,
         "targets": ["","","enemy_base"],
@@ -657,6 +661,7 @@
         }
     },
     "fox-create":{
+        "health":5,
         "description": "I try so hard.<br>Gives a copy of the cards in storage to the winning team.",
         "cost":5,
         "targets": ["","","enemy_base"],
@@ -725,6 +730,7 @@
         }
     },
     "player":{
+        "health": 5,
         "gold":10,
         "gold_limit":50,
         "gems":10,

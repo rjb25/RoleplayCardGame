@@ -3,7 +3,7 @@
     "beginner":["bunny-bomby"],
     "ai1":["bunny-bomby","bunny-bomby","bunny-bomby","bunny-bomby","bunny-bomby","bunny-bomby"],
     "ai7":["tank","tank","tank","shield2","loot","attack2","attack2","draw","attack","attack","attack","bomb","bomb","bomb"],
-    "ai2":["shield2","shield2","tank","tank","attack","attack","attack"],
+    "ai2":["turtle-pierce","turtle-pierce","turtle-pierce","turtle-pierce","turtle-pierce","turtle-pierce"],
     "ai3":["shield","shield","shield","shield","shield","attack","attack","attack","attack","attack","attack","bomb","bomb","bomb"],
     "ai4":["shield","shield","shield","shield","shield","bomb","bomb","bomb","bomb","bomb","bomb","bomb","bomb","bomb"],
     "ai5":["bomb","bomb","bomb","bomb","bomb","attack","attack","attack","attack","attack","attack","bomb","bomb","bomb"],
