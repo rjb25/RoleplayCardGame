@@ -20,6 +20,12 @@
 #Hype all your cards by 2.
 #Create a random card but show what beforehand
 
+#Client side performance and animation fix
+#Server side performance. Fixed by shortening the wait by duration of function.
+#magpie cards steal
+#Victory screens weird.
+#Animation weird.
+
 #turtle Ban a card?
 #turtle attack all slots for one many times
 #Steal gems and money many times if there is not a card across from him.
@@ -1100,7 +1106,7 @@ def ai_tick():
 
 async def tick():
     while True:
-        await asyncio.sleep(game_table["tick_duration"])
+        start_tick = time.perf_counter()
         if session_table.get("send_reset"):
             session_table["send_reset"] = 0
             await update_state(session_table["players"].keys())
@@ -1114,6 +1120,10 @@ async def tick():
             ai_tick()
             await update_state(session_table["players"].keys())
             cleanup_tick()
+
+        end_tick = time.perf_counter()
+        duration_tick = end_tick - start_tick
+        await asyncio.sleep(game_table["tick_duration"]-duration_tick)
 
 def tick_rate():
     return game_table["tick_duration"]*game_table["tick_value"]
