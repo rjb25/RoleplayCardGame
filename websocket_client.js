@@ -396,7 +396,7 @@ function updateCardButton(cardButton, card) {
                 innerImage.alt = "stored";
 
             } else {
-                innerImage.parentNode.style.visibility = "hidden";
+                //innerImage.parentNode.style.visibility = "hidden";
                 //Wipe out the image
                 //Need bonus image in center
                // storageDiv = storageBar.querySelector("." + storageType);
