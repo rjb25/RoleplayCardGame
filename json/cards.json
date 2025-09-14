@@ -838,7 +838,7 @@
     },
     "evil1":{
         "description": "Provides a constant income of gems and gold. Has the health bar for enemy team.",
-        "health":25,
+        "health":1,
         "cost":0,
         "targets": ["","my_tent","my_tent"],
         "icons": ["","income","gems"],
