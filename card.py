@@ -1873,7 +1873,7 @@ def handle_play(command):
         slot = game_table["entities"][team]["locations"]["board"][card_index]
         if not slot:
             acting({"action": "play", "target": card, "to": {"entity":team, "location":"board", "index": card_index}})
-        elif slot["loadable"]:
+        elif slot.get("loadable"):
             acting({"action": "hype", "target": slot, "amount": 1}, card)
 
 

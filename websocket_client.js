@@ -36,6 +36,7 @@ function pause() {
     changeBackground("DodgerBlue");
 }
 function refresh() {
+    //ctrl + shift + r does a hard reset that resets cache.
     window.location.reload(true);
 }
 function no_audio() {
