@@ -1755,6 +1755,9 @@ def reset_session(command):
     global session_table
     session_table = copy.deepcopy(default_session_table)
     reset_state()
+def refresh(command):
+    global session_table
+    print("mmm yes")
 
 def skip_trader(command):
     if session_table["trader"] < session_table["max_trader"]:
