@@ -18,17 +18,17 @@
 #Power adds hmmm
 #Speed increase rate of progress
 #Health... duh
-
-
-
-#Enemy animations fail
-#Turtle crashed line 288
-#Effects stick around too long
-#Animations get stuck
 #Deleting indexes when trashed or from shop is messing with indexes
 #Ghost indexes in storage
+#Double targetting should be fixed. To should be an operator of get_target_groups. Writing the same code twice is disaster
+#Some cards in hand invisible
+
+#Animations get stuck
+
 
 #debugged
+#Effects stick around too long. Due to cards being placed over other cards
+#Turtle crashed line 288 Fix the other problems
 #Turtle not giving you the cards. He just moved to weird spot
 #Floats are running off the edge for gunner. Rounded
 
@@ -666,10 +666,13 @@ def acting(action, card =""):
             if card.get("random"):
                 what = card["random"]
 
+            my_board = get_nested(game_table, ["entities", get_team(card["owner"]), "locations", destinations["location"]])
             for i in range(math.floor(power)):
-                my_copy = initialize_card(what,
-                                          get_team(card["owner"]), destinations["location"],
-                                          destinations["index"], card["owner"])
+                #This needs to check valid index
+                if 0 in my_board:
+                    my_copy = initialize_card(what,
+                                              get_team(card["owner"]), destinations["location"],
+                                              destinations["index"], card["owner"])
                     #animations.append({"sender": card, "receiver": owner_card(username), "size": 1, "image": "pics/cards.png"})
 
         case "duplicate":
@@ -1532,6 +1535,8 @@ def move_card(card, to):
                 to_location[to_available] = card
                 # Add index
                 card["index"] = to_available
+            else:
+                log("Cannot move since all slots are full")
     # Index is actual number
     else:
         if to_location is not None:
@@ -1782,6 +1787,8 @@ def reconnect(command):
     command["loop"]["username"] = re_name
     session_table["players"][re_name]["socket"] = session_table["players"][current_name]["socket"]
     session_table["players"][current_name]["socket"] = ""
+def clear_animations(command):
+    log("Clear!")
 
 def pause(command):
     log(command["username"] + " paused")

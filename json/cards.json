@@ -64,7 +64,7 @@
         "cost":2,
         "targets": ["","my_tent",""],
         "icons": ["","gems",""],
-        "values": ["","2",""],
+        "values": ["",1,""],
         "triggers": {
             "timer": [
                 {"goal":3, "progress":0, "actions":[

@@ -27,7 +27,7 @@ buttonContainers = ["#enemy_base_container", "#situations_container", "#ally_bas
 buttonContainerLocations = ["base", "board", "base", "board", "auction","tent", "hand", "discard", "stall", "shop"];
 //UPDATE this below to match
 buttonContainerNames = [enemy_team, enemy_team, my_team, my_team, "trader", "me", "me", "me", "trader", "trader"];
-menuButtons = ["remove_ai", "reset_session", "pause", "add_ai_evil", "add_ai_good", "join_good", "join_evil", "skip_trader","no_audio","refresh"/*,"save_user","load_user"*/];
+menuButtons = ["remove_ai", "reset_session", "pause", "add_ai_evil", "add_ai_good", "join_good", "join_evil", "skip_trader","no_audio","refresh", "clear_animations"/*,"save_user","load_user"*/];
 //This is what you run if you want to reconnect to server
 //socketname = prompt("WebSocketURL no http://")
 const websocketClient = new WebSocket("ws://" + socketname);
@@ -292,7 +292,7 @@ function updateCardButton(cardButton, card) {
                 //Should be evaluated on drag drop?
                 console.log("iteration station");
                 if (card["real_values"][i]){
-                    texts[text].innerHTML = parseFloat(card["real_values"][i].toFixed(1));
+                    texts[text].innerHTML = parseFloat(parseFloat(card["real_values"][i]).toFixed(1));
                     text++;
                 }
             }
@@ -718,6 +718,14 @@ function fetch(id) {
 //CANVAS
 var projectiles = [];
 var fogs = [];
+function clear_animations(){
+    projectiles = [];
+    fogs = [];
+    canvas = document.getElementById("myCanvas");
+    ctx = myGameArea.context;
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+}
 function hideFog(){
     fogs.forEach(function (fog) {
        fog.visible = false;
