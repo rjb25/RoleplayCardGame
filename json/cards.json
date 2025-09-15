@@ -585,7 +585,7 @@
                 {"goal":10, "main":"green","progress":0, "actions":[
                     {"action":"obliterate", "target":"on_me"},
                     {"action":"empty_storage","target":"self"},
-                    {"action":"move","target":"self","to": {"location": "discard","index": "random","entity": "card"}}
+                    {"action":"move","target":"self","to": {"location": "discard","index": "append","entity": "owner"}}
                 ]}
             ],
             "discarded": [

@@ -292,7 +292,7 @@ function updateCardButton(cardButton, card) {
                 //Should be evaluated on drag drop?
                 console.log("iteration station");
                 if (card["real_values"][i]){
-                    texts[text].innerHTML = card["real_values"][i];
+                    texts[text].innerHTML = parseFloat(card["real_values"][i].toFixed(1));
                     text++;
                 }
             }

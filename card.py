@@ -21,6 +21,17 @@
 
 
 
+#Enemy animations fail
+#Turtle crashed line 288
+#Effects stick around too long
+#Animations get stuck
+#Deleting indexes when trashed or from shop is messing with indexes
+#Ghost indexes in storage
+
+#debugged
+#Turtle not giving you the cards. He just moved to weird spot
+#Floats are running off the edge for gunner. Rounded
+
 #TODO TODONE
 #You can tell if you won the auction now.
 #Make info tab more visual. Have cards list their effect. Made it a description
@@ -870,7 +881,7 @@ def acting(action, card =""):
                 if action["amount"] > 0:
                     animations.append({"sender": card, "receiver": recipient, "size": power, "image": "pics/coin3.png"})
                 else:
-                    animations.append({"sender": card, "receiver": recipient, "size": power, "image": "pics/theft-icon.png"})
+                    animations.append({"sender": card, "receiver": recipient, "size": power, "image": "pics/theft.png"})
 
         case "accelerate":
             recipients = target_groups[0]
@@ -878,7 +889,7 @@ def acting(action, card =""):
                 goals = find_goals_with_action_name({"action":action["what"]}, recipient)
                 for goal in goals:
                     goal["progress"] += power
-                #animations.append({"sender": card, "receiver":recipient, "size":power, "image":"pics/speed-icon.png"})
+                #animations.append({"sender": card, "receiver":recipient, "size":power, "image":"pics/speed.png"})
 
         case "finish":
             recipients = target_groups[0]
@@ -886,7 +897,7 @@ def acting(action, card =""):
                 goals = find_goals_with_action_name({"action":action["what"]}, recipient)
                 for goal in goals:
                     goal["progress"] = goal["goal"]
-                animations.append({"sender": card, "receiver":recipient, "size":power, "image":"pics/speed-icon.png"})
+                animations.append({"sender": card, "receiver":recipient, "size":power, "image":"pics/speed.png"})
 
         case "gems":
             recipients = target_groups[0]
@@ -970,7 +981,7 @@ def get_effect(effect_to_get, card):
 #Maybe make this an action?
 def kill_card(card):
     if card.get("kill"):
-        animations.append({"sender": card, "receiver": card, "size": 4, "image": "pics/trash-icon.png"})
+        animations.append({"sender": card, "receiver": card, "size": 4, "image": "pics/trash.png"})
         kill = card["kill"]
         acting({"action": kill, "target": card},
                card)
