@@ -1787,6 +1787,7 @@ def reconnect(command):
     command["loop"]["username"] = re_name
     session_table["players"][re_name]["socket"] = session_table["players"][current_name]["socket"]
     session_table["players"][current_name]["socket"] = ""
+
 def clear_animations(command):
     log("Clear!")
 
@@ -1796,6 +1797,7 @@ def pause(command):
         game_table["running"] = 0
     else:
         game_table["running"] = 1
+
 def no_audio(command):
     log(command["username"] + "muted")
 
