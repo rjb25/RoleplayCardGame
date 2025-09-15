@@ -5,10 +5,12 @@
 
 #Readme card/ button people can click for a general explanation
 
+#Add rooms
 #Have glass cards that are used once then they trash themselves.
 #make some kind of campaign co-op. Maybe just the versus ai.
 
-#magpie cards steal
+#magpie cards steal. Adds mark effect that if it dies then steal.
+
 #When a main action is identified, you can have a generic amount, speed, health, cost, hype. Hype could even tie into one of these traits for any given card. Or random trait temporarily?
 #Hype the main action since you know what it is.
 #Set 3 main stats, power, speed and health? Speed includes cooldown and how many times something triggers. Power changes trigger effect and storage size? Healths is well... health.
@@ -285,7 +287,15 @@ def get_target_group(target_recipe, action, card, logging = False):
         log(selected_zones)
     for zone in selected_zones:
         #Alternative function herre that takes things from the card etc and targetting to get animation list for targetting to enable miss animation
-        selected_cards.extend(get_cards(zone, select_function, args, action, card))
+        try:
+            selected_cards.extend(get_cards(zone, select_function, args, action, card))
+        except Exception as e:
+            print(zone)
+            print(select_function)
+            print(args)
+            print(action)
+            print(card)
+            print(e)
     if logging:
         log("selected_cards")
         log(selected_cards)
@@ -1286,7 +1296,6 @@ def initialize_trader(trader = "trader0",entity="trader"):
     auction_deck = decks_table["auction"]
     random.shuffle(auction_deck)
     auction = game_table["entities"]["trader"]["locations"]["auction"]
-    print("auction start")
     auction[0] = initialize_card(auction_deck[0], "trader", "auction", 0)
 
     #Set up new shop
@@ -1313,7 +1322,6 @@ def initialize_game():
     #initialize_ais()
 
 def initialize_card(card_name,entity,location,index,username=""):
-    print(card_name)
     if not username:
         username = entity
     baby_card = copy.deepcopy(cards_table[card_name])
@@ -1357,13 +1365,9 @@ def initialize_card(card_name,entity,location,index,username=""):
     #       if "main" in action.keys():
     #           baby_card["
     game_table["ids"][baby_card["id"]] = baby_card
-    print("possess"+card_name)
     possess_card(baby_card,username)
-    print("move"+card_name)
     move(baby_card,{"location":location, "index":index, "entity":entity})
-    print("refresh"+card_name)
     refresh_card(baby_card)
-    print("trigger"+card_name)
     triggering(baby_card,"init")
     return baby_card
 
@@ -1374,7 +1378,6 @@ def possess_card(card, owner):
 
 def refresh_card(card):
     #try:
-        print("refresh" + card["name"])
         baby_card = copy.deepcopy(cards_table[card["name"]])
         card["triggers"] = baby_card["triggers"]
         goal = 30
@@ -1389,7 +1392,6 @@ def refresh_card(card):
                             }
                       )
         if "fox" in card["title"]:
-            print("FOXY")
             append_nested(baby_card, ["triggers", "timer"],
                           {"goal": 30, "main": "green","progress": 0, "actions": [
                                       ]

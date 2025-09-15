@@ -146,7 +146,7 @@
             ]
         }
     },
-    "bird-abduct":{
+    "bird-abduct2":{
         "description": "Steals a card from your opponent.",
         "health":4,
         "cost":10,
@@ -164,7 +164,7 @@
             ]
         }
     },
-    "bird-thefty2":{
+    "bird-theft":{
         "description": "Steals money from your opponent.",
         "health":4,
         "cost":10,
@@ -278,7 +278,7 @@
             ]
         }
     },
-    "beaver-duplicate":{
+    "beaver-duplicatey":{
         "description": "Duplicates the card in storage.",
         "health":1,
         "cost":8,
@@ -324,7 +324,7 @@
             ]
         }
     },
-    "beaver-upgrade":{
+    "beaver-upgradey":{
         "description": "Duplicates the card in storage.",
         "health":1,
         "cost":8,
@@ -349,7 +349,7 @@
             ]
         }
     },
-    "beaver-wood":{
+    "beaver-woody":{
         "description": "Adds flack to your opponents deck.",
         "health":1,
         "cost":8,
