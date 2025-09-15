@@ -147,7 +147,7 @@
         }
     },
     "bird-abduct2":{
-        "description": "Steals a card from your opponent.",
+        "description": "Steals a card from your opponent if it deals the killing blow.",
         "health":4,
         "cost":10,
         "targets": ["","enemy_board",""],

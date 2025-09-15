@@ -27,7 +27,7 @@ buttonContainers = ["#enemy_base_container", "#situations_container", "#ally_bas
 buttonContainerLocations = ["base", "board", "base", "board", "auction","tent", "hand", "discard", "stall", "shop"];
 //UPDATE this below to match
 buttonContainerNames = [enemy_team, enemy_team, my_team, my_team, "trader", "me", "me", "me", "trader", "trader"];
-menuButtons = ["remove_ai", "reset_session", "pause", "add_ai_evil", "add_ai_good", "join_good", "join_evil", "skip_trader","no_audio","refresh", "clear_animations"/*,"save_user","load_user"*/];
+menuButtons = ["remove_ai", "reset_session", "pause", "add_ai_evil", "add_ai_good", "join_good", "join_evil", "skip_trader","no_audio","refresh", "clear_animations","dev_mode"/*,"save_user","load_user"*/];
 //This is what you run if you want to reconnect to server
 //socketname = prompt("WebSocketURL no http://")
 const websocketClient = new WebSocket("ws://" + socketname);
@@ -290,7 +290,6 @@ function updateCardButton(cardButton, card) {
             text = 0
             for (i = 0; i < card["real_values"].length; i++){
                 //Should be evaluated on drag drop?
-                console.log("iteration station");
                 if (card["real_values"][i]){
                     texts[text].innerHTML = parseFloat(parseFloat(card["real_values"][i]).toFixed(1));
                     text++;
@@ -385,28 +384,31 @@ function updateCardButton(cardButton, card) {
         for(i = 0; i < card["storage"].length; i++) {
             //Add dom div if the effect is not in existing keys.
             innerImage = cardButton.querySelector(".storage"+(i+1)+"Inner");
-            if (!storageBar.existing.includes(card["storage"][i]) && card["storage"][i]) {
-                storageBar.existing.push(card["storage"][i]);
-                innerImage.parentNode.style.visibility = "visible";
+            if (card["storage"][i]) {
+                if (!storageBar.existing.includes(card["storage"][i])) {
+                    storageBar.existing.push(card["storage"][i]);
+                    innerImage.parentNode.style.visibility = "visible";
 
-                //innerImage.draggable = false;
-                innerImage.classList.add("image");
-                console.log(gameState);
-                innerImage.src = "pics/" + gameState["ids"][card["storage"][i]]["name"] + ".png";
-                console.log(innerImage.src);
-                innerImage.alt = "stored";
-
+                    //innerImage.draggable = false;
+                    innerImage.classList.add("image");
+                    console.log(gameState);
+                    innerImage.src = "pics/" + gameState["ids"][card["storage"][i]]["name"] + ".png";
+                    console.log(innerImage.src);
+                    innerImage.alt = "stored";
+                }
             } else {
-                //innerImage.parentNode.style.visibility = "hidden";
-                //Wipe out the image
-                //Need bonus image in center
-               // storageDiv = storageBar.querySelector("." + storageType);
-               // amountText = storageDiv.querySelector(".storageAmount");
-               // amountText.innerHTML = amount.toFixed(1);
+                innerImage.parentNode.style.visibility = "hidden";
             }
         }
+        //Where the image should be wiped
+        //If the image is gone remove from the existing array
         storageBar.existing.forEach((storage) => {
-            if (!(Object.keys(card["storage"]).includes(storage))) {
+            console.log("stowaway")
+            console.log(storage)
+            console.log(Object.values(card["storage"]));
+            console.log(card["storage"]);
+            console.log("stowaday")
+            if (!(Object.values(card["storage"]).includes(storage))) {
                 arrayRemove(storageBar.existing, storage);
             }
         });
@@ -1030,8 +1032,8 @@ document.addEventListener('DOMContentLoaded', function () {
         end = performance.now();
         duration = end-start;
 
-        console.log("to interpret");
-        console.log(duration);
+        //console.log("to interpret");
+        //console.log(duration);
         };
     };
 }, false);

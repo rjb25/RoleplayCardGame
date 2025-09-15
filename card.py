@@ -23,16 +23,16 @@
 #Double targetting should be fixed. To should be an operator of get_target_groups. Writing the same code twice is disaster
 #Some cards in hand invisible
 
-#Animations get stuck
 
 
 #debugged
+
+#TODO TODONE
 #Effects stick around too long. Due to cards being placed over other cards
 #Turtle crashed line 288 Fix the other problems
 #Turtle not giving you the cards. He just moved to weird spot
 #Floats are running off the edge for gunner. Rounded
-
-#TODO TODONE
+#Animations get stuck. For now you can clear animations
 #You can tell if you won the auction now.
 #Make info tab more visual. Have cards list their effect. Made it a description
 #Make race base stats, Other items modify the default stats
@@ -1671,8 +1671,9 @@ def get_board(username):
 def get_enemy_team(team): 
     if team == "evil":
         return "good"
-    else: 
+    if team == "good":
         return "evil"
+    return ""
 
 def initialize_time():
     try:
@@ -1790,6 +1791,15 @@ def reconnect(command):
 
 def clear_animations(command):
     log("Clear!")
+
+def dev_mode(command):
+    log("heaven")
+    username = command["username"]
+    acting({"action": "income", "target": "my_tent", "amount": 50}, {"owner": command["username"]})
+    acting({"action": "gems", "target": "my_tent", "amount": 50}, {"owner": command["username"]})
+    acting({"action":"move", "target": "my_deck", "to": {"location": "hand", "index": "append"}, "amount": 5},
+           {"owner": username})
+
 
 def pause(command):
     log(command["username"] + " paused")
