@@ -683,6 +683,20 @@
             ]
         }
     },
+    "win":{
+        "targets": ["","","none"],
+        "icons": ["victory","",""],
+        "values": [99,"",""],
+        "health":99,
+        "cost":0,
+        "triggers": {
+            "enter": [
+                {"actions":[
+                    {"action":"damage","target":"enemy_base","amount":99}
+                ]}
+            ]
+        }
+    },
     "shield":{"health":3,
         "cost":3,
         "triggers":{
@@ -863,15 +877,19 @@
         }
     },
     "evil2":{
-        "health":2,
+        "description": "Provides a constant income of gems and gold. Has the health bar for enemy team.",
+        "health":25,
         "cost":0,
+        "targets": ["","my_tent","my_tent"],
+        "icons": ["","income","gems"],
+        "values": ["",1,1],
         "triggers": {
             "timer": [
-                {"goal":0.1, "progress":0, "actions":[
+                {"goal":1, "progress":0, "actions":[
                     {"action":"income","target":"allies","amount":1}
                 ]},
-                {"goal":1, "progress":0, "actions":[
-                    {"action":"move","target":["ally_deck"],"to":{"entity":"owner","location": "hand","index": "append"},"amount":1}
+                {"goal":20, "marks":20,"main":"green", "progress":0, "actions":[
+                    {"action":"gems","target":"allies","amount":1}
                 ]}
             ]
         }

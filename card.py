@@ -595,13 +595,13 @@ def checking(action, card):
                 else:
                     return False
             case "has_across":
-                has_across = get_target_groups({"target":"across"},card)[0]
+                has_across = any_exist(get_target_groups({"target":"across"},card)[0])
                 if has_across:
                     return True
                 else:
                     return False
             case "no_across":
-                has_across = get_target_groups({"target":"across"},card)[0]
+                has_across = any_exist(get_target_groups({"target":"across"},card)[0])
                 if has_across:
                     return False
                 else:
@@ -700,7 +700,7 @@ def acting(action, card =""):
         case "place":
             #Need a to section and a move maybe?
             what = action["what"]
-            if card.get("random"):
+            if exist(card) and card.get("random"):
                 what = card["random"]
 
             my_board = get_nested(game_table, ["entities", get_team(card["owner"]), "locations", destinations["location"]])
@@ -1064,7 +1064,7 @@ def create_random_action(action):
 animations = []
 #Run update on all rooms with sessions instead of just on players in single session
 rooms_table = {}
-default_session_table = {"ais":{},"players":{},"teams":{"good":{"losses":0},"evil":{"losses":0}},"send_reset":1, "level":1, "max_level":7, "first":1, "reward":1, "trader_level":5, "trader":4, "max_trader":5}
+default_session_table = {"ais":{},"players":{},"teams":{"good":{"losses":0},"evil":{"losses":0}},"send_reset":1, "level":1, "campaign":0,"max_level":7, "first":1, "reward":1, "trader_level":5, "trader":4, "max_trader":5}
 session_table = copy.deepcopy(default_session_table)
 random_table = load({"file":"json/random.json"})
 decks_table = load({"file":"json/decks.json"})
@@ -1084,15 +1084,18 @@ table_table = {"session":session_table, "game":game_table, "current_id": 1}
 
 #def load_deck(name, message):
 
-def save_game(name,message):
-    with open('json/save-'+message["save"]+'.json', 'w') as f:
-        json.dump(table_table, f)
+def save_game(command):
+    print(table_table)
+    print(session_table)
+    with open('json/save.json', 'w') as f: #+message["save"]+'.json', 'w') as f:
+        json.dump(table_table, f, default = lambda o: '<not serializable>')
 
-def load_game(name,message):
+def load_game(command):
     #Might need something to wait till end of tick so the game state isn't influenced by what was running
-    save = load({"file": 'json/save-'+message["save"]+'.json'})
+    save = load({"file": 'json/save.json'}) #'+message["save"]+'.json'})
     global session_table
     global game_table
+    global table_table
     session_table = save["session"]
     game_table = save["game"]
     #You could make this easier by having the tables be
@@ -1155,7 +1158,8 @@ def cleanup_tick():
                                 if session_table["level"] < session_table["max_level"]:
                                     session_table["reward"] = 1
                                     # Versus workaround
-                                    session_table["level"] += 1
+                                    if session_table["campaign"]:
+                                        session_table["level"] += 1
                                 reset_state()
                             else:
                                 #session_table["level"] -= 1
@@ -1343,13 +1347,21 @@ def initialize_situation():
 def exist(card):
     result = 0
     try:
-        result = card.get("exist")
+        if card:
+            result = card.get("exist")
     except AttributeError as e:
         log("likely a zero is still somehow around instead of a slot")
         log(card)
         log(e)
         raise
     return result
+
+def any_exist(location):
+    for card in location:
+        if exist(card):
+            return 1
+    return 0
+
 
 #def set_trader():
 
@@ -1414,7 +1426,7 @@ def initialize_game():
     initialize_players()
     initialize_trader()
     #Workaround for versus
-    #initialize_ais()
+    initialize_ais()
 
 def initialize_card(card_name,entity,location,index,username=""):
     if not username:
@@ -1782,7 +1794,8 @@ def print_json(json_message):
         json_message,
         sort_keys=True,
         indent=4,
-        separators=(',',':')
+        separators=(',',':'),
+        default=lambda o: '<not serializable>'
     ))
 def log_json(json_message):
     #no_circ = remove_circular_refs(copy.deepcopy(json_message))
@@ -1790,7 +1803,8 @@ def log_json(json_message):
         json_message,
         sort_keys=True,
         indent=4,
-        separators=(',',':')
+        separators=(',',':'),
+        default = lambda o: '<not serializable>'
     ))
 
 def remove_circular_refs(ob, _seen=0):
@@ -1943,17 +1957,16 @@ def skip_trader(command):
         session_table["trader"] = 1
     initialize_trader("trader" + str(session_table["trader"]))
 
-def win_game(command):
-    session_table["reward"] = 1
-    session_table["teams"]["evil"]["losses"] += 1
-    # Versus workaround
-    #if session_table["level"] < session_table["max_level"]:
-        #session_table["level"] += 1
-    reset_state()
+def win(command):
+    current_name = command["loop"]["username"]
+    acting({"action": "place", "what": "win", "to": {"entity": get_team(current_name), "location": "board", "index": 0}, "amount": 1}, {"owner": current_name})
 
 def add_ai_evil(command):
     username = "ai" + get_unique_id()
     initialize_player("evil",1,username)
+    #Set leveling
+    session_table["campaign"] = 1
+
 
 def add_ai_good(command):
     username = "ai" + get_unique_id()
@@ -1969,6 +1982,7 @@ def remove_ai(command):
         if player_data["ai"]:
             player_data["quit"] = 1
             del session_table["ais"][player]
+    session_table["campaign"] = 0
 
 
 def log(*words):
