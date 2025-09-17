@@ -270,6 +270,18 @@ function updateCardButton(cardButton, card) {
              */
         }
     }
+    if (["board"].includes(card["location"])) {
+        ProgressImages = cardButton.querySelectorAll('[class*="ProgressImage"]')
+        prodex = 0
+        if (card["icons"]) {
+            for (i = 0; i < card["icons"].length; i++) {
+                if (card["icons"][i]) {
+                    ProgressImages[prodex].src = "pics/" + card["icons"][i] + ".png";
+                    prodex += 1;
+                }
+            }
+        }
+    }
     if (["shop"].includes(card["location"])){
         topRightText.innerHTML = card["value"];
         topRightImage.src = "pics/gem.png";
@@ -376,7 +388,9 @@ function updateCardButton(cardButton, card) {
         eventDict = card["triggers"][progressBar.triggerType][progressBar.triggerIndex];
         percent = 100 * eventDict["progress"] / eventDict["goal"]
         percent_limit = Math.min(percent, 100);
-        progressBar.style.height = percent_limit + "%";
+        //Visual trick to aproximate server lag. (5)
+        lag_adjust =0;
+        progressBar.style.height = lag_adjust + percent_limit + "%";
     }
 
     storageBar = cardButton.querySelector(".storageBar");

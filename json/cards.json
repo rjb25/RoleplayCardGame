@@ -366,7 +366,7 @@
         }
     },
     "wood-card":{
-        "description": "Does nothing. Cannot be discarded.",
+        "description": "Does nothing. Cannot be discarded. Cannot be used for auction.",
         "health":1,
         "cost":1,
         "targets": ["","",""],
@@ -520,7 +520,7 @@
                 {"goal":0.5, "progress":0, "actions":[
                     {"action":"damage", "target":"random_across","amount":0.5}
                 ]},
-                {"goal":30, "marks":60, "main":"green","progress":0, "actions":[
+                {"goal":50, "marks":100, "main":"green","progress":0, "actions":[
                     {"action":"move","target":"self","to": {"location": "discard","index": "append","entity": "owner"}}
                 ]}
             ]
@@ -553,8 +553,9 @@
         "health":5,
         "cost":25,
         "targets": ["","","on_me"],
-        "icons": ["random","",""],
-        "values": [1,"",""],
+        "icons": ["","random",""],
+        "ricons": ["","random",""],
+        "values": ["",1,""],
         "scaling": 0.1,
         "triggers": {
             "timer": [
@@ -666,6 +667,7 @@
         "cost":5,
         "targets": ["","","enemy_base"],
         "icons": ["","","random"],
+        "ricons": ["","","random"],
         "values": ["","",1],
         "bid": {"good": 0, "evil": 0},
         "triggers":{

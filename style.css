@@ -124,8 +124,8 @@ body {
 .progress {
   width: 100%;
   position: absolute;
-    bottom: 0;
-    transition: height 0.49s linear;
+  bottom: 0;
+  transition: height 0.49s linear;
 }
 .effectBar {
   position: absolute;
