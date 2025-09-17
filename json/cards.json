@@ -6,7 +6,7 @@
         "cost":2,
         "targets": ["my_board","",""],
         "icons": ["armor","",""],
-        "values": ["0.4","",""],
+        "values": [0.4,"",""],
         "scaling": 0.1,
         "triggers": {
             "timer": [
@@ -27,7 +27,7 @@
         "cost":2,
         "targets": ["","my_tent",""],
         "icons": ["","income",""],
-        "values": ["","2",""],
+        "values": ["",2,""],
         "triggers": {
             "timer": [
                 {"goal":2, "progress":0, "actions":[
@@ -44,7 +44,7 @@
         "cost":2,
         "targets": ["my_board","",""],
         "icons": ["speed","",""],
-        "values": ["1","",""],
+        "values": [1,"",""],
         "triggers": {
             "enter": [
                 {"actions":[

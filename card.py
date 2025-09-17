@@ -775,6 +775,7 @@ def acting(action, card =""):
                 if victim.get("values"):
                     for index, value in enumerate(victim["values"]):
                         if value:
+                            print(victim["values"])
                             victim["real_values"][index] = get_power({"amount":float(round(victim["values"][index],1))},victim)
 
         case "empower":
