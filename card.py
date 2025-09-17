@@ -25,6 +25,7 @@
 
 #Still shoot on miss.
 #Still effect on empty.
+#Kill or store empty slots
 
 #Play a cancel card with cancel beaver that adds cards across
 #Play a progress card that steps up active cooldowns.
@@ -419,24 +420,24 @@ def get_cards(zone, select_function, args, action, card):
         return []
     #Removes empty from zones to select from
 
-    actual_zone = [i for i in zone if exist(i)]
+    #actual_zone = [i for i in zone if exist(i)]
     match select_function:
         case "all":
-            return actual_zone
+            return zone
         case "random":
             result = []
-            if actual_zone:
-                result = [random.choice(actual_zone)]
+            if zone:
+                result = [random.choice(zone)]
             return result
         case "random-slot":
             selection = random.choice(zone)
-            if exist(selection):
+            if selection:
                 return [selection]
             else:
                 return []
         case "card":
             try:
-                if card["index"] < len(zone) and exist(zone[card["index"]]):
+                if card["index"] < len(zone) and zone[card["index"]]:
                     return [zone[card["index"]]]
                 else:
                     return []
@@ -454,19 +455,19 @@ def get_cards(zone, select_function, args, action, card):
             indices = [card["index"]-1,card["index"],card["index"]+1]
             result = []
             for index in indices:
-                if index < len(zone) and exist(zone[index]):
+                if index < len(zone) and zone[index]:
                     result.append(zone[index])
             return result
         case "neighbors":
             indices = [card["index"]-1,card["index"]+1]
             result = []
             for index in indices:
-                if index < len(zone) and exist(zone[index]):
+                if index < len(zone) and zone[index]:
                     result.append(zone[index])
             return result
         case "amount":
             power = math.floor(get_power(action,card))
-            return actual_zone[:power]
+            return zone[:power]
         case _:
         #Case for if an literal index is passed
             return [zone[select_function]]
@@ -607,8 +608,21 @@ def checking(action, card):
                     return True
     return True
 
+
+def remove_slots(slot_groups):
+    #actual_zone = [i for i in zone if exist(i)]
+    result = []
+    for group in slot_groups:
+        result_group = []
+        for card in group:
+            if exist(card):
+                result_group.append(card)
+        result.append(result_group)
+    return result
+
 def acting(action, card =""):
-    target_groups = get_target_groups(action, card)
+    slot_groups = get_target_groups(action, card)
+    target_groups = remove_slots(slot_groups)
     destinations = action.get("to")
     power = get_power(action,card)
     if action.get("checks") and not checking(action,card):
@@ -872,26 +886,26 @@ def acting(action, card =""):
                 victim["health"] -= steal
 
         case "damage":
-            victims = target_groups[0]
-            print(victims)
+            victims = slot_groups[0]
             for victim in victims:
                 #Maybe have this set the image too
                 damage = power
                 animations.append({"sender": card, "receiver":victim, "size":damage, "image":"pics/bang.png"})
-                armor = get_effect("armor", victim)
-                remaining_shield = negative_remaining_damage = victim["shield"] - damage
+                if exist(victim):
+                    armor = get_effect("armor", victim)
+                    remaining_shield = negative_remaining_damage = victim["shield"] - damage
 
-                victim["shield"] = max(remaining_shield, 0)
-                damage = -1 * negative_remaining_damage
-                damage = max(0, damage - armor)
-                if not victim.get("health"):
-                    log("hitting that which cannot be hit !!!!!!!!!!")
-                    log(victim)
-                    log(card)
-                    log(action)
-                victim["health"] -= damage
-                if victim["health"] <= 0 and action.get("kill"):
-                    victim["kill"] = action["kill"]
+                    victim["shield"] = max(remaining_shield, 0)
+                    damage = -1 * negative_remaining_damage
+                    damage = max(0, damage - armor)
+                    if not victim.get("health"):
+                        log("hitting that which cannot be hit !!!!!!!!!!")
+                        log(victim)
+                        log(card)
+                        log(action)
+                    victim["health"] -= damage
+                    if victim["health"] <= 0 and action.get("kill"):
+                        victim["kill"] = action["kill"]
         case "shield":
             victims = target_groups[0]
             for victim in victims:
@@ -1247,14 +1261,8 @@ def initialize_slots(entity):
     for location_name,location in get_nested(game_table,["entities",entity,"locations"]).items():
         for index, card in enumerate(location):
             if not card:
-                location[index] = {
-                    "entity":entity,
-                    "location":location_name,
-                    "index":index,
-                    "exist":0,
-                    "owner":entity,
-                    "effects": {}
-                }
+                location[index] = make_slot(entity,location_name, index)
+
 def make_slot(entity,location_name,index):
     slot = {
         "entity": entity,
@@ -1262,8 +1270,10 @@ def make_slot(entity,location_name,index):
         "index": index,
         "exist": 0,
         "owner": entity,
-        "effects": {}
+        "effects": {},
+        "id": get_unique_id()
     }
+    game_table["ids"][slot["id"]] = slot
     return slot
 
 

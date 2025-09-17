@@ -238,6 +238,9 @@ function inspect(slot) {
 //TODO make this happen less frequently. It's the most expensive
 function updateCardButton(cardButton, card) {
     cardButton.card = card;
+    if (!card["exist"]){
+        return;
+    }
     var healthBar = cardButton.querySelector(".healthBar");
     var shield = cardButton.querySelector(".shield");
     var topRightImage = cardButton.querySelector(".topRightImage");
@@ -514,6 +517,9 @@ function generateCardButton(card) {
     cardWhole = document.createElement("div");
     cardWhole.id = card["id"]
     cardWhole.classList.add("cardWhole");
+    if ("exist" in card && !card["exist"]){
+        return cardWhole;
+    }
     cardButton = document.createElement("div");
     cardButton.id = card["id"]
     cardButton.classList.add("card");
@@ -708,6 +714,7 @@ function updateSlots(container, messageJson, name, location) {
         if (newId != oldId) {
             if (newId) {
                 newCardButton = generateCardButton(newCard);
+                console.log(newCardButton);
                 slot.append(newCardButton);
                 if (oldCardButton) {
                     oldCardButton.remove();
