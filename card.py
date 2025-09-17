@@ -419,7 +419,7 @@ def get_cards(zone, select_function, args, action, card):
         return []
     #Removes empty from zones to select from
 
-    actual_zone = [i for i in zone if i]
+    actual_zone = [i for i in zone if exist(i)]
     match select_function:
         case "all":
             return actual_zone
@@ -430,13 +430,13 @@ def get_cards(zone, select_function, args, action, card):
             return result
         case "random-slot":
             selection = random.choice(zone)
-            if selection:
+            if exist(selection):
                 return [selection]
             else:
                 return []
         case "card":
             try:
-                if card["index"] < len(zone) and zone[card["index"]]:
+                if card["index"] < len(zone) and exist(zone[card["index"]]):
                     return [zone[card["index"]]]
                 else:
                     return []
@@ -454,14 +454,14 @@ def get_cards(zone, select_function, args, action, card):
             indices = [card["index"]-1,card["index"],card["index"]+1]
             result = []
             for index in indices:
-                if index < len(zone) and zone[index]:
+                if index < len(zone) and exist(zone[index]):
                     result.append(zone[index])
             return result
         case "neighbors":
             indices = [card["index"]-1,card["index"]+1]
             result = []
             for index in indices:
-                if index < len(zone) and zone[index]:
+                if index < len(zone) and exist(zone[index]):
                     result.append(zone[index])
             return result
         case "amount":
@@ -692,11 +692,13 @@ def acting(action, card =""):
             my_board = get_nested(game_table, ["entities", get_team(card["owner"]), "locations", destinations["location"]])
             for i in range(math.floor(power)):
                 #This needs to check valid index
-                if 0 in my_board:
-                    my_copy = initialize_card(what,
-                                              get_team(card["owner"]), destinations["location"],
-                                              destinations["index"], card["owner"])
-                    #animations.append({"sender": card, "receiver": owner_card(username), "size": 1, "image": "pics/cards.png"})
+                for slot in my_board:
+                   if not slot["exist"] :
+                       my_copy = initialize_card(what,
+                                                 get_team(card["owner"]), destinations["location"],
+                                                 destinations["index"], card["owner"])
+                       break
+                       #animations.append({"sender": card, "receiver": owner_card(username), "size": 1, "image": "pics/cards.png"})
 
         case "duplicate":
             cards = target_groups[0]
@@ -871,12 +873,14 @@ def acting(action, card =""):
 
         case "damage":
             victims = target_groups[0]
+            print(victims)
             for victim in victims:
                 #Maybe have this set the image too
                 damage = power
                 animations.append({"sender": card, "receiver":victim, "size":damage, "image":"pics/bang.png"})
                 armor = get_effect("armor", victim)
                 remaining_shield = negative_remaining_damage = victim["shield"] - damage
+
                 victim["shield"] = max(remaining_shield, 0)
                 damage = -1 * negative_remaining_damage
                 damage = max(0, damage - armor)
