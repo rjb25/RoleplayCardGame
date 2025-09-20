@@ -408,9 +408,7 @@ function updateCardButton(cardButton, card) {
 
                     //innerImage.draggable = false;
                     innerImage.classList.add("image");
-                    console.log(gameState);
                     innerImage.src = "pics/" + gameState["ids"][card["storage"][i]]["name"] + ".png";
-                    console.log(innerImage.src);
                     innerImage.alt = "stored";
                 }
             } else {
@@ -714,7 +712,6 @@ function updateSlots(container, messageJson, name, location) {
         if (newId != oldId) {
             if (newId) {
                 newCardButton = generateCardButton(newCard);
-                console.log(newCardButton);
                 slot.append(newCardButton);
                 if (oldCardButton) {
                     oldCardButton.remove();
@@ -898,14 +895,19 @@ document.addEventListener('DOMContentLoaded', function () {
         //To buffer I would need to make another section for processing that is not on message
         websocketClient.onmessage = function (message) {
 
-            start = performance.now();
-            wait = start - oldStart;
-            //console.log("Period ", wait);
-            oldStart = start;
+            logit = 1;
+            if (logit){
+                start = performance.now();
+                wait = start - oldStart;
+                console.log("Period ", wait);
+                oldStart = start;
+            }
             messageJson = JSON.parse(message.data.replace(/'/g, '"'));
+            if (logit){
             const sizeInBytes = new TextEncoder().encode(JSON.stringify(messageJson)).length;
             const kiloBytes = sizeInBytes / 1024;
-            //console.log("payload kb " + kiloBytes);
+            console.log("payload kb " + kiloBytes);
+            }
 
             if (firstUpdate) {
                 changeBackground("dodgerBlue");
@@ -972,7 +974,6 @@ document.addEventListener('DOMContentLoaded', function () {
                 messageJson["animations"].forEach(function (animation) {
                     forMe = true;
                     if ("team" in animation) {
-                        console.log("team anima");
                         if(my_team !== animation["team"]){
                             forMe = false;
                         }
@@ -1050,11 +1051,13 @@ document.addEventListener('DOMContentLoaded', function () {
             } else {
                 changeBackground("DodgerBlue");
             }
-        end = performance.now();
-        duration = end-start;
+            if(logit){
+                end = performance.now();
+                duration = end-start;
 
-        //console.log("to interpret");
-        //console.log(duration);
+                console.log("to interpret");
+                console.log(duration);
+            }
         };
     };
 }, false);

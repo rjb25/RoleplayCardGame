@@ -420,7 +420,7 @@
         "values": [2,"",""],
         "triggers":{
             "timer": [
-                {"goal":20, "main":"black","progress":0, "actions":[
+                {"goal":40, "main":"black","progress":0, "actions":[
                     {"action":"move","target":"self","to": {"location": "discard","index": "append","entity": "owner"}}
                 ]}
             ],
@@ -542,8 +542,8 @@
             ],
             "enter": [
                 {"actions":[
-                    {"action": "effect_relative", "target": "all_in_my_location", "effect_function":{"name":"discard","function":"add","value":0.5}, "end_trigger":"exit"},
-                    {"action": "effect_relative", "target": "enemy_board", "effect_function":{"name":"discard","function":"add","value":2}, "end_trigger":"exit"}
+                    {"action": "effect_relative", "target": "all_in_my_location", "effect_function":{"name":"discard","function":"multiply","value":0.5}, "end_trigger":"exit"},
+                    {"action": "effect_relative", "target": "enemy_board", "effect_function":{"name":"discard","function":"multiply","value":2}, "end_trigger":"exit"}
                 ]}
             ]
         }
@@ -613,6 +613,27 @@
             ]
         }
     },
+    "hedge-fast":{
+        "health":5,
+        "description": "Gotta go fast.<br>Gives instant cooldown (30s) to the team that plays the most cards.",
+        "cost":5,
+        "targets": ["","","enemy_base"],
+        "icons": ["","","speed"],
+        "values": ["","",1],
+        "bid": {"good": 0, "evil": 0},
+        "triggers":{
+            "enter": [
+                {"actions":[
+                    {"action": "effect_relative", "target": "all_board", "effect_function":{"name":"enter_bid","function":"add","value":1}, "end_trigger":"exit"}
+                ]}
+            ],
+            "sold": [
+                {"actions":[
+                    {"action": "effect", "target": "winner", "allbid": 1, "amount": 10, "effect_function":{"name":"discard","function":"multiply","value":0}, "end_trigger": "timer"}
+                ]}
+            ]
+        }
+    },
     "fox-bomby2":{
         "health":5,
         "description": "I hit pretty hard.<br>Deals 3 damage to the team that pays the least.",
@@ -656,7 +677,7 @@
         "triggers":{
             "sold": [
                 {"actions":[
-                    {"action":"hype", "target":"winner_cards", "amount":3}
+                    {"action":"empower", "target":"winner_cards", "amount":3}
                 ]}
             ]
         }

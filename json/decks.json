@@ -3,11 +3,11 @@
     "beginner":["bunny-bomby"],
     "ai1":["bunny-bomby","bunny-bomby","bunny-bomby","bunny-bomby","bunny-bomby","bunny-bomby"],
     "ai2":["turtle-pierce","turtle-pierce","turtle-pierce"],
-    "ai7":["tank","tank","tank","shield2","loot","attack2","attack2","draw","attack","attack","attack","bomb","bomb","bomb"],
     "ai3":["shield","shield","shield","shield","shield","attack","attack","attack","attack","attack","attack","bomb","bomb","bomb"],
     "ai4":["shield","shield","shield","shield","shield","bomb","bomb","bomb","bomb","bomb","bomb","bomb","bomb","bomb"],
     "ai5":["bomb","bomb","bomb","bomb","bomb","attack","attack","attack","attack","attack","attack","bomb","bomb","bomb"],
     "ai6":["attack","attack","attack","attack"],
+    "ai7":["tank","tank","tank","shield2","loot","attack2","attack2","draw","attack","attack","attack","bomb","bomb","bomb"],
     "nathan":["aggression","aggression","draw","draw","draw","attack","attack","attack","loot","loot","loot"],
     "shop1":[],
     "shop2":["fork"],
@@ -21,6 +21,6 @@
     "trader3":["bird-nuke","bird-trash-attacky","bird-trash","bird-theft","bird-abduct2"],
     "trader4":["beaver-duplicatey","beaver-upgradey","beaver-woody","beaver-discard","beaver-slingshot"],
     "trader5":["turtle-pierce","turtle-trash","turtle-spray","turtle-traffic", "turtle-summon2"],
-    "auction":["fox-foxy","fox-bomby2","fox-gem3","fox-create","fox-hype"],
+    "auction":["fox-foxy","fox-bomby2","fox-gem3","fox-create","fox-hype","hedge-fast"],
     "shop7":["attack2","loot","bomb","draw","shield2"]
 }
