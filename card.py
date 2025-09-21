@@ -1324,6 +1324,7 @@ def init_player(team,ai,username, deck="beginner"):
             #If I want shop on each player instead of one for everyone this is a start. Individual shops would be best for rpg style.
             "shop": [0,0,0,0,0],
             "trash": [],
+            "held": [],
             "tent": [
                 0
             ]
@@ -1613,7 +1614,9 @@ def move_card(card, to):
                 to_available = get_empty_index(to_location)
                 #If there's an empty slot
                 if to_available is not None:
-                    del game_table["ids"][to_location[to_available]["id"]]
+                    #This del is messing with storage
+                    if not exist(to_location[to_available]):
+                        del game_table["ids"][to_location[to_available]["id"]]
                     to_location[to_available] = card
                     #Add index
                     card["index"] = to_available
