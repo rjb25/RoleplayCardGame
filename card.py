@@ -32,6 +32,8 @@
 
 #Play a cancel card with cancel beaver that adds cards across
 #Play a progress card that steps up active cooldowns.
+#With slots, I could make them have health and when they take too much damage they
+#Basic costs 0 slow health card for blocking
 
 #TODO TODONE
 #Still shoot on miss. Done
@@ -668,7 +670,7 @@ def acting(action, card =""):
 
                     game_table["running"] = 1
                     captain["gems"] -= shop_copy["value"]
-                    initialize_card(shop_copy["name"],
+                    init_card(shop_copy["name"],
                                     destinations["entity"], destinations["location"],
                                     destinations["index"])
         case "move":
@@ -700,7 +702,7 @@ def acting(action, card =""):
 
             for i in range(math.floor(power)):
                 for victim in victims:
-                    initialize_card(what, victim["owner"], "deck", "append")
+                    init_card(what, victim["owner"], "deck", "append")
                     #animations.append({"sender": card, "receiver": owner_card(username), "size": 1, "image": "pics/cards.png"})
 
         case "place":
@@ -714,7 +716,7 @@ def acting(action, card =""):
                 #This needs to check valid index
                 for slot in my_board:
                    if not slot["exist"] :
-                       initialize_card(what,
+                       init_card(what,
                                                  get_team(card["owner"]), destinations["location"],
                                                  destinations["index"], card["owner"])
                        break
@@ -725,7 +727,7 @@ def acting(action, card =""):
             username = card["owner"]
             for i in range(math.floor(power)):
                 for ca in cards:
-                    initialize_card(ca["name"], username, "deck", "append")
+                    init_card(ca["name"], username, "deck", "append")
                     animations.append({"sender": card, "receiver": owner_card(username), "size": 1, "image": "pics/cards.png"})
 
         case "trash":
@@ -959,7 +961,7 @@ def acting(action, card =""):
         case "trader":
             next_trader = action.get("next")
             session_table["trader_level"] += 0.35
-            initialize_trader(next_trader)
+            init_trader(next_trader)
         case _:
             log("Not sure what action that is:")
             log(action["action"])
@@ -1227,7 +1229,7 @@ def reset_state():
     global game_table
     game_table = load({"file": "json/game.json"})
     #Progress game from session data
-    initialize_game()
+    init_game()
     session_table["send_reset"] = 1
 
 def get_unique_id():
@@ -1239,7 +1241,7 @@ def get_unique_name():
     return cards_table["current_name"]
 
 ###INITIALIZE###
-def initialize_team(team):
+def init_team(team):
     set_nested(game_table,["entities",team],
                {"type": "team",
                 "team": team,
@@ -1251,7 +1253,7 @@ def initialize_team(team):
                 }
                 }
                )
-    initialize_slots(team)
+    init_slots(team)
     #print_json(game_table["entities"][team]["locations"])
     #print_json("what")
 
@@ -1262,11 +1264,11 @@ def initialize_team(team):
     base_card = ""
     if team == "evil":
         #Plus level if you want upgrading team
-        initialize_card(team+str(session_table["level"]), team, "base",0)
+        init_card(team+str(session_table["level"]), team, "base",0)
     else:
-        initialize_card(team, team, "base",0)
+        init_card(team, team, "base",0)
 
-def initialize_slots(entity):
+def init_slots(entity):
     #locations_copy = copy.deepcopy(get_nested(game_table,["entities",entity,"locations"]))
     #set_nested(game_table,["entities",entity,"slots"], locations_copy)
     for location_name,location in get_nested(game_table,["entities",entity,"locations"]).items():
@@ -1282,13 +1284,14 @@ def make_slot(entity,location_name,index):
         "exist": 0,
         "owner": entity,
         "effects": {},
-        "id": get_unique_id()
+        "id": get_unique_id(),
+        "cards":[]
     }
     game_table["ids"][slot["id"]] = slot
     return slot
 
 
-def initialize_player(team,ai,username, deck="beginner"):
+def init_player(team,ai,username, deck="beginner"):
     #Session needs to hold players/entities, not ais and players.
     deck_to_load = []
     if ai:
@@ -1324,31 +1327,31 @@ def initialize_player(team,ai,username, deck="beginner"):
             ]
         }
     }
-    initialize_slots(username)
+    init_slots(username)
     # Initialize some cards to the shop on player startup
-    # baby_card = initialize_card(card_name, username)
+    # baby_card = init_card(card_name, username)
 
     #shop_deck = decks_table["shop" + str(session_table["level"])]
     #random.shuffle(shop_deck)
 
     #for index, slot in enumerate(game_table["entities"][username]["locations"]["shop"]):
     #    if index < len(shop_deck):
-    #        game_table["entities"][username]["locations"]["shop"][index] = initialize_card(shop_deck[index], username, "shop", index)
+    #        game_table["entities"][username]["locations"]["shop"][index] = init_card(shop_deck[index], username, "shop", index)
     load_deck(username, deck_to_load)
 
     acting({"action":"move", "target": "my_deck", "to": {"location": "hand", "index": "append"}, "amount": 3},
            {"owner": username})
 
-def initialize_teams():
+def init_teams():
     for team in session_table["teams"].keys():
-        initialize_team(team)
+        init_team(team)
 
-def initialize_players():
+def init_players():
     for username, value in session_table["players"].items():
-        initialize_player(value["team"],0,username)
+        init_player(value["team"],0,username)
     session_table["reward"] = 0
 
-def initialize_situation():
+def init_situation():
     set_nested(game_table,["entities","situation"],{"team":"gaia","type":"gaia","locations":{"events":[]}})
 
 def exist(card):
@@ -1372,7 +1375,7 @@ def any_exist(location):
 
 #def set_trader():
 
-def initialize_trader(trader = "trader0",entity="trader"):
+def init_trader(trader = "trader0",entity="trader"):
 
     #Resolve last auction
     if game_table["entities"].get("trader") and game_table["entities"]["trader"]["locations"]["auction"][0]:
@@ -1402,13 +1405,13 @@ def initialize_trader(trader = "trader0",entity="trader"):
 
     #Set new trader
     set_nested(game_table,["entities",entity],{"team":"gaia","type":"gaia","locations":{"auction":[0],"stall":[0],"trash":[0],"shop":[0,0,0,0,0]}})
-    initialize_slots(entity)
+    init_slots(entity)
 
     #Set new auction reward
     auction_deck = decks_table["auction"]
     random.shuffle(auction_deck)
     auction = game_table["entities"]["trader"]["locations"]["auction"]
-    initialize_card(auction_deck[0], "trader", "auction", 0)
+    init_card(auction_deck[0], "trader", "auction", 0)
 
     #Set up new shop
     shop_deck = decks_table[trader]
@@ -1416,24 +1419,24 @@ def initialize_trader(trader = "trader0",entity="trader"):
     for index, slot in enumerate(game_table["entities"]["trader"]["locations"]["shop"]):
         shop = game_table["entities"]["trader"]["locations"]["shop"]
         if index < len(shop_deck) and index < len(shop) and index < session_table["trader_level"]:
-            initialize_card(shop_deck[index], "trader", "shop", index)
-    initialize_card(trader, "trader", "stall", 0)
+            init_card(shop_deck[index], "trader", "shop", index)
+    init_card(trader, "trader", "stall", 0)
 
-def initialize_ais():
+def init_ais():
     for username, value in session_table["ais"].items():
-        initialize_player(value["team"],1,username)
+        init_player(value["team"],1,username)
 
-def initialize_game():
+def init_game():
     game_table["all_effect_recipes"] = []
     session_table["trader_level"] = 5
-    initialize_situation()
-    initialize_teams()
-    initialize_players()
-    initialize_trader()
+    init_situation()
+    init_teams()
+    init_players()
+    init_trader()
     #Workaround for versus
-    initialize_ais()
+    init_ais()
 
-def initialize_card(card_name,entity,location,index,username=""):
+def init_card(card_name,entity,location,index,username=""):
     if not username:
         username = entity
     baby_card = copy.deepcopy(cards_table[card_name])
@@ -1552,17 +1555,6 @@ def get_random_empty_index(board):
 
     # Randomly select one of the empty indices
     return random.choice(empty_indices)
-
-def get_path(path):
-    try:
-        return game_table[path["entity"]][path["location"]][path["index"]]
-    except IndexError:
-        log("Invalid destination")
-        log(card)
-        log(to)
-
-def update_path(path, card):
-    log("up")
 
 
 # "to": {"location": "discard", "index": "append"}})
@@ -1726,8 +1718,8 @@ def load_deck(username, deck_to_load):
     random.shuffle(deck_to_load)
     deck = []
     for card_name in deck_to_load:
-        initialize_card(card_name, username, "deck", "append")
-    initialize_card("player", username, "tent", 0)
+        init_card(card_name, username, "deck", "append")
+    init_card("player", username, "tent", 0)
 
 def is_team(target = ""):
     if target in list(table("teams").keys()):
@@ -1797,14 +1789,14 @@ def get_enemy_team(team):
         return "evil"
     return ""
 
-def initialize_time():
+def init_time():
     try:
         timer_handle = asyncio.create_task(tick())
     except Exception as e:
         log("Time failure refrabulating terrazoids.")
         log(e)
         log_json(card)
-        initialize_time()
+        init_time()
 
 
 def print_json(json_message):
@@ -1857,9 +1849,9 @@ async def new_client_connected(client_socket, path):
         session_table["first"] = 0
         ainame = "ai" + get_unique_id()
         #Workaround Versus
-        #initialize_player("evil",1,ainame)
+        #init_player("evil",1,ainame)
     session_table["players"][username] = {"socket":client_socket, "team":"good"}
-    initialize_player("good", 0, username)
+    init_player("good", 0, username)
     await update_state([username])
 
     #Could have a rejoin feature
@@ -1938,7 +1930,7 @@ def add_random_card(command):
     username = command["username"]
     card_name = get_unique_name()
     baby_card = create_random_card(card_name)
-    initialize_card(card_name, username, "deck", "append")
+    init_card(card_name, username, "deck", "append")
 
 def save_random_cards(command):
     with open('json/cards.json', 'w') as f:
@@ -1972,7 +1964,7 @@ def skip_trader(command):
         session_table["trader"] += 1
     else:
         session_table["trader"] = 1
-    initialize_trader("trader" + str(session_table["trader"]))
+    init_trader("trader" + str(session_table["trader"]))
 
 def win(command):
     current_name = command["loop"]["username"]
@@ -1980,14 +1972,14 @@ def win(command):
 
 def add_ai_evil(command):
     username = "ai" + get_unique_id()
-    initialize_player("evil",1,username)
+    init_player("evil",1,username)
     #Set leveling
     session_table["campaign"] = 1
 
 
 def add_ai_good(command):
     username = "ai" + get_unique_id()
-    initialize_player("good",1,username,"ai1")
+    init_player("good",1,username,"ai1")
 
 def quit(command):
     raise websockets.ConnectionClosed("Intentional")
@@ -2018,7 +2010,7 @@ def handle_play(command):
     card_index = int(card_json["index"])
     card_to = card_json["location"]
     # Get card from id
-    #Some of these checks are not made when initialize card or move card happens in code...
+    #Some of these checks are not made when init card or move card happens in code...
     #Solution is to move this check to move or to acting
     card = game_table["ids"].get(card_id)
     if not exist(card):
@@ -2070,7 +2062,7 @@ def game_log(command):
 async def start_server():
     log("Server started!")
     reset_state()
-    initialize_time()
+    init_time()
     await websockets.serve(new_client_connected, "0.0.0.0", 12345)
 
 if __name__ == '__main__':
