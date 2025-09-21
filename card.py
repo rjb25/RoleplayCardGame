@@ -750,7 +750,7 @@ def acting(action, card =""):
                 all_cards = get_target_groups({"target":"all"}, card)
                 for target_group in all_cards:
                     for ca in target_group:
-                        if ca["title"] == card_type:
+                        if ca.get("title") == card_type:
                             to =  {"entity": "owner", "location": "trash", "index": "append"}
                             move(ca,to)
 
