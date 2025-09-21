@@ -18,9 +18,9 @@
     "trader0":["bunny-looty","bunny-miney","bunny-bomby","bunny-attacky","bunny-dealy"],
     "trader1":["bunny-looty","bunny-miney","bunny-bomby","bunny-attacky","bunny-dealy","bunny-tanky","bunny-speedy"],
     "trader2":["bear-looty","bear-miney","bear-bomby","bear-tanky","bear-attacky","bear-dealy"],
-    "trader3":["bird-nuke","bird-trash-attacky","bird-trash","bird-theft","bird-abduct2","bird-upgrade"],
+    "trader3":["bird-nuke","bird-trash-attacky","bird-trash","bird-theft","bird-abduct2"],
     "trader4":["beaver-duplicatey","beaver-upgradey","beaver-woody","beaver-discard","beaver-slingshot"],
     "trader5":["turtle-pierce","turtle-trash","turtle-spray","turtle-traffic", "turtle-summon2"],
-    "auction":["fox-foxy","fox-bomby2","fox-gem3","fox-create","fox-hype","hedge-fast"],
+    "auction":["fox-foxy","fox-bomby2","fox-gem3","fox-create","fox-hype","fox-fast"],
     "shop7":["attack2","loot","bomb","draw","shield2"]
 }

@@ -23,7 +23,7 @@
     },
     "bunny-looty":{
         "description": "Gives you gold to play more cards.",
-        "health":2,
+        "health":3,
         "cost":2,
         "targets": ["","my_tent",""],
         "icons": ["","income",""],
@@ -129,7 +129,7 @@
     "bunny-attacky":{
         "description": "Quickly attacks the card in front of it.",
         "health":2,
-        "cost":2,
+        "cost":1,
         "targets": ["enemy_board","",""],
         "icons": ["damage","",""],
         "values": [2,"",""],
@@ -184,7 +184,7 @@
     },
     "bird-nuke":{
         "description": "Clears both teams boards.",
-        "health":30,
+        "health":15,
         "cost":10,
         "targets": ["all_board","",""],
         "icons": ["damage","",""],
@@ -197,7 +197,7 @@
             ],
             "enter": [
                 {"actions":[
-                    {"action":"damage","target":"all_board","amount":25}
+                    {"action":"damage","target":"all_board","amount":12}
                 ]}
             ]
         }
@@ -508,7 +508,7 @@
     },
     "turtle-spray":{
         "description": "Deals light damage rapidly to random cards on the enemy board.",
-        "health":5,
+        "health":15,
         "cost":25,
         "targets": ["","","on_me"],
         "icons": ["","damage",""],
@@ -542,7 +542,7 @@
             ],
             "enter": [
                 {"actions":[
-                    {"action": "effect_relative", "target": "all_in_my_location", "effect_function":{"name":"discard","function":"multiply","value":0.5}, "end_trigger":"exit"},
+                    {"action": "effect_relative", "target": "all_in_my_location", "effect_function":{"name":"discard","function":"multiply","value":0.0}, "end_trigger":"exit"},
                     {"action": "effect_relative", "target": "enemy_board", "effect_function":{"name":"discard","function":"multiply","value":2}, "end_trigger":"exit"}
                 ]}
             ]
@@ -613,23 +613,18 @@
             ]
         }
     },
-    "hedge-fast":{
+    "fox-fast":{
         "health":5,
-        "description": "Gotta go fast.<br>Gives instant cooldown (30s) to the team that plays the most cards.",
+        "description": "Gotta go fast.<br>Moves the winning teams discard to their deck.",
         "cost":5,
-        "targets": ["","","enemy_base"],
+        "targets": ["","","allies"],
         "icons": ["","","speed"],
         "values": ["","",1],
         "bid": {"good": 0, "evil": 0},
         "triggers":{
-            "enter": [
-                {"actions":[
-                    {"action": "effect_relative", "target": "all_board", "effect_function":{"name":"enter_bid","function":"add","value":1}, "end_trigger":"exit"}
-                ]}
-            ],
             "sold": [
                 {"actions":[
-                    {"action": "effect", "target": "winner", "allbid": 1, "amount": 10, "effect_function":{"name":"discard","function":"multiply","value":0}, "end_trigger": "timer"}
+                    {"action":"move","target":"winner_discard","to": {"location": "deck","index": "append","entity": "owner"}}
                 ]}
             ]
         }
