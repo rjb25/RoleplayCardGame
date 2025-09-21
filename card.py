@@ -799,11 +799,12 @@ def acting(action, card =""):
         case "abduct":
             victims = target_groups[0]
             #If destination is just append to entities location, no need to zip
+            killer = game_table["ids"][card["killer"]]
             for victim in victims:
-                to =  {"entity": card["owner"], "location": "discard", "index": "append"}
+                to =  {"entity": killer["owner"], "location": "discard", "index": "append"}
                 move(victim,to)
                 #Get Owned!
-                possess_card(victim, card["owner"])
+                possess_card(victim, killer["owner"])
 
         case "hype":
             victims = target_groups[0]
@@ -915,6 +916,7 @@ def acting(action, card =""):
                         log(action)
                     victim["health"] -= damage
                     if victim["health"] <= 0 and action.get("kill"):
+                        victim["killer"] = card["id"]
                         victim["kill"] = action["kill"]
         case "shield":
             victims = target_groups[0]
