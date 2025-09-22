@@ -1,5 +1,21 @@
 #!/usr/bin/env python
 #TODO
+#Phone go hot. performance wize getBounding rect seems the culprit, or the size of json messages. Fix with static slots that are known to canvas after a resize, or updates that modify state with a hash instead of resetting it.
+#You need a slot dict to handle slot level effects, and for storing cards and for generally making the one card one place(plus id table) rule true. Slots that disappear then reapear are confusing.
+
+#TODO TODONE
+
+#TODO WARN
+#DEAR GOD DO NOT REFACTOR IN A WAY THAT IS NOT BITE SIZED EVER AGAIN
+#DEAR GOD DO NOT PLAY GAMES AS RESEARCH IT IS SUCH A WASTE OF TIME
+
+#TODO MAYBE
+#Play a cancel card with cancel beaver that adds cards across
+#Or make attacks have scorched earth.
+#Play a progress card that steps up active cooldowns.
+
+#With slots, I could make them have health and when they take too much damage they
+#Basic costs 0 slow health card for blocking
 #Have kill effect cards mark cards instead of needing kill shots.
 #Zoom buttons update CSS scale variable
 
@@ -9,7 +25,6 @@
 #Have glass cards that are used once then they trash themselves.
 #make some kind of campaign co-op. Maybe just the versus ai.
 
-#magpie cards steal. Adds mark effect that if it dies then steal.
 
 #When a main action is identified, you can have a generic amount, speed, health, cost, hype. Hype could even tie into one of these traits for any given card. Or random trait temporarily?
 #Hype the main action since you know what it is.
@@ -17,117 +32,6 @@
 #Set up a way to indicate if power is being used with amount or if amount is flat. Something like goal - power * scaling shouldn't be undoable
 #Power adds hmmm
 #Speed increase rate of progress
-#Health... duh
-#Deleting indexes when trashed or from shop is messing with indexes
-#Ghost indexes in storage
-#Double targetting should be fixed. To should be an operator of get_target_groups. Writing the same code twice is disaster
-#Some cards in hand invisible
-
-#Still effect on empty.
-#Kill or store empty slots
-
-
-#Phone go hot.
-#You need a slot dict to handle slot level effects, and for storing cards and for generally making the one card one place(plus id table) rule true. Slots that disappear then reapear are confusing.
-
-#Play a cancel card with cancel beaver that adds cards across
-#Play a progress card that steps up active cooldowns.
-#With slots, I could make them have health and when they take too much damage they
-#Basic costs 0 slow health card for blocking
-
-#TODO TODONE
-#Still shoot on miss. Done
-#Make some kind of forced hard refresh - I think the refresh button works.
-#hype fox is putting things in storage.
-#Reset kicks evil. Was due to nate pre playing on the site and generating errors. Removed the ai past 2.
-#Assault turtle hype is wonky - rounding issue
-#Turtle summon not updating indicator
-#Put the progress bar one tick ahead - Didn't really work. Would need some serious code.
-#Effects stick around too long. Due to cards being placed over other cards
-#Turtle crashed line 288 Fix the other problems
-#Turtle not giving you the cards. He just moved to weird spot
-#Floats are running off the edge for gunner. Rounded
-#Animations get stuck. For now you can clear animations
-#You can tell if you won the auction now.
-#Make info tab more visual. Have cards list their effect. Made it a description
-#Make race base stats, Other items modify the default stats
-#Have damage pass through by default, then certain cards bypass and certain cards do not
-#Victory screen
-#Mercenary cards in the shop that take an action for the highest bidder.
-#Add numbers for actions icons
-#bidding/buying is a tap. minimum bid for a card received at end of timer #Switch between auction and price mode
-#Fox has a countdown now
-#Bidding war is next. That should be very fun
-#Hype all your cards by 2.
-#Animations were corrected by improving client performance fingers crossed.
-#Victory screens weird.
-#Animation weird.
-#Server side performance. Fixed by shortening the wait by duration of function.
-#Client side performance tanks since shop doesn't delete it's cards. Trashed doesn't mean deleted.
-#Shuffle the deck so I don't think so hard.
-#turtle Ban a card?
-#turtle attack all slots for one many times
-#Steal gems and money many times if there is not a card across from him.
-#double cooldown for enemy cards exiting while he is in play. Halves your cards.
-#Summons random cards to empty slots
-#Mute sound effect option
-#Have Main list a color
-#Need to make it so that you can configure the corner to be the correct Color.
-#Remove multiple ais fix indexing
-#Make a card that allows for stacking cards. It multiplies amount for all.
-#Only your cards should have corner colors for targetting. Enemy cards should not since they don't make sense
-#Make refresh work
-#Add images
-#Make it so you can play against yourself
-#Make drag and drop work
-#inspect to see information
-#Restructure cards so enter progress and exit are inside a trigger dict
-#Change the python and javascript to match the new structure
-#How to get divs on an image
-#Progress bars of different thickness to represent number, and color to represent function. Yellow for gold, teal for cards, blue for shield, green for heal. etc. Overlay them thinly on the bottom of the card
-#Image and number for coins
-#Refactor cardButton updates.
-#Refactor for sending complete states to client instead of the client never seeing that something is dead or progress complete. Just the reset to 0 state
-#fix shield
-#make an exit trigger
-#refactor targetting
-#Add to inspect
-#Make a max money
-#Make a way to see team info
-#Add skull image on death
-#bot removal
-#Red text if you don't have the money
-#Fix higher cost for cards
-#rounded slots
-#Hard refactor targetting so that Name = actual card
-#refactor data so all I need to push is game state
-#Add zones for tent and base so cards can target them just like they would other cards
-#Update javascript to match new zones
-#Make the team a card, but in another sector
-#Effects that can use targetting.
-#Discard area next to hand
-#Removeable triggers added
-#Progressive enemies
-#Session table and reset
-#Start using images on cards
-#Shop zone
-#Add reset session option.
-#Add different armor
-#An an enter armor boost like in slay the spire:
-#Add armor decay?
-#When an action finishes, outline the sending card, and  fill in the receiving card
-#Add fog of war
-#Canvas, draw an image that moves from a card to a location. Coin for money. Explosion for damage
-#Add a run time shop/sell. Min 10 cards. Sell gives a third value.
-#Add nuke card
-#Add a reconnect feature
-#Removed a deep copy
-
-#TODO WARN
-#DEAR GOD DO NOT REFACTOR IN A WAY THAT IS NOT BITE SIZED EVER AGAIN
-#DEAR GOD DO NOT PLAY GAMES AS RESEARCH IT IS SUCH A WASTE OF TIME
-
-#TODO MAYBE
 #AI
 #Add keeping health between rounds vs ai.
 #Events
