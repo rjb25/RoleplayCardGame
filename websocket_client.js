@@ -682,7 +682,17 @@ function updateSlots(container, messageJson, name, location) {
         name = messageJson["me"]
     }
     try {
-        newCards = messageJson["game_table"]["entities"][name]["locations"][location];
+        newSlots = messageJson["game_table"]["entities"][name]["locations"][location];
+        for (var i = 0; i < newSlots.length; i++) {
+            console.log(location);
+            console.log("slots");
+            console.log(newSlots);
+            console.log(i);
+            slot = newSlots[i];
+            card = slot["cards"][0];
+            console.log(card);
+            newCards.push(card);
+        }
     } catch (e) {
         console.log("yi")
         console.log(buttonContainerNames)
@@ -696,6 +706,7 @@ function updateSlots(container, messageJson, name, location) {
     if (location == "discard") {
         newCards = [];
     }
+    console.log(newCards);
 
     newCards.forEach((newCard, i) => {
         slot = container.getElementsByClassName("slot")[i];

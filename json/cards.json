@@ -86,7 +86,7 @@
         "triggers": {
             "timer": [
                 {"goal":2, "progress":0, "actions":[
-                    {"action":"move","target":["my_deck"],"to":{"entity":"owner","location": "hand","index": "append"},"amount":1}
+                    {"action":"move","target":"my_deck","to":{"entity":"owner","location": "hand","index": "append"},"amount":1}
                 ]},
                 {"goal":20, "marks":10,"main":"green","progress":0, "actions":[
                     {"action":"move","target":"self","to": {"location": "discard","index": "append","entity": "owner"}}
@@ -426,7 +426,7 @@
             ],
             "enter": [
                 {"actions":[
-                    {"action": "effect_relative", "target": ["my_base"], "effect_function":{"name":"armor","function":"add","value":2}, "end_trigger":"exit"}
+                    {"action": "effect_relative", "target": "my_base", "effect_function":{"name":"armor","function":"add","value":2}, "end_trigger":"exit"}
                 ]}
             ]
         }
@@ -477,7 +477,7 @@
         "triggers": {
             "timer": [
                 {"goal":2, "progress":0, "actions":[
-                    {"action":"move","target":["my_deck"],"to":{"entity":"owner","location": "hand","index": "append"},"amount":2}
+                    {"action":"move","target":"my_deck","to":{"entity":"owner","location": "hand","index": "append"},"amount":2}
                 ]},
                 {"goal":20,"marks":10, "main":"green","progress":0, "actions":[
                     {"action":"move","target":"self","to": {"location": "discard","index": "append","entity": "owner"}}
@@ -723,7 +723,7 @@
             ],
             "enter": [
                 {"actions":[
-                    {"action": "effect_relative", "target": ["my_base"], "effect_function":{"name":"armor","function":"add","value":0.9}, "end_trigger":"exit"}
+                    {"action": "effect_relative", "target": "my_base", "effect_function":{"name":"armor","function":"add","value":0.9}, "end_trigger":"exit"}
                 ]}
             ]
         }
@@ -773,7 +773,7 @@
         "triggers":{
             "timer": [
                 {"goal":8, "main": "green","progress":0, "actions":[
-                    {"action":"move","target":["my_deck"],"to":{"entity":"owner","location": "hand","index": "append"},"amount":1}
+                    {"action":"move","target":"my_deck","to":{"entity":"owner","location": "hand","index": "append"},"amount":1}
                 ]}
             ]
         }
@@ -919,7 +919,7 @@
                     {"action":"income","target":"allies","amount":1}
                 ]},
                 {"goal":5, "progress":0, "actions":[
-                    {"action":"move","target":["ally_deck"],"to":{"entity":"owner","location": "hand","index": "append"},"amount":1}
+                    {"action":"move","target":"ally_deck","to":{"entity":"owner","location": "hand","index": "append"},"amount":1}
                 ]}
             ]
         }
@@ -933,7 +933,7 @@
                     {"action":"income","target":"allies","amount":1}
                 ]},
                 {"goal":5, "progress":0, "actions":[
-                    {"action":"move","target":["ally_deck"],"to":{"entity":"owner","location": "hand","index": "append"},"amount":1}
+                    {"action":"move","target":"ally_deck","to":{"entity":"owner","location": "hand","index": "append"},"amount":1}
                 ]}
             ]
         }
@@ -947,7 +947,7 @@
                     {"action":"income","target":"allies","amount":3}
                 ]},
                 {"goal":4, "progress":0, "actions":[
-                    {"action":"move","target":["ally_deck"],"to":{"entity":"owner","location": "hand","index": "append"},"amount":1}
+                    {"action":"move","target":"ally_deck","to":{"entity":"owner","location": "hand","index": "append"},"amount":1}
                 ]}
             ]
         }
@@ -961,7 +961,7 @@
                     {"action":"income","target":"allies","amount":2}
                 ]},
                 {"goal":5, "progress":0, "actions":[
-                    {"action":"move","target":["ally_deck"],"to":{"entity":"owner","location": "hand","index": "append"},"amount":2}
+                    {"action":"move","target":"ally_deck","to":{"entity":"owner","location": "hand","index": "append"},"amount":2}
                 ]}
             ]
         }
