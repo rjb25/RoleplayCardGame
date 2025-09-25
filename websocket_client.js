@@ -167,7 +167,7 @@ function inspect(slot) {
                 //If I wanted to combine multiple do an if with vvvv
                 //cards.push(...gameState["entities"][myself]["locations"]["discard"]);
                 locations.forEach((location) => {
-                    cards = gameState["entities"][myself]["locations"][location];
+                    cards = gameState["entities"][myself]["locations"][location][0]["cards"];
                     sectionDiv = document.createElement("div");
                     sectionDiv.classList.add("inspectSectionDiv");
                     sectionDiv.innerHTML += location;
@@ -684,13 +684,8 @@ function updateSlots(container, messageJson, name, location) {
     try {
         newSlots = messageJson["game_table"]["entities"][name]["locations"][location];
         for (var i = 0; i < newSlots.length; i++) {
-            console.log(location);
-            console.log("slots");
-            console.log(newSlots);
-            console.log(i);
             slot = newSlots[i];
             card = slot["cards"][0];
-            console.log(card);
             newCards.push(card);
         }
     } catch (e) {
@@ -706,7 +701,6 @@ function updateSlots(container, messageJson, name, location) {
     if (location == "discard") {
         newCards = [];
     }
-    console.log(newCards);
 
     newCards.forEach((newCard, i) => {
         slot = container.getElementsByClassName("slot")[i];
@@ -906,7 +900,7 @@ document.addEventListener('DOMContentLoaded', function () {
         //To buffer I would need to make another section for processing that is not on message
         websocketClient.onmessage = function (message) {
 
-            logit = 1;
+            logit = 0;
             if (logit){
                 start = performance.now();
                 wait = start - oldStart;
@@ -1047,9 +1041,9 @@ document.addEventListener('DOMContentLoaded', function () {
             myself = me;
             mContainer = fetch("#messages_container");
             mContainer.message = messageJson;
-            playerState = gameState["entities"][me]["locations"]["tent"][0];
-            playerState.discardLength = gameState["entities"][me]["locations"]["discard"].length;
-            playerState.deckLength = gameState["entities"][me]["locations"]["deck"].length;
+            playerState = gameState["entities"][me]["locations"]["tent"][0]["cards"][0];
+            playerState.discardLength = gameState["entities"][me]["locations"]["discard"][0]["cards"].length;
+            playerState.deckLength = gameState["entities"][me]["locations"]["deck"][0]["cards"].length;
             mContainer.playerState = playerState
 
             messageText = messageJson["text"];

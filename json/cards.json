@@ -773,7 +773,7 @@
         "triggers":{
             "timer": [
                 {"goal":8, "main": "green","progress":0, "actions":[
-                    {"action":"move","target":"my_deck","to":{"entity":"owner","location": "hand","index": "append"},"amount":1}
+                    {"action":"move","target":"my_deck","to":{"entity":"owner","location": "hand","index": "amount-vacant"},"amount":1}
                 ]}
             ]
         }
