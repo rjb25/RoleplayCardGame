@@ -209,6 +209,7 @@
         "targets": ["","","on_me"],
         "icons": ["","","trash"],
         "storage": ["",""],
+        "loadable": 1,
         "triggers": {
             "timer": [
                 {"goal":10, "main":"green","progress":0, "actions":[
@@ -287,6 +288,7 @@
         "values": ["","",1],
         "scaling": 0.1,
         "storage": ["",""],
+        "loadable": 1,
         "triggers": {
             "timer": [
                 {"goal":10, "main":"green","progress":0, "actions":[
@@ -313,7 +315,7 @@
 
         "triggers": {
             "timer": [
-                {"goal":20, "marks": 2, "main":"green","progress":0, "actions":[
+                {"goal":20, "marks": 0, "main":"green","progress":0, "actions":[
                     {"action":"move","target":"self","to": {"location": "discard","index": "append","entity": "owner"}}
                 ]}
             ],
@@ -332,6 +334,7 @@
         "icons": ["","","level"],
         "values": ["","",5],
         "storage": ["",""],
+        "loadable": 1,
         "triggers": {
             "timer": [
                 {"goal":10, "main":"green","progress":0, "actions":[
@@ -560,7 +563,7 @@
         "triggers": {
             "timer": [
                 {"goal":3, "progress":0, "actions":[
-                    {"action":"place", "what":"random","to":{"entity": "card", "location": "board", "index": "random"}, "amount":1},
+                    {"action":"place", "what":"random","to":{"entity": "card", "location": "board", "index": "random-vacant"}, "amount":1},
                     {"action":"random_select","target":"self"}
                 ]},
                 {"goal":30, "marks":10, "main":"green","progress":0, "actions":[
@@ -581,6 +584,7 @@
         "targets": ["","","on_me"],
         "icons": ["","","trash"],
         "storage": [""],
+        "loadable": 1,
         "triggers": {
             "timer": [
                 {"goal":10, "main":"green","progress":0, "actions":[

@@ -141,9 +141,9 @@ def quick_alias(target, card, result):
         # If you cannot do this correctly you need to return them to discard
         # remove empty slots
         on_it = []
-        for slot in card["storage"]:
-            if slot:
-                on_it.append(game_table["ids"].get(slot))
+        for box in card["storage"]:
+            if box:
+                on_it.append(game_table["ids"].get(box))
         result["message"] = "on_it"
         result["cards"] = on_it
         result["slots"] = []
@@ -303,6 +303,12 @@ def get_slots(slots, select_function, action, card):
             return slots
         case "random":
             return [random.choice(slots)]
+        case "random-vacant":
+            vacant_slots = [slot for slot in slots if not slot["cards"]]
+            if vacant_slots:
+                return [random.choice(vacant_slots)]
+            else:
+                return []
         case "card":
             if card["index"] < len(slots):
                 return [slots[card["index"]]]
@@ -471,13 +477,13 @@ def checking(action, card):
                 else:
                     return False
             case "has_across":
-                has_across = any_exist(targeting({"target":"across"}, action, card)[0])
+                has_across = any_exist(targeting("across", action, card)["cards"])
                 if has_across:
                     return True
                 else:
                     return False
             case "no_across":
-                has_across = any_exist(targeting({"target":"across"}, action, card)[0])
+                has_across = any_exist(targeting("across", action, card)["cards"])
                 if has_across:
                     return False
                 else:
@@ -547,6 +553,8 @@ def acting(action, card =""):
             if not destinations:
                 return
             for index, victim in enumerate(victims):
+                if index >= len(destinations):
+                    break
                 destination = destinations[index]
                 move(victim,destination)
                 if destination["location"] == "hand":
@@ -579,6 +587,8 @@ def acting(action, card =""):
             if exist(card) and card.get("random"):
                 what = card["random"]
 
+            if not destinations:
+                return
             my_board = get_nested(game_table, ["entities", get_team(card["owner"]), "locations", destinations[0]["location"]])
             for i in range(math.floor(power)):
                 #This needs to check valid index
@@ -598,26 +608,16 @@ def acting(action, card =""):
                     init_card(ca["name"], username, "deck", "append")
                     animations.append({"sender": card, "receiver": owner_card(username), "size": 1, "image": "pics/cards.png"})
 
-        case "trash":
-            cards = target_groups
-            #If destination is just append to entities location, no need to zip
-            for card in cards:
-                #FIXIT
-                to =  {"entity": "owner", "location": "trash", "index": "append"}
-                move(card,to)
-
         case "obliterate":
             cards = target_groups
             for card in cards:
                 #card type to obliterate
                 card_type = card["title"]
-                all_cards = targeting({"target":"all"}, action, card)
-                for target_group in all_cards:
-                    for ca in target_group:
-                        if ca.get("title") == card_type:
-                            # FIXIT
-                            to =  {"entity": "owner", "location": "trash", "index": "append"}
-                            move(ca,to)
+                all_target = targeting("all", action, card)
+                for ca in all_target["cards"]:
+                    if ca.get("title") == card_type:
+                        acting({"action": "move", "target": ca,
+                                "to": {"entity": "owner", "location": "trash", "index": "append"}}, ca)
 
         case "effect_relative":
             # Following comment is the end trigger stored on casting card
@@ -666,10 +666,8 @@ def acting(action, card =""):
             #If destination is just append to entities location, no need to zip
             killer = game_table["ids"][card["killer"]]
             for victim in victims:
-                #FIXIT
-                to =  {"entity": killer["owner"], "location": "discard", "index": "append"}
-                move(victim,to)
-                #Get Owned!
+                acting({"action": "move", "target": victim,
+                        "to": {"entity": killer["owner"], "location": "discard", "index": "append"}}, card)
                 possess_card(victim, killer["owner"])
 
         case "hype":
@@ -1005,32 +1003,33 @@ def location_tick():
 #Cleanup is really just a post tick.
 def cleanup_tick():
     for team, team_data in table("teams").items():
-        for location, cards in team_data["locations"].items():
-            for card in cards:
-                if exist(card):
-                    #Memory cleanup
-                    if location == "trash":
-                        del game_table["ids"][card["id"]]
-                    if card["health"] <= 0:
-                        if card["location"] == "base":
-                            session_table["teams"][get_team(card["owner"])]["losses"] += 1
-                            #This needs to be able to target only one player instead of going global
-                            animations.append(
-                                {"size": 15, "image": "pics/" +  "defeat.png", "team":get_team(card["owner"]),"rate":0.008})
-                            animations.append(
-                                {"size": 15, "image": "pics/" +  "win.png", "team":get_enemy_team(get_team(card["owner"])),"rate":0.008})
-                            if get_team(card["owner"]) == "evil":
-                                if session_table["level"] < session_table["max_level"]:
-                                    session_table["reward"] = 1
-                                    # Versus workaround
-                                    if session_table["campaign"]:
-                                        session_table["level"] += 1
-                                reset_state()
+        for location, slots in team_data["locations"].items():
+            for slot in slots:
+                for card in slot["cards"]:
+                    if exist(card):
+                        #Memory cleanup
+                        if location == "trash":
+                            del game_table["ids"][card["id"]]
+                        if card["health"] <= 0:
+                            if card["location"] == "base":
+                                session_table["teams"][get_team(card["owner"])]["losses"] += 1
+                                #This needs to be able to target only one player instead of going global
+                                animations.append(
+                                    {"size": 15, "image": "pics/" +  "defeat.png", "team":get_team(card["owner"]),"rate":0.008})
+                                animations.append(
+                                    {"size": 15, "image": "pics/" +  "win.png", "team":get_enemy_team(get_team(card["owner"])),"rate":0.008})
+                                if get_team(card["owner"]) == "evil":
+                                    if session_table["level"] < session_table["max_level"]:
+                                        session_table["reward"] = 1
+                                        # Versus workaround
+                                        if session_table["campaign"]:
+                                            session_table["level"] += 1
+                                    reset_state()
+                                else:
+                                    #session_table["level"] -= 1
+                                    reset_state()
                             else:
-                                #session_table["level"] -= 1
-                                reset_state()
-                        else:
-                            kill_card(card)
+                                kill_card(card)
             # Memory cleanup
             if location == "trash":
                 del location[:]
@@ -1220,8 +1219,8 @@ def exist(card):
         raise
     return result
 
-def any_exist(location):
-    for card in location:
+def any_exist(slot):
+    for card in slot:
         if exist(card):
             return 1
     return 0
@@ -1771,6 +1770,7 @@ def handle_play(command):
 
     if card_to == "board" and card_from == "hand":
         slot = game_table["entities"][team]["locations"]["board"][card_index]
+        #card = slot["cards"]
         if not exist(slot):
             acting({"action": "play", "target": card, "to": {"entity":team, "location":"board", "index": card_index}})
         elif slot.get("loadable"):
