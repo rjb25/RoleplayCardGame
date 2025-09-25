@@ -1,13 +1,22 @@
 #!/usr/bin/env python
-#TODO
+#{"location": "discard","index": "append","entity": "owner"}
+#TODO LIKELY
 #Phone go hot. performance wize getBounding rect seems the culprit, or the size of json messages. Fix with static slots that are known to canvas after a resize, or updates that modify state with a hash instead of resetting it.
-#You need a slot dict to handle slot level effects, and for storing cards and for generally making the one card one place(plus id table) rule true. Slots that disappear then reapear are confusing.
-#The armor bunny number when hyped rolls over
-#The discard beaver isn't working.
-#Summon turtle should allow cards to be loadable. Or they should just be loadable.
-#Some effect I think wasn't happening. Traffic turtle was not showing
+#Some kind of effect from damage to slots. Maybe it puts it on a cooldown after 10 damage. Maybe the damage is conveyed to the next played card.
+#Maybe the damage goes to cards in your hand, then to cards in the shop, then finally to your base.
+#Combine place and create
+
+#TODO
 
 #TODO TODONE
+#toggle menu
+#When drawing or moving cards I am now having issues with selecting spots inside a slot. Do you stop or append for the move command. Every action needs to specify if no append.
+#For now no append can just be check location length.
+#Some effect I think wasn't happening. Traffic turtle was not showing
+#The armor bunny number when hyped rolls over
+#Summon turtle should allow cards to be loadable. Or they should just be loadable.
+#The discard beaver isn't working.
+#You need a slot dict to handle slot level effects, and for storing cards and for generally making the one card one place(plus id table) rule true. Slots that disappear then reapear are confusing.
 
 #TODO WARN
 #DEAR GOD DO NOT REFACTOR IN A WAY THAT IS NOT BITE SIZED EVER AGAIN
@@ -154,7 +163,7 @@ def quick_alias(target, card, result):
 
 
 def targeting(target, action, card):
-    result = {"slots":[], "cards":[], "message":"default"}
+    result = {"slots":[], "cards":[], "message":"default", "appends":0}
 
     quick_return = quick_alias(target, card, result)
     if quick_return:
@@ -208,6 +217,8 @@ def get_target_group(target, action, card, result):
 
     if "spot" not in target.keys():
         target["spot"] = "first"
+    if target["spot"] != "first":
+       result["appends"] = 1
     result["cards"] = get_cards(result["slots"], target["spot"], action, card)
 
     return result
@@ -221,7 +232,9 @@ def resolve_entity_alias(entity_alias, card):
         case "card":
             entities.append(table("entities")[card["entity"]])
         case "owner":
-            entities.append(table("entities")[card["owner"]])
+            entity = table("entities").get(card["owner"],False)
+            if entity:
+                entities.append(entity)
         case "loser":
             winning_team = get_winner(card)
             for entity_data in table("entities").values():
@@ -278,7 +291,6 @@ def get_cards(slots, select_function, action, card):
             for slot in slots:
                 result.extend(slot["cards"])
         case "first":
-
             for slot in slots:
                 if slot["cards"]:
                     result.append(slot["cards"][0])
@@ -295,20 +307,21 @@ def get_slots(slots, select_function, action, card):
     result = []
     if not slots:
         return result
-    #Removes empty from zones to select from
 
-    #actual_zone = [i for i in zone if exist(i)]
     match select_function:
         case "all":
             return slots
         case "random":
-            return [random.choice(slots)]
+            any_slots = [slot for slot in slots]
+            random.shuffle(any_slots)
+            return any_slots
+        case "random-single":
+            any_slots = [slot for slot in slots]
+            return [random.choice(any_slots)]
         case "random-vacant":
             vacant_slots = [slot for slot in slots if not slot["cards"]]
-            if vacant_slots:
-                return [random.choice(vacant_slots)]
-            else:
-                return []
+            random.shuffle(vacant_slots)
+            return vacant_slots
         case "card":
             if card["index"] < len(slots):
                 return [slots[card["index"]]]
@@ -349,6 +362,8 @@ def get_slots(slots, select_function, action, card):
             for slot in slots:
                 if not slot["cards"]:
                     return [slot]
+            return [slots[0]]
+        case "only":
             return [slots[0]]
         case _:
         #Case for if an literal index is passed
@@ -449,7 +464,7 @@ def get_power(action, card):
             power += bid
     if action.get("amount"):
         power += action["amount"]
-    if card and exist(card):
+    if card:
         if card.get("hype"):
             power += card["hype"] * card["scaling"]
         if card.get("level"):
@@ -477,17 +492,9 @@ def checking(action, card):
                 else:
                     return False
             case "has_across":
-                has_across = any_exist(targeting("across", action, card)["cards"])
-                if has_across:
-                    return True
-                else:
-                    return False
+                return bool(targeting("across", action, card)["cards"])
             case "no_across":
-                has_across = any_exist(targeting("across", action, card)["cards"])
-                if has_across:
-                    return False
-                else:
-                    return True
+                return not bool(targeting("across", action, card)["cards"])
     return True
 
 def acting(action, card =""):
@@ -530,7 +537,7 @@ def acting(action, card =""):
                 if captain["gold"] >= card["cost"]:
                     game_table["running"] = 1
                     captain["gold"] -= card["cost"]
-                    acting({"action": "move", "target": card, "to": {"entity":"owner","location": "discard", "index": "append"}}, card)
+                    acting({"action": "move", "target": card, "to": "my_discard"}, card)
                     prize["bid"][get_team(card["owner"])] += card["cost"]
 
         case "buy":
@@ -552,10 +559,16 @@ def acting(action, card =""):
             victims = target_groups
             if not destinations:
                 return
+            #Need to handle spots now
             for index, victim in enumerate(victims):
-                if index >= len(destinations):
+                destination = "oooops"
+                if index < len(destinations):
+                    destination = destinations[index]
+                #I am trying to find a way to vet when and when not to append many cards to a single slot. This is usually tied to spot.
+                elif tos["appends"]:
+                    destination = destinations[0]
+                else:
                     break
-                destination = destinations[index]
                 move(victim,destination)
                 if destination["location"] == "hand":
                     animations.append({"sender": card, "receiver": victim, "size": 1, "image": "pics/cards.png"})
@@ -569,6 +582,7 @@ def acting(action, card =""):
                 for index, icon in enumerate(victim["ricons"]):
                     if icon == "random":
                         victim["icons"][index] = random_deck[0]
+        #Combine these (create and place)
         case "create":
             #Need a to section and a move maybe?
             victims = target_groups
@@ -584,19 +598,16 @@ def acting(action, card =""):
         case "place":
             #Need a to section and a move maybe?
             what = action["what"]
-            if exist(card) and card.get("random"):
+            if card.get("random"):
                 what = card["random"]
 
             if not destinations:
                 return
-            my_board = get_nested(game_table, ["entities", get_team(card["owner"]), "locations", destinations[0]["location"]])
             for i in range(math.floor(power)):
-                #This needs to check valid index
-                for slot in my_board:
-                   if not slot["exist"] :
-                       init_card(what,
-                                                 get_team(card["owner"]), destinations[0]["location"],
-                                                 destinations[0]["index"], card["owner"])
+                if i < len(destinations):
+                    init_card(what, get_team(card["owner"]), destinations[i]["location"],
+                                     destinations[i]["index"], card["owner"])
+                else:
                        break
                        #animations.append({"sender": card, "receiver": owner_card(username), "size": 1, "image": "pics/cards.png"})
 
@@ -617,7 +628,7 @@ def acting(action, card =""):
                 for ca in all_target["cards"]:
                     if ca.get("title") == card_type:
                         acting({"action": "move", "target": ca,
-                                "to": {"entity": "owner", "location": "trash", "index": "append"}}, ca)
+                                "to": "my_trash"}, ca)
 
         case "effect_relative":
             # Following comment is the end trigger stored on casting card
@@ -749,11 +760,13 @@ def acting(action, card =""):
 
         case "damage":
             victims = target_groups
-            for victim in victims:
+            slots = slot_targets
+            for slot in slot_targets:
                 #Maybe have this set the image too
                 damage = power
-                animations.append({"sender": card, "receiver":victim, "size":damage, "image":"pics/bang.png"})
-                if exist(victim):
+                animations.append({"sender": card, "receiver":slot, "size":damage, "image":"pics/bang.png"})
+                victim = safe_get(slot["cards"], 0, False)
+                if victim:
                     armor = get_effect("armor", victim)
                     remaining_shield = negative_remaining_damage = victim["shield"] - damage
 
@@ -856,6 +869,8 @@ def add_effect(effect_function, card):
     if effect_function["function"] == "multiply":
         if effects.get(effect_name):
             effects[effect_name] *= effect_function["value"]
+        else:
+            effects[effect_name] = effect_function["value"]
 
     if effect_function["function"] == "max":
         if effects.get(effect_name):
@@ -865,10 +880,10 @@ def add_effect(effect_function, card):
         if effects.get(effect_name):
             effects[effect_name] = min(effects[effect_name],effect_function["value"])
 
-def get_effect(effect_to_get, card):
+def get_effect(effect_to_get, card, default=0):
     effect_value = get_nested(card, ["effects",effect_to_get])
-    if not effect_value:
-        effect_value = 0
+    if effect_value is None:
+        effect_value = default
     return effect_value
 
 #MAIN FUNCTIONS:
@@ -992,7 +1007,7 @@ def location_tick():
 
     for slot in tick_slots:
         for card in slot["cards"]:
-            if exist(card):
+            if card:
                 triggering(card,"timer")
                 #Decay shield
 
@@ -1006,7 +1021,7 @@ def cleanup_tick():
         for location, slots in team_data["locations"].items():
             for slot in slots:
                 for card in slot["cards"]:
-                    if exist(card):
+                    if card:
                         #Memory cleanup
                         if location == "trash":
                             del game_table["ids"][card["id"]]
@@ -1037,11 +1052,9 @@ def cleanup_tick():
 def ai_tick():
     for player, player_data in table("players").items():
         if player_data["ai"]:
-            acting(
-                {"action": "play", "target": ["my_hand"], "to": {"entity":player_data["team"],"location": "board", "index": "random"}, "amount": 1}
-                ,{"owner":player}
-            )
-            #acting({"action": "buy", "target": ["random_shop"], "to": {"entity":player,"location":"discard", "index": "append"}})
+            acting({"action": "play", "target": "my_hand_occupied", "to": "my_board_random", "amount": 1},
+                   {"owner": player, "team": get_team(player)}
+                   )
 
 async def tick():
     while True:
@@ -1071,10 +1084,12 @@ def tick_rate():
 
 
 def safe_get(l, idx, default=0):
-    try: 
-        return l[idx] 
-    except IndexError: 
+    if not type(l) == list:
         return default
+    if idx >= len(l):
+        return default
+    else:
+        return l[idx]
 
 
 def reset_state():
@@ -1191,7 +1206,7 @@ def init_player(team,ai,username, deck="beginner"):
     #        game_table["entities"][username]["locations"]["shop"][index] = init_card(shop_deck[index], username, "shop", index)
     load_deck(username, deck_to_load)
 
-    acting({"action":"move", "target": "my_deck", "to": {"location": "hand", "index": "amount-vacant"}, "amount": 3},
+    acting({"action":"move", "target": "my_deck", "to": "my_hand", "amount": 3},
            {"owner": username})
 
 def init_teams():
@@ -1206,27 +1221,6 @@ def init_players():
 def init_situation():
     #Essentially this is auction
     set_nested(game_table,["entities","situation"],{"team":"gaia","type":"gaia","locations":{"events":[]}})
-
-def exist(card):
-    result = 0
-    try:
-        if card:
-            result = card.get("exist")
-    except AttributeError as e:
-        log("likely a zero is still somehow around instead of a slot")
-        log(card)
-        log(e)
-        raise
-    return result
-
-def any_exist(slot):
-    for card in slot:
-        if exist(card):
-            return 1
-    return 0
-
-
-#def set_trader():
 
 def init_trader(trader = "trader0",entity="trader"):
 
@@ -1247,13 +1241,13 @@ def init_trader(trader = "trader0",entity="trader"):
         triggering(auction_card,"sold")
 
     # Memory cleanup
+    #This should be a call to acting obliterate
     if get_nested(game_table, ["entities", "trader"]):
-        for spot in ["auction","stall","trash","shop"]:
-            location = get_nested(game_table, ["entities", "trader", "locations", spot])
-            for card in location:
-                if exist(card):
+        for location in ["auction","stall","trash","shop"]:
+            slots = get_nested(game_table, ["entities", "trader", "locations", location])
+            for slot in slots:
+                for card in slot["cards"]:
                     del game_table["ids"][card["id"]]
-            del location[:]
 
 
     #Set new trader
@@ -1354,9 +1348,7 @@ def refresh_card(card):
         baby_card = copy.deepcopy(cards_table[card["name"]])
         #This kills the on enter trigger for effects
         card["triggers"] = baby_card["triggers"]
-        goal = 30
-        if get_effect("discard", card):
-            goal = 30 * get_effect("discard", card)
+        goal = 30 * get_effect("discard", card, 1)
 
 
         append_nested(baby_card, ["triggers", "timer"],
@@ -1382,36 +1374,6 @@ def refresh_card(card):
     #except KeyError:
         #log("You have had a serious key error.")
         #pass
-
-def get_card_index(hand):
-    #should get all card indexes than random select
-    card_indexes = []
-    for index, card in enumerate(hand):
-        if exist(card):
-            card_indexes.append(index)
-    if card_indexes:
-        return random.choice(card_indexes)
-    else:
-        return None
-
-def get_empty_index(board):
-    for index, card in enumerate(board):
-        if not exist(card):
-            return index
-    return None
-
-
-def get_random_empty_index(board):
-    # Find all indices where the card is empty (falsy)
-    empty_indices = [index for index, card in enumerate(board) if not exist(card)]
-
-    # If there are no empty indices, return None
-    if not empty_indices:
-        return None
-
-    # Randomly select one of the empty indices
-    return random.choice(empty_indices)
-
 
 # "to": {"location": "discard", "index": "append"}})
 #Need to make resolving "to" more similar to resolving targets. I know to expects empty spaces, but still they should be combined.
@@ -1495,9 +1457,10 @@ async def update_state(players):
         out_table["teams"] = table("teams")
         text = {"evil": {"losses": session_table["teams"]["evil"]["losses"]}, "good": {"losses": session_table["teams"]["good"]["losses"]}}
         hasFog = 1
-        for card in out_table["teams"][get_team(player)]["locations"]["board"]:
-            if exist(card):
-                hasFog = 0
+        for slot in out_table["teams"][get_team(player)]["locations"]["board"]:
+            for card in slot["cards"]:
+                if card:
+                    hasFog = 0
         try:
             await session_table["players"][player]["socket"].send(str({"missing":missing_players,"text":text,"game_table":out_table,"me":player,"animations":animations, "fog":hasFog}))
         except websockets.exceptions.ConnectionClosedOK as e:
@@ -1658,7 +1621,7 @@ def dev_mode(command):
     username = command["username"]
     acting({"action": "income", "target": "my_tent", "amount": 50}, {"owner": command["username"]})
     acting({"action": "gems", "target": "my_tent", "amount": 50}, {"owner": command["username"]})
-    acting({"action":"move", "target": "my_deck", "to": {"location": "hand", "index": "amount-vacant"}, "amount": 5}, {"owner": username})
+    acting({"action":"move", "target": "my_deck", "to": "my_hand", "amount": 5}, {"owner": username})
 
 
 def pause(command):
@@ -1759,7 +1722,7 @@ def handle_play(command):
     #Some of these checks are not made when init card or move card happens in code...
     #Solution is to move this check to move or to acting
     card = game_table["ids"].get(card_id)
-    if not exist(card):
+    if not card:
         return
     card_from = card["location"]
     team = get_team(username)
@@ -1770,10 +1733,10 @@ def handle_play(command):
 
     if card_to == "board" and card_from == "hand":
         slot = game_table["entities"][team]["locations"]["board"][card_index]
-        #card = slot["cards"]
-        if not exist(slot):
+        slot_cards = slot["cards"]
+        if not slot_cards:
             acting({"action": "play", "target": card, "to": {"entity":team, "location":"board", "index": card_index}})
-        elif slot.get("loadable"):
+        elif slot_cards[0].get("loadable"):
             acting({"action": "hype", "target": slot, "amount": 1}, card)
 
 

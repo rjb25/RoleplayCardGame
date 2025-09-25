@@ -35,6 +35,14 @@ const websocketClient = new WebSocket("ws://" + socketname);
 function pause() {
     changeBackground("DodgerBlue");
 }
+function menu() {
+    menuDiv = fetch("#menu_container");
+    if (menuDiv.style.display == "inline-block") {
+        menuDiv.style.display = "none";
+    } else {
+        menuDiv.style.display = "inline-block";
+    }
+}
 function refresh() {
     //ctrl + shift + r does a hard reset that resets cache.
     window.location.reload(true);
@@ -300,17 +308,6 @@ function updateCardButton(cardButton, card) {
         }
     }
     if (["hand"].includes(card["location"])){
-        if ("real_values" in card) {
-            texts = cardButton.querySelectorAll('[class*="ProgressText"]')
-            text = 0
-            for (i = 0; i < card["real_values"].length; i++){
-                //Should be evaluated on drag drop?
-                if (card["real_values"][i]){
-                    texts[text].innerHTML = parseFloat(parseFloat(card["real_values"][i]).toFixed(1));
-                    text++;
-                }
-            }
-        }
         if("cost" in card) {
             topRightText.innerHTML = card["cost"];
             mContainer = fetch("#messages_container");
@@ -333,6 +330,17 @@ function updateCardButton(cardButton, card) {
         }else {
             topLeftText.innerHTML = "";
             topLeftImage.style.display = "none";
+        }
+        if ("real_values" in card) {
+            texts = cardButton.querySelectorAll('[class*="ProgressText"]')
+            text = 0
+            for (i = 0; i < card["real_values"].length; i++){
+                //Should be evaluated on drag drop?
+                if (card["real_values"][i]){
+                    texts[text].innerHTML = parseFloat(parseFloat(card["real_values"][i]).toFixed(1));
+                    text++;
+                }
+            }
         }
     }
     if (["auction"].includes(card["location"])) {
@@ -649,10 +657,12 @@ function generateCardButton(card) {
     return cardWhole;
 }
 
-function createSlots(container, length, location) {
+function createSlots(container, length, location, messageJson,name) {
     for (let i = 0; i < length; i++) {
+        slotId = messageJson["game_table"]["entities"][name]["locations"][location][i]["id"];
         slot = document.createElement("div");
         slot.setAttribute("slot", i);
+        slot.setAttribute("id", slotId);
         slot.setAttribute("location", location);
         slot.classList.add("slot");
         slot.setAttribute("ondrop", "drop(event)");
@@ -900,7 +910,7 @@ document.addEventListener('DOMContentLoaded', function () {
         //To buffer I would need to make another section for processing that is not on message
         websocketClient.onmessage = function (message) {
 
-            logit = 0;
+            logit = 1;
             if (logit){
                 start = performance.now();
                 wait = start - oldStart;
@@ -929,7 +939,7 @@ document.addEventListener('DOMContentLoaded', function () {
                     if (container == "#discard_container") {
                         length = 1;
                     }
-                    createSlots(fetch(container), length, local);
+                    createSlots(fetch(container), length, local, messageJson,name);
                 });
                 menuButtons.forEach(makeMenuButton);
                 firstUpdate = 0;
@@ -947,19 +957,19 @@ document.addEventListener('DOMContentLoaded', function () {
                         }
                     }
                     if (forMe){
-                    mContainer = fetch("#myPlayArea");
-                    card1 = mContainer;
-                    card2 = mContainer;
-                    if (animation["sender"] && animation["receiver"]){
-                        card1 = document.getElementById(animation["sender"].id);
-                        card2 = document.getElementById(animation["receiver"].id);
-                    }
-                    if (card1) {
-                        animation["bound1"] = card1.getBoundingClientRect()
-                    }
-                    if (card2) {
-                        animation["bound2"] = card2.getBoundingClientRect()
-                    }
+                        mContainer = fetch("#myPlayArea");
+                        card1 = mContainer;
+                        card2 = mContainer;
+                        if (animation["sender"] && animation["receiver"]){
+                            card1 = document.getElementById(animation["sender"].id);
+                            card2 = document.getElementById(animation["receiver"].id);
+                        }
+                        if (card1) {
+                            animation["bound1"] = card1.getBoundingClientRect()
+                        }
+                        if (card2) {
+                            animation["bound2"] = card2.getBoundingClientRect()
+                        }
                     }
                 })
             }

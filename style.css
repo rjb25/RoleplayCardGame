@@ -22,7 +22,9 @@ div{
 #myPlayArea {
     display: inline-block;
     width: 80%;
-
+}
+#messages_container {
+    display: none;
 }
 .slot {
   display: inline-block;
@@ -69,6 +71,10 @@ body {
 }
 .menu-container {
   background-color: DodgerBlue;
+  display:none;
+}
+.super-menu-container {
+    background-color: DodgerBlue;
     display: inline-block;
     height:80%;
     width:9%;

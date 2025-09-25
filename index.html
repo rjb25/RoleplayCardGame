@@ -24,7 +24,7 @@
         <div class="prevent-select">
         <canvas id="myCanvas" height=250 width=500></canvas>
         <div id="myPlayArea">
-        <div class="text" id="messages_container">p</div>
+        <div class="text" id="messages_container" display>p</div>
         <div class="row-container" id="enemy_container">
             <div class="card-container" id="enemy_base_container">
                 <!--<p class="sectionLabel">Enemy Base</p>-->
@@ -68,9 +68,12 @@
             </div>-->
         </div>
         </div>
-        <div class="menu-container" id="menu_container" >
-            <div ><button onclick="full();">Fullscreen</button></div>
-            <div  id="reconnect_container" ></div>
+        <div class="super-menu-container" >
+            <button onclick="menu();">Menu</button>
+            <div class="menu-container" id="menu_container" >
+                <div ><button onclick="full();">Fullscreen</button></div>
+                <div  id="reconnect_container" ></div>
+            </div>
         </div>
         <!--<div class="input-container" id="input_container" >
             <div class="menu">
