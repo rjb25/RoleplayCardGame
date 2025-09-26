@@ -121,7 +121,7 @@
             "timer": [
                 {"goal":4, "main":"red","progress":0, "actions":[
                     {"action":"damage","target":"enemy_base","amount":1},
-                    {"action":"move","target":"self","to": {"location": "discard","index": "append","entity": "owner"}}
+                    {"action":"move","target":"self","to": "my_discard"}
                 ]}
             ]
         }
@@ -213,14 +213,14 @@
         "triggers": {
             "timer": [
                 {"goal":10, "main":"green","progress":0, "actions":[
-                    {"action":"trash","target":"on_me"},
+                    {"action":"move","target":"on_me","to": "my_trash"},
                     {"action":"empty_storage","target":"self"},
-                    {"action":"move","target":"self","to": {"location": "discard","index": "append","entity": "owner"}}
+                    {"action":"move","target":"self","to": "my_discard"}
                 ]}
             ],
             "discarded": [
                 {"actions":[
-                    {"action":"move","target":"on_me","to": {"location": "discard","index": "append","entity": "owner"}},
+                    {"action":"move","target":"on_me","to": "my_discard"},
                     {"action":"empty_storage","target":"self"}
                 ]}
             ]
@@ -259,16 +259,16 @@
             "timer": [
                 {"goal":10, "progress":0, "actions":[
                     {"action":"damage", "checks":["has_storage"],"target":"enemy_base","amount":2},
-                    {"action":"trash","target":"on_me"},
+                    {"action":"move","target":"on_me", "to": "my_trash"},
                     {"action":"empty_storage","target":"self"}
                 ]},
                 {"goal":60, "marks":6, "main":"green","progress":0, "actions":[
-                    {"action":"move","target":"self","to": {"location": "discard","index": "append","entity": "owner"}}
+                    {"action":"move","target":"self","to": "my_discard"}
                 ]}
             ],
             "discarded": [
                 {"actions":[
-                    {"action":"move","target":"on_me","to": {"location": "discard","index": "append","entity": "owner"}},
+                    {"action":"move","target":"on_me","to": "my_discard"},
                     {"action":"empty_storage","target":"self"}
                 ]}
             ]
@@ -288,14 +288,14 @@
             "timer": [
                 {"goal":10, "main":"green","progress":0, "actions":[
                     {"action":"duplicate","target":"on_me", "amount": 1},
-                    {"action":"move","target":"on_me","to": {"location": "discard","index": "append","entity": "owner"}},
+                    {"action":"move","target":"on_me","to": "my_discard"},
                     {"action":"empty_storage","target":"self"},
-                    {"action":"move","target":"self","to": {"location": "discard","index": "append","entity": "owner"}}
+                    {"action":"move","target":"self","to": "my_discard"}
                 ]}
             ],
             "discarded": [
                 {"actions":[
-                    {"action":"move","target":"on_me","to": {"location": "discard","index": "append","entity": "owner"}},
+                    {"action":"move","target":"on_me","to": "my_discard"},
                     {"action":"empty_storage","target":"self"}
                 ]}
             ]
@@ -334,14 +334,14 @@
             "timer": [
                 {"goal":10, "main":"green","progress":0, "actions":[
                     {"action":"upgrade","target":"on_me", "amount": 5},
-                    {"action":"move","target":"on_me","to": {"location": "discard","index": "append","entity": "owner"}},
+                    {"action":"move","target":"on_me","to": "my_discard"},
                     {"action":"empty_storage","target":"self"},
-                    {"action":"move","target":"self","to": {"location": "discard","index": "append","entity": "owner"}}
+                    {"action":"move","target":"self","to": "my_discard"}
                 ]}
             ],
             "discarded": [
                 {"actions":[
-                    {"action":"move","target":"on_me","to": {"location": "discard","index": "append","entity": "owner"}},
+                    {"action":"move","target":"on_me","to": "my_discard"},
                     {"action":"empty_storage","target":"self"}
                 ]}
             ]
@@ -372,7 +372,7 @@
         "triggers": {
             "timer": [
                 {"goal":1, "main":"green","progress":0, "actions":[
-                    {"action":"move","target":"self","to": {"location": "discard","index": "append","entity": "owner"}}
+                    {"action":"move","target":"self","to": "my_discard" }
                 ]}
             ]
         }
@@ -387,7 +387,7 @@
             "timer": [
                 {"goal":20, "main":"red","progress":0, "actions":[
                     {"action":"damage","target":"enemy_base","amount":3},
-                    {"action":"move","target":"self","to": {"location": "discard","index": "append","entity": "owner"}}
+                    {"action":"move","target":"self","to": "my_discard"}
                 ]}
             ]
         }
@@ -405,7 +405,7 @@
                     {"action":"damage","target":"fork","amount":1}
                 ]},
                 {"goal":10, "marks": 5, "main":"red","progress":0, "actions":[
-                    {"action":"move","target":"self","to": {"location": "discard","index": "append","entity": "owner"}}
+                    {"action":"move","target":"self","to": "my_discard"}
                 ]}
             ]
         }
@@ -419,7 +419,7 @@
         "triggers":{
             "timer": [
                 {"goal":40, "main":"black","progress":0, "actions":[
-                    {"action":"move","target":"self","to": {"location": "discard","index": "append","entity": "owner"}}
+                    {"action":"move","target":"self","to": "my_discard"}
                 ]}
             ],
             "enter": [
@@ -442,7 +442,7 @@
                     {"action":"income","target":"allies","amount":4}
                 ]},
                 {"goal":10,"marks":5, "main":"yellow", "progress":0, "actions": [
-                    {"action":"move","target":"self","to": {"location": "discard","index": "append","entity": "owner"}}
+                    {"action":"move","target":"self","to": "my_discard"}
                 ]}
             ]
         }
@@ -558,7 +558,7 @@
         "triggers": {
             "timer": [
                 {"goal":3, "progress":0, "actions":[
-                    {"action":"place", "what":"random","to":{"entity": "card", "location": "board", "index": "random-vacant"}, "amount":1},
+                    {"action":"place", "what":"random","to":"my_board_random", "amount":1},
                     {"action":"random_select","target":"self"}
                 ]},
                 {"goal":30, "marks":10, "main":"green","progress":0, "actions":[
@@ -585,12 +585,12 @@
                 {"goal":10, "main":"green","progress":0, "actions":[
                     {"action":"obliterate", "target":"on_me"},
                     {"action":"empty_storage","target":"self"},
-                    {"action":"move","target":"self","to": {"location": "discard","index": "append","entity": "owner"}}
+                    {"action":"move","target":"self","to": "my_discard"}
                 ]}
             ],
             "discarded": [
                 {"actions":[
-                    {"action":"move","target":"on_me","to": {"location": "discard","index": "append","entity": "owner"}},
+                    {"action":"move","target":"on_me","to": "my_discard"},
                     {"action":"empty_storage","target":"self"}
                 ]}
             ]
@@ -623,7 +623,7 @@
         "triggers":{
             "sold": [
                 {"actions":[
-                    {"action":"move","target":"winner_discard","to": {"location": "deck","index": "append","entity": "owner"}}
+                    {"action":"move","target":"winner_discard","to": "my_deck"}
                 ]}
             ]
         }
@@ -708,54 +708,6 @@
             "enter": [
                 {"actions":[
                     {"action":"damage","target":"enemy_base","amount":99}
-                ]}
-            ]
-        }
-    },
-    "shield":{"health":3,
-        "cost":3,
-        "triggers":{
-            "timer": [
-                {"goal":10,"main":1, "progress":0, "actions":[
-                    {"action":"move","target":"self","to": {"location": "discard","index": "append","entity": "owner"}}
-                ]}
-            ],
-            "enter": [
-                {"actions":[
-                    {"action": "effect_relative", "target": "my_base", "effect_function":{"name":"armor","function":"add","value":0.9}, "end_trigger":"exit"}
-                ]}
-            ]
-        }
-    },
-
-    "shield2":{
-        "health":3,
-        "cost":3,
-        "value":3,
-        "triggers": {
-            "timer": [
-                {"goal":3, "progress":0, "actions":[
-                    {"action":"shield","target":"my_base","amount":0.5}
-                ]},
-                {"goal":10, "progress":0, "actions":[
-                    {"action":"shield","target":"my_base","amount":5},
-                    {"action":"move","target":"self","to": {"location": "discard","index": "append","entity": "owner"}}
-                ]}
-            ]
-        }
-    },
-    "shield3":{
-        "health":3,
-        "cost":12,
-        "value":12,
-        "triggers": {
-            "timer": [
-                {"goal":4, "progress":3, "actions":[
-                    {"action":"shield","target":"all_in_my_location","amount":4}
-                ]},
-                {"goal":10, "progress":0, "actions":[
-                    {"action":"shield","target":"my_base","amount":4},
-                    {"action":"move","target":"self","to": {"location": "discard","index": "append","entity": "owner"}}
                 ]}
             ]
         }

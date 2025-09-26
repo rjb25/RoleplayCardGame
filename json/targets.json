@@ -26,7 +26,7 @@
     "enemy_deck":{"location":"deck","entity":"enemies","spot":"all"},
     "enemy_discard":{"location":"discard","entity":"enemies","index":"only","spot": "all"},
     "my_discard":{"location":"discard","entity":"owner","spot":"all"},
-    "my_trash": {"entity": "owner", "location": "trash", "index": "append"},
+    "my_trash": {"entity": "owner", "location": "trash", "spot": "all"},
     "my_hand":{"location":"hand","entity":"owner","index":"amount-vacant"},
     "my_hand_occupied":{"location":"hand","entity":"owner","index":"amount"},
     "all_hand":{"location":"hand","entity":"owner","index":"all"},

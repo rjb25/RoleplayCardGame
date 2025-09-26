@@ -7,8 +7,12 @@
 #Combine place and create
 
 #TODO
+#Held permanently cards from upgrade
+#Something on the server is slow
+#Removed ai card does not disappear
 
 #TODO TODONE
+#cleanup trader
 #toggle menu
 #When drawing or moving cards I am now having issues with selecting spots inside a slot. Do you stop or append for the move command. Every action needs to specify if no append.
 #For now no append can just be check location length.
@@ -523,7 +527,7 @@ def acting(action, card =""):
             for played in target_groups:
                 username = played["owner"]
                 captain = owner_card(username)
-                if captain["gold"] >= played["cost"]:
+                if captain["gold"] >= played["cost"] and destinations:
                     game_table["running"] = 1
                     captain["gold"] -= played["cost"]
                     destination = destinations[0]
@@ -555,12 +559,19 @@ def acting(action, card =""):
                     init_card(shop_copy["name"],
                                     destinations[0]["entity"], destinations[0]["location"],
                                     destinations[0]["index"])
+
         case "move":
             victims = target_groups
-            if not destinations:
-                return
-            #Need to handle spots now
             for index, victim in enumerate(victims):
+                if not destinations:
+                    if tos["appends"]:
+                        #The card was going somewhere with infinite space, it should not be unavailable
+                        slot_targets[index]["cards"].remove(victim)
+                        del game_table["ids"][victim["id"]]
+                        continue
+                    else:
+                        return
+
                 destination = "oooops"
                 if index < len(destinations):
                     destination = destinations[index]
@@ -984,7 +995,6 @@ def table(entity_type):
             result[entity] = entity_data
     return result
 
-
 #def fetch_slot():
 #def fetch_card():
 def location_tick():
@@ -1070,18 +1080,20 @@ async def tick():
             effecting()
             location_tick()
             ai_tick()
+            start_update = time.perf_counter()
             await update_state(session_table["players"].keys())
+            end_update = time.perf_counter()
+            duration_update = end_update - start_update
+            log(f"Tick update took {duration_update} seconds")
             cleanup_tick()
 
         end_tick = time.perf_counter()
         duration_tick = end_tick - start_tick
+        log(f"Tick took {duration_tick} seconds")
         await asyncio.sleep(game_table["tick_duration"]-duration_tick-0.01)
 
 def tick_rate():
     return game_table["tick_duration"]*game_table["tick_value"]
-
-
-
 
 def safe_get(l, idx, default=0):
     if not type(l) == list:
@@ -1090,7 +1102,6 @@ def safe_get(l, idx, default=0):
         return default
     else:
         return l[idx]
-
 
 def reset_state():
     #Clear game
@@ -1222,8 +1233,54 @@ def init_situation():
     #Essentially this is auction
     set_nested(game_table,["entities","situation"],{"team":"gaia","type":"gaia","locations":{"events":[]}})
 
-def init_trader(trader = "trader0",entity="trader"):
+def switch_trader(trader="trader0", entity="trader"):
+    #Resolve last auction
+    if game_table["entities"].get("trader") and game_table["entities"]["trader"]["locations"]["auction"][0]:
+        auction_card = game_table["entities"]["trader"]["locations"]["auction"][0]["cards"][0]
+        winning_team = get_winner(auction_card)
+        animations.append(
+            {"sender": auction_card, "receiver": auction_card,"size": 4, "image": "pics/" + "fail.png", "team": get_enemy_team(winning_team), "rate": 0.008})
+        animations.append(
+            {"sender": auction_card, "receiver": auction_card,"size": 4, "image": "pics/" + "success.png", "team": winning_team, "rate": 0.008})
+        #Tie
+        if not winning_team:
+            animations.append(
+                {"sender": auction_card, "receiver": auction_card, "size": 4, "image": "pics/" + "tie.png",
+                 "rate": 0.008})
 
+        triggering(auction_card,"sold")
+
+    # Memory cleanup
+    #This should be a call to acting obliterate
+    #There are still slots, you need to find a way to reuse them.
+    if get_nested(game_table, ["entities", "trader"]):
+        for location in ["auction","stall","trash","shop"]:
+            slots = get_nested(game_table, ["entities", "trader", "locations", location])
+            for slot in slots:
+                for card in slot["cards"]:
+                    deleted_card = game_table["ids"][card["id"]]
+                    del game_table["ids"][card["id"]]
+
+    #Set new trader
+    set_nested(game_table,["entities",entity],{"team":"gaia","type":"gaia","locations":{"auction":[0],"stall":[0],"trash":[0],"shop":[0,0,0,0,0]}})
+    init_slots(entity)
+
+    #Set new auction reward
+    auction_deck = decks_table["auction"]
+    random.shuffle(auction_deck)
+    auction = game_table["entities"]["trader"]["locations"]["auction"]
+    init_card(auction_deck[0], "trader", "auction", 0)
+
+    #Set up new shop
+    shop_deck = decks_table[trader]
+    random.shuffle(shop_deck)
+    for index, slot in enumerate(game_table["entities"]["trader"]["locations"]["shop"]):
+        shop = game_table["entities"]["trader"]["locations"]["shop"]
+        if index < len(shop_deck) and index < len(shop) and index < session_table["trader_level"]:
+            init_card(shop_deck[index], "trader", "shop", index)
+    init_card(trader, "trader", "stall", 0)
+
+def init_trader(trader = "trader0",entity="trader"):
     #Resolve last auction
     if game_table["entities"].get("trader") and game_table["entities"]["trader"]["locations"]["auction"][0]:
         auction_card = game_table["entities"]["trader"]["locations"]["auction"][0]["cards"][0]
@@ -1242,13 +1299,15 @@ def init_trader(trader = "trader0",entity="trader"):
 
     # Memory cleanup
     #This should be a call to acting obliterate
+    #There are still slots, you need to find a way to reuse them.
     if get_nested(game_table, ["entities", "trader"]):
         for location in ["auction","stall","trash","shop"]:
             slots = get_nested(game_table, ["entities", "trader", "locations", location])
             for slot in slots:
                 for card in slot["cards"]:
+                    deleted_card = game_table["ids"][card["id"]]
                     del game_table["ids"][card["id"]]
-
+                del game_table["ids"][slot["id"]]
 
     #Set new trader
     set_nested(game_table,["entities",entity],{"team":"gaia","type":"gaia","locations":{"auction":[0],"stall":[0],"trash":[0],"shop":[0,0,0,0,0]}})
@@ -1698,10 +1757,11 @@ def remove_ai(command):
     for player, player_data in table("players").items():
         if player_data["ai"]:
             for key,location in player_data["locations"].items():
-                for card in location:
-                    if card:
+                for slot in location:
+                    for card in slot["cards"]:
                         if game_table["ids"].get(card["id"]):
                             del game_table["ids"][card["id"]]
+                    del game_table["ids"][slot["id"]]
             player_data["quit"] = 1
             del session_table["ais"][player]
     session_table["campaign"] = 0
