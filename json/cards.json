@@ -623,7 +623,7 @@
         "triggers":{
             "sold": [
                 {"actions":[
-                    {"action":"move","target":"winner_discard","to": "my_deck"}
+                    {"action":"move","target":"winner_discard","to": "winner_deck"}
                 ]}
             ]
         }
