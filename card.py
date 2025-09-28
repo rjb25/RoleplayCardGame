@@ -7,11 +7,10 @@
 #Combine place and create
 
 #TODO
-#Held permanently cards from upgrade
-#Something on the server is slow
-#Removed ai card does not disappear
+#Targeting needs to tie targets and destinations together
 
 #TODO TODONE
+#Slots were not updating on team change
 #cleanup trader
 #toggle menu
 #When drawing or moving cards I am now having issues with selecting spots inside a slot. Do you stop or append for the move command. Every action needs to specify if no append.
@@ -203,27 +202,42 @@ def get_target_group(target, action, card, result):
         locations = [locations]
     result["locations"] = locations
 
+    slot_groups = []
     slots = []
     for entity in entities:
+        entity_slots = []
         for location in locations:
             #Keep adding the slots
             #Should have a flat list of slots [slot1, slot2, slot3entity2, slot4entity2]
-            slots.extend(resolve_location_alias(entity,location,card))
-    result["slots-pre"] = slots
+            resolved_slots = resolve_location_alias(entity, location, card)
+            entity_slots.extend(resolved_slots)
+            slots.extend(resolved_slots)
+        slot_groups.append(entity_slots)
 
+    #result {"targets":{"player":{"slots"}
     if "index" not in target.keys():
         target["index"] = "all"
+
+    if "spot" not in target.keys():
+        target["spot"] = "first"
+
+    if target["spot"] != "first":
+        result["appends"] = 1
 
     select_function = target["index"]
     result["index"] = select_function
 
     result["slots"] = get_slots(slots, select_function, action, card)
-
-    if "spot" not in target.keys():
-        target["spot"] = "first"
-    if target["spot"] != "first":
-       result["appends"] = 1
     result["cards"] = get_cards(result["slots"], target["spot"], action, card)
+
+    result["slot_groups"] = []
+    result["card_groups"] = []
+
+    for slot_group in slot_groups:
+        output_slots = get_slots(slot_group, select_function, action, card)
+        output_cards = get_cards(output_slots, target["spot"], action, card)
+        result["slot_groups"].append(output_slots)
+        result["card_groups"].append(output_cards)
 
     return result
 
@@ -509,6 +523,9 @@ def acting(action, card =""):
     if targets:
         slot_targets = targets["slots"]
         target_groups = targets["cards"] #card_targets
+        entity_slot_targets = targets["cards"]
+        entity_card_targets = targets["cards"]
+    #For entity in tos?
 
     tos = targeting(action.get("to"), action, card)
     destinations = []
@@ -516,6 +533,8 @@ def acting(action, card =""):
     if tos:
         destinations = tos["slots"] #slot_tos
         card_tos = tos["cards"]
+        entity_slot_tos = targets["cards"]
+        entity_card_tos = targets["cards"]
 
     power = get_power(action,card)
 
@@ -561,28 +580,35 @@ def acting(action, card =""):
                                     destinations[0]["index"])
 
         case "move":
-            victims = target_groups
-            for index, victim in enumerate(victims):
-                if not destinations:
-                    if tos["appends"]:
-                        #The card was going somewhere with infinite space, it should not be unavailable
-                        slot_targets[index]["cards"].remove(victim)
-                        del game_table["ids"][victim["id"]]
-                        continue
-                    else:
-                        return
+            for x, entity in enumerate(entity_slot_tos):
+                victims = entity_card_targets[x]
+                move_destinations = entity_slot_tos[x]
+                #victim_slots = slot_targets
+                #slot_targets[0] = 10
+                #
+                #I need some kind of sync flag for targetting between. Something like card to slot, or slot to slot,
+                for index, victim in enumerate(victims):
+                    if not move_destinations:
+                        if tos["appends"]:
+                            #The card was going somewhere with infinite space, it should not be unavailable
+                            #raise Exception("The card was going to a non existent destination. The card is %s" % victim)
+                            slot_targets[index]["cards"].remove(victim)
+                            del game_table["ids"][victim["id"]]
+                            continue
+                        else:
+                            return
 
-                destination = "oooops"
-                if index < len(destinations):
-                    destination = destinations[index]
-                #I am trying to find a way to vet when and when not to append many cards to a single slot. This is usually tied to spot.
-                elif tos["appends"]:
-                    destination = destinations[0]
-                else:
-                    break
-                move(victim,destination)
-                if destination["location"] == "hand":
-                    animations.append({"sender": card, "receiver": victim, "size": 1, "image": "pics/cards.png"})
+                    destination = "oooops"
+                    if index < len(move_destinations):
+                        destination = move_destinations[index]
+                    #I am trying to find a way to vet when and when not to append many cards to a single slot. This is usually tied to spot.
+                    elif tos["appends"]:
+                        destination = move_destinations[0]
+                    else:
+                        break
+                    move(victim,destination)
+                    if destination["location"] == "hand":
+                        animations.append({"sender": card, "receiver": victim, "size": 1, "image": "pics/cards.png"})
 
         case "random_select":
             global random_deck

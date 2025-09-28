@@ -10,6 +10,7 @@ myself = ""
 mute = false;
 my_team = "good";
 enemy_team = "evil";
+var update_slot_team = false;
 lastMissing = [];
 firstUpdate = 1;
 tr = " 0.7)";
@@ -55,6 +56,7 @@ function join_good() {
     console.log("goodness")
     my_team = "good"
     enemy_team = "evil"
+    update_slot_team = true;
     //UPDATE
     buttonContainerNames = [enemy_team, enemy_team, my_team, my_team, "trader", "me", "me", "me", "trader", "trader"];
 }
@@ -63,6 +65,7 @@ function join_evil() {
     console.log("evilness")
     my_team = "evil"
     enemy_team = "good"
+    update_slot_team = true;
     //UPDATE
     buttonContainerNames = [enemy_team, enemy_team, my_team, my_team, "trader", "me", "me", "me", "trader", "trader"];
 }
@@ -688,8 +691,17 @@ function createSlots(container, length, location, messageJson,name) {
 
 function updateSlots(container, messageJson, name, location) {
     newCards = []
+    //console.log(update_slot_team);
     if (name == "me") {
         name = messageJson["me"]
+    }
+    if (update_slot_team){
+        length = messageJson["game_table"]["entities"][name]["locations"][location].length;
+        for (i=0; i < length; i++){
+            slotId = messageJson["game_table"]["entities"][name]["locations"][location][i]["id"];
+            slotDiv = container.getElementsByClassName("slot")[i];
+            slotDiv.id = slotId;
+        }
     }
     try {
         newSlots = messageJson["game_table"]["entities"][name]["locations"][location];
@@ -983,6 +995,9 @@ document.addEventListener('DOMContentLoaded', function () {
             buttonContainers.forEach(function (container, index) {
                 updateSlots(fetch(container), messageJson, buttonContainerNames[index], buttonContainerLocations[index]);
             });
+            console.log("I AM REALLY REAL1");
+            update_slot_team = false;
+            console.log("I AM REALLY REAL", update_slot_team);
 
             if ("animations" in messageJson && messageJson["animations"].length > 0) {
                 //console.log(messageJson["animations"])
