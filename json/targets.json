@@ -35,5 +35,7 @@
     "random_shop":{"location": "shop", "entity": "trader", "index": "random"},
     "ally_deck":{"location":"deck","entity":"allies","spot":"amount"},
     "ally_hand":{"location":"hand","entity":"allies","index":"amount"},
-    "all":{"location":"all","entity":"all","index":"all", "spot": "all"}
+    "all":{"location":"all","entity":"all","index":"all", "spot": "all"},
+    "auction":{"location":"auction","entity":"trader","index":"only"},
+    "stall":{"location":"stall","entity":"trader","index":"only"}
 }
