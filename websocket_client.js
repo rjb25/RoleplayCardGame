@@ -349,7 +349,7 @@ function updateCardButton(cardButton, card) {
     if (["auction"].includes(card["location"])) {
         topRightText.innerHTML = card["bid"][my_team];
     }
-    if (!["stall"].includes(card["location"]) ){
+    if (!["stall", "tent", "auction"].includes(card["location"]) ){
         currentHealth = card["health"];
         let percent = 100 * currentHealth / card["max_health"];
         hpWidth = (100 * 1 / card["max_health"]);

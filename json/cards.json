@@ -16,7 +16,7 @@
             ],
             "enter": [
                 {"actions":[
-                    {"action": "effect_relative", "target": "all_in_my_location", "effect_function":{"name":"armor","function":"add","value":0.4}, "end_trigger":"exit"}
+                    {"action": "effect_relative", "effect_targets": "all_in_my_location", "effect_function":{"name":"armor","function":"add","value":0.4}, "end_trigger":"exit"}
                 ]}
             ]
         }
@@ -48,7 +48,7 @@
         "triggers": {
             "enter": [
                 {"actions":[
-                    {"action": "effect_relative", "target": "all_in_my_location", "effect_function":{"name":"speed","function":"add","value":1}, "end_trigger":"exit"}
+                    {"action": "effect_relative", "effect_targets": "all_in_my_location", "effect_function":{"name":"speed","function":"add","value":1}, "end_trigger":"exit"}
                 ]}
             ],
             "timer": [
@@ -86,7 +86,7 @@
         "triggers": {
             "timer": [
                 {"goal":2, "progress":0, "actions":[
-                    {"action":"move","target":"my_deck","to":"my_hand","amount":1}
+                    {"action":"move","target":"ally_deck","to":"victim_hand","amount":1}
                 ]},
                 {"goal":20, "marks":10,"main":"green","progress":0, "actions":[
                     {"action":"move","target":"self","to": {"location": "discard","index": "append","entity": "owner"}}
@@ -152,11 +152,11 @@
         "cost":10,
         "targets": ["","enemy_board",""],
         "icons": ["","abduct",""],
-        "values": ["",1,""],
+        "values": ["",2,""],
         "triggers": {
             "timer": [
                 {"goal":2, "progress":0, "actions":[
-                    {"action":"damage","target":"across", "kill":"abduct", "amount": 1}
+                    {"action":"damage","target":"across", "kill":"abduct", "amount": 2}
                 ]},
                 {"goal":10, "marks":5, "main":"brown","progress":0, "actions":[
                     {"action":"move","target":"self","to": {"location": "discard","index": "append","entity": "owner"}}
@@ -233,11 +233,11 @@
         "scaling": 0.3,
         "targets": ["","enemy_board",""],
         "icons": ["","trash",""],
-        "values": ["",1,""],
+        "values": ["",2,""],
         "triggers": {
             "timer": [
                 {"goal":2, "progress":0, "actions":[
-                    {"action":"damage","target":"across", "kill":"trash", "amount": 1}
+                    {"action":"damage","target":"across", "kill":"trash", "amount": 2}
                 ]},
                 {"goal":10, "marks":5, "main":"brown","progress":0, "actions":[
                     {"action":"move","target":"self","to": {"location": "discard","index": "append","entity": "owner"}}
@@ -287,7 +287,7 @@
         "triggers": {
             "timer": [
                 {"goal":10, "main":"green","progress":0, "actions":[
-                    {"action":"duplicate","target":"on_me", "amount": 1},
+                    {"action":"duplicate","target":"on_me", "to":"my_discard","amount": 1},
                     {"action":"move","target":"on_me","to": "my_discard"},
                     {"action":"empty_storage","target":"self"},
                     {"action":"move","target":"self","to": "my_discard"}
@@ -316,7 +316,7 @@
             ],
             "enter": [
                 {"actions":[
-                    {"action":"move", "target":"enemy_deck", "to":"enemy_discard"}
+                    {"action":"move", "target":"enemy_deck", "to":"victim_discard"}
                 ]}
             ]
         }
@@ -357,7 +357,7 @@
         "triggers": {
             "timer": [
                 {"goal":10, "main":"green","progress":0, "actions": [
-                    {"action":"create","what":"wood-card","target":"enemies", "amount": 2},
+                    {"action":"create","what":"wood-card","to":"enemy_discard", "amount": 2},
                     {"action":"move","target":"self","to": {"location": "discard","index": "append","entity": "owner"}}
                 ]}
             ]
@@ -424,7 +424,7 @@
             ],
             "enter": [
                 {"actions":[
-                    {"action": "effect_relative", "target": "my_base", "effect_function":{"name":"armor","function":"add","value":2}, "end_trigger":"exit"}
+                    {"action": "effect_relative", "effect_targets": "my_base", "effect_function":{"name":"armor","function":"add","value":2}, "end_trigger":"exit"}
                 ]}
             ]
         }
@@ -475,7 +475,7 @@
         "triggers": {
             "timer": [
                 {"goal":2, "progress":0, "actions":[
-                    {"action":"move","target":"my_deck","to":"my_hand","amount":2}
+                    {"action":"move","target":"ally_deck","to":"victim_hand","amount":2}
                 ]},
                 {"goal":20,"marks":10, "main":"green","progress":0, "actions":[
                     {"action":"move","target":"self","to": {"location": "discard","index": "append","entity": "owner"}}
@@ -540,8 +540,8 @@
             ],
             "enter": [
                 {"actions":[
-                    {"action": "effect_relative", "target": "all_in_my_location", "effect_function":{"name":"discard","function":"multiply","value":0.0}, "end_trigger":"exit"},
-                    {"action": "effect_relative", "target": "enemy_board", "effect_function":{"name":"discard","function":"multiply","value":2}, "end_trigger":"exit"}
+                    {"action": "effect_relative", "effect_targets": "all_in_my_location", "effect_function":{"name":"discard","function":"multiply","value":0.0}, "end_trigger":"exit"},
+                    {"action": "effect_relative", "effect_targets": "enemy_board", "effect_function":{"name":"discard","function":"multiply","value":2}, "end_trigger":"exit"}
                 ]}
             ]
         }
@@ -554,11 +554,11 @@
         "icons": ["","random",""],
         "ricons": ["","random",""],
         "values": ["",1,""],
-        "scaling": 0.1,
+        "scaling": 0.0,
         "triggers": {
             "timer": [
                 {"goal":3, "progress":0, "actions":[
-                    {"action":"place", "what":"random","to":"my_board_random", "amount":1},
+                    {"action":"create", "what":"random","to":"my_board_random","owner":"card", "amount":1},
                     {"action":"random_select","target":"self"}
                 ]},
                 {"goal":30, "marks":10, "main":"green","progress":0, "actions":[
@@ -623,7 +623,7 @@
         "triggers":{
             "sold": [
                 {"actions":[
-                    {"action":"move","target":"winner_discard","to": "winner_deck"}
+                    {"action":"move","target":"winner_discard","to": "victim_deck"}
                 ]}
             ]
         }
@@ -693,7 +693,7 @@
             ],
             "sold": [
                 {"actions":[
-                    {"action":"create", "what":"random","target":"winner", "amount":1}
+                    {"action":"create", "what":"random","to":"winner_discard", "amount":1}
                 ]}
             ]
         }
