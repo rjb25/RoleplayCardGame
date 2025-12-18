@@ -1502,7 +1502,7 @@ async def update_state(players):
     for player in present_players:
         out_table = {}
         out_table["entities"] = select_entities(game_table,[player,"good","evil","trader"])
-        out_table["ids"] = {id: card for id, card in game_table["ids"].items() if card["location"] == "held"}
+        out_table["ids"] = {id: card for id, card in game_table["ids"].items() if card.get("location","") == "held"}
         text = {"evil": {"losses": session_table["teams"]["evil"]["losses"]}, "good": {"losses": session_table["teams"]["good"]["losses"]}}
         #hasFog = 1
         #for slot in out_table["teams"][get_team(player)]["locations"]["board"]:
