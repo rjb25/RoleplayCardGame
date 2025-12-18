@@ -24,10 +24,10 @@ var running = false;
 var target = 0;
 socketname = "localhost:12345";
 //These need to be variables
-buttonContainers = ["#enemy_base_container", "#situations_container", "#ally_base_container", "#plans_container", "#auction_container","#tent_container", "#cards_container", "#discard_container", "#merchant_container", "#shop_container"];
-buttonContainerLocations = ["base", "board", "base", "board", "auction","tent", "hand", "discard", "stall", "shop"];
+buttonContainers = ["#enemy_base_container", "#situations_container","help_container", "#ally_base_container", "#plans_container", "#auction_container","#tent_container", "#cards_container", "#discard_container", "#merchant_container", "#shop_container"];
+buttonContainerLocations = ["base", "board", "board","base", "board", "auction","tent", "hand", "discard", "stall", "shop"];
 //UPDATE this below to match
-buttonContainerNames = [enemy_team, enemy_team, my_team, my_team, "trader", "me", "me", "me", "trader", "trader"];
+buttonContainerNames = [enemy_team, enemy_team, enemy_team, my_team, my_team, "trader", "me", "me", "me", "trader", "trader"];
 menuButtons = ["remove_ai", "reset_session", "pause", "add_ai_evil", "add_ai_good", "join_good", "join_evil", "skip_trader","no_audio","refresh", "clear_animations","dev_mode","save_game","load_game","win"/*,"save_user","load_user"*/];
 //This is what you run if you want to reconnect to server
 //socketname = prompt("WebSocketURL no http://")
@@ -429,12 +429,12 @@ function updateCardButton(cardButton, card) {
         //Where the image should be wiped
         //If the image is gone remove from the existing array
         storageBar.existing.forEach((storage) => {
-            console.log("stowaway")
-            console.log(storage)
-            console.log(Object.values(card["storage"]));
-            console.log(card["storage"]);
-            console.log("stowaday")
             if (!(Object.values(card["storage"]).includes(storage))) {
+                console.log("stowaway")
+                console.log(storage)
+                console.log(Object.values(card["storage"]));
+                console.log(card["storage"]);
+                console.log("stowaday")
                 arrayRemove(storageBar.existing, storage);
             }
         });
@@ -921,7 +921,6 @@ document.addEventListener('DOMContentLoaded', function () {
         oldStart = 0;
         //To buffer I would need to make another section for processing that is not on message
         websocketClient.onmessage = function (message) {
-
             logit = 1;
             if (logit){
                 start = performance.now();
@@ -929,12 +928,36 @@ document.addEventListener('DOMContentLoaded', function () {
                 console.log("Period ", wait);
                 oldStart = start;
             }
+
             messageJson = JSON.parse(message.data.replace(/'/g, '"'));
             if (logit){
-            const sizeInBytes = new TextEncoder().encode(JSON.stringify(messageJson)).length;
-            const kiloBytes = sizeInBytes / 1024;
-            console.log("payload kb " + kiloBytes);
+                const sizeInBytes = new TextEncoder().encode(JSON.stringify(messageJson)).length;
+                const kiloBytes = sizeInBytes / 1024;
+                console.log("payload kb " + kiloBytes);
             }
+            //###
+            gameState = messageJson["game_table"]
+            me = messageJson["me"];
+            myself = me;
+            mContainer = fetch("#messages_container");
+            mContainer.message = messageJson;
+            playerState = gameState["entities"][me]["locations"]["tent"][0]["cards"][0];
+            playerState.discardLength = gameState["entities"][me]["locations"]["discard"][0]["cards"].length;
+            playerState.deckLength = gameState["entities"][me]["locations"]["deck"][0]["cards"].length;
+            mContainer.playerState = playerState
+
+            messageText = messageJson["text"];
+            if (messageText) {
+                mContainer.innerHTML = "Good Wins:" + messageText["evil"]["losses"] + "&nbsp;&nbsp;&nbsp;&nbsp; " + "Evil Wins:" + messageText["good"]["losses"];
+            }
+            running = gameState["running"];
+            if (running) {
+                changeBackground("DodgerBlue");
+            } else {
+                changeBackground("DodgerBlue");
+            }
+            //####
+
 
             if (firstUpdate) {
                 changeBackground("dodgerBlue");
@@ -995,9 +1018,7 @@ document.addEventListener('DOMContentLoaded', function () {
             buttonContainers.forEach(function (container, index) {
                 updateSlots(fetch(container), messageJson, buttonContainerNames[index], buttonContainerLocations[index]);
             });
-            console.log("I AM REALLY REAL1");
             update_slot_team = false;
-            console.log("I AM REALLY REAL", update_slot_team);
 
             if ("animations" in messageJson && messageJson["animations"].length > 0) {
                 //console.log(messageJson["animations"])
@@ -1040,6 +1061,13 @@ document.addEventListener('DOMContentLoaded', function () {
                     }
                 })
             }
+            if(logit){
+                end = performance.now();
+                duration = end-start;
+
+                console.log("to interpret");
+                console.log(duration);
+            }
 
             /*
             if (fogs.length < 1){
@@ -1060,34 +1088,6 @@ document.addEventListener('DOMContentLoaded', function () {
 
 
             //Myself
-            gameState = messageJson["game_table"]
-            teamsState = gameState["teams"]
-            me = messageJson["me"];
-            myself = me;
-            mContainer = fetch("#messages_container");
-            mContainer.message = messageJson;
-            playerState = gameState["entities"][me]["locations"]["tent"][0]["cards"][0];
-            playerState.discardLength = gameState["entities"][me]["locations"]["discard"][0]["cards"].length;
-            playerState.deckLength = gameState["entities"][me]["locations"]["deck"][0]["cards"].length;
-            mContainer.playerState = playerState
-
-            messageText = messageJson["text"];
-            if (messageText) {
-                mContainer.innerHTML = "Good Wins:" + messageText["evil"]["losses"] + "&nbsp;&nbsp;&nbsp;&nbsp; " + "Evil Wins:" + messageText["good"]["losses"];
-            }
-            running = gameState["running"];
-            if (running) {
-                changeBackground("DodgerBlue");
-            } else {
-                changeBackground("DodgerBlue");
-            }
-            if(logit){
-                end = performance.now();
-                duration = end-start;
-
-                console.log("to interpret");
-                console.log(duration);
-            }
         };
     };
 }, false);

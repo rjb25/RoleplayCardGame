@@ -5,16 +5,20 @@
 #Some kind of effect from damage to slots. Maybe it puts it on a cooldown after 10 damage. Maybe the damage is conveyed to the next played card.
 #Maybe the damage goes to cards in your hand, then to cards in the shop, then finally to your base.
 #Combine place and create
+
 #TODO Guide
 #Design out stupidity. Make every card playable to every location for some benefit. Shouldn't be any hard fails.
 #Make recurring purchases more expensive?
+#Make some kind of stack card that can be used to hold cards.
+#Make the cards like champions and they are given items that have benefits. Give a card energy and health. Trash when health lost, discard when energy lost. Durability of a card.
+
 
 #TODO
-#Targeting needs to tie targets and destinations together
 #If ai leaves then their cards cannot discard
 
 #TODO TODONE
 #Solved targeting multiple entities in target and to by making multiple cards "return home" using their knowledge of owner with "victim-owner" target
+#Targeting needs to tie targets and destinations together
 #Slots were not updating on team change
 #cleanup trader
 #toggle menu
@@ -171,6 +175,7 @@ def quick_alias(target, card, result):
                 on_it.append(game_table["ids"].get(box))
         result["message"] = "on_it"
         result["cards"] = on_it
+        #This held_slot returns all held cards which is technically the slot I suppose.
         held_slot = get_nested(game_table, ["entities", card["owner"], "locations", "held"])
         result["slots"] = [held_slot]
         return result
@@ -965,7 +970,7 @@ def create_random_trigger(trigger):
 def create_random_action(action):
     return "hey"
 
-#GLOBALS
+#GLOBALS TABLE
 animations = []
 #Run update on all rooms with sessions instead of just on players in single session
 rooms_table = {}
@@ -1476,6 +1481,12 @@ def is_team(target = ""):
     if target in list(table("teams").keys()):
         return True
 
+def select_entities(table,entities):
+    final = {}
+    for entity in entities:
+        final[entity] = table["entities"][entity]
+    return final
+
 async def update_state(players):
     global animations
     missing_players = []
@@ -1489,17 +1500,17 @@ async def update_state(players):
             present_players.append(player)
 
     for player in present_players:
-        out_table = game_table
-        out_table["players"] = table("players")
-        out_table["teams"] = table("teams")
+        out_table = {}
+        out_table["entities"] = select_entities(game_table,[player,"good","evil","trader"])
+        out_table["ids"] = {id: card for id, card in game_table["ids"].items() if card["location"] == "held"}
         text = {"evil": {"losses": session_table["teams"]["evil"]["losses"]}, "good": {"losses": session_table["teams"]["good"]["losses"]}}
-        hasFog = 1
-        for slot in out_table["teams"][get_team(player)]["locations"]["board"]:
-            for card in slot["cards"]:
-                if card:
-                    hasFog = 0
+        #hasFog = 1
+        #for slot in out_table["teams"][get_team(player)]["locations"]["board"]:
+        #    for card in slot["cards"]:
+        #        if card:
+        #            hasFog = 0
         try:
-            await session_table["players"][player]["socket"].send(str({"missing":missing_players,"text":text,"game_table":out_table,"me":player,"animations":animations, "fog":hasFog}))
+            await session_table["players"][player]["socket"].send(str({"missing":missing_players,"text":text,"game_table":out_table,"me":player,"animations":animations, "fog":0})) #fog: hasFog
         except websockets.exceptions.ConnectionClosedOK as e:
             log("Client easy quit", player)
             log(e)
