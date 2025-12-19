@@ -310,13 +310,13 @@
 
         "triggers": {
             "timer": [
-                {"goal":20, "marks": 0, "main":"green","progress":0, "actions":[
-                    {"action":"move","target":"self","to": "my_discard"}
+                {"goal":5, "marks": 0, "main":"green","progress":0, "actions":[
+                    {"action":"move","target":"self","to": "my_discard"},
+                    {"action":"move", "target":"enemy_deck", "to":"victim_discard"}
                 ]}
             ],
             "enter": [
                 {"actions":[
-                    {"action":"move", "target":"enemy_deck", "to":"victim_discard"}
                 ]}
             ]
         }

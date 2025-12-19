@@ -1069,7 +1069,6 @@ document.addEventListener('DOMContentLoaded', function () {
                 console.log(duration);
             }
 
-            /*
             if (fogs.length < 1){
                 Array.from(document.getElementById("situations_container").getElementsByClassName("slot")).forEach(function (slot) {
                     bound = slot.getBoundingClientRect();
@@ -1084,7 +1083,6 @@ document.addEventListener('DOMContentLoaded', function () {
             }else{
                 hideFog();
             }
-             */
 
 
             //Myself

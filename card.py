@@ -11,10 +11,14 @@
 #Make recurring purchases more expensive?
 #Make some kind of stack card that can be used to hold cards.
 #Make the cards like champions and they are given items that have benefits. Give a card energy and health. Trash when health lost, discard when energy lost. Durability of a card.
-
+#Some form of defense card
 
 #TODO
 #If ai leaves then their cards cannot discard
+#Make the beaver discard their deck soon.
+#Ready draw pile, 123
+#Having foundation cards that do not tick but have health and can take a card on top. They make it faster or sturdier?
+#Make attack, defend and something else? Can defend against bunny hits but you have to do it per slot
 
 #TODO TODONE
 #Solved targeting multiple entities in target and to by making multiple cards "return home" using their knowledge of owner with "victim-owner" target
@@ -50,7 +54,6 @@
 #Have glass cards that are used once then they trash themselves.
 #make some kind of campaign co-op. Maybe just the versus ai.
 
-
 #When a main action is identified, you can have a generic amount, speed, health, cost, hype. Hype could even tie into one of these traits for any given card. Or random trait temporarily?
 #Hype the main action since you know what it is.
 #Set 3 main stats, power, speed and health? Speed includes cooldown and how many times something triggers. Power changes trigger effect and storage size? Healths is well... health.
@@ -68,7 +71,6 @@
 #Health ticks down version
 #Create random cards and allow them to be saved off if good
 
-
 #SHOP
 #Have a random card shop as a rare reward. With end game cards expected to come from random draws.
 #Make while triggers, maybe they add something something in a pre tick. The "effect" section is then wiped on tick cleanup
@@ -82,7 +84,6 @@
 #Bots play to random open slot instead of 12345
 #Make a team health bar near you and on their side for them
 #Make you money bar closer to you on the player icon
-
 
 #TODO TRIGGERS
 #On target action - When a target takes and action.... Specify name of action or category. Handled in trigger function.
@@ -890,6 +891,7 @@ def effecting():
     for effect_recipe in all_effect_recipes:
         for card in targeting(effect_recipe["target"],  "action",game_table["ids"].get(effect_recipe["card_id"]))["cards"]:
             add_effect(effect_recipe["effect_function"],card)
+            
 
 def add_effect(effect_function, card):
     effects = card["effects"]
@@ -1501,16 +1503,19 @@ async def update_state(players):
 
     for player in present_players:
         out_table = {}
-        out_table["entities"] = select_entities(game_table,[player,"good","evil","trader"])
+        hasFog = 1
+        for slot in game_table["entities"][get_team(player)]["locations"]["board"]:
+            for card in slot["cards"]:
+                if card:
+                    hasFog = 0
+
+
+        send_entities = [player,"good","evil","trader"] if not hasFog else [player,"good","trader"]
+        out_table["entities"] = select_entities(game_table, send_entities)
         out_table["ids"] = {id: card for id, card in game_table["ids"].items() if card.get("location","") == "held"}
         text = {"evil": {"losses": session_table["teams"]["evil"]["losses"]}, "good": {"losses": session_table["teams"]["good"]["losses"]}}
-        #hasFog = 1
-        #for slot in out_table["teams"][get_team(player)]["locations"]["board"]:
-        #    for card in slot["cards"]:
-        #        if card:
-        #            hasFog = 0
         try:
-            await session_table["players"][player]["socket"].send(str({"missing":missing_players,"text":text,"game_table":out_table,"me":player,"animations":animations, "fog":0})) #fog: hasFog
+            await session_table["players"][player]["socket"].send(str({"missing":missing_players,"text":text,"game_table":out_table,"me":player,"animations":animations, "fog":hasFog})) #fog: hasFog
         except websockets.exceptions.ConnectionClosedOK as e:
             log("Client easy quit", player)
             log(e)
