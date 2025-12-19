@@ -891,7 +891,6 @@ def effecting():
     for effect_recipe in all_effect_recipes:
         for card in targeting(effect_recipe["target"],  "action",game_table["ids"].get(effect_recipe["card_id"]))["cards"]:
             add_effect(effect_recipe["effect_function"],card)
-            
 
 def add_effect(effect_function, card):
     effects = card["effects"]
