@@ -699,8 +699,9 @@ function updateSlots(container, messageJson, name, location) {
         length = messageJson["game_table"]["entities"][name]["locations"][location].length;
         for (i=0; i < length; i++){
             slotId = messageJson["game_table"]["entities"][name]["locations"][location][i]["id"];
-            slotDiv = container.getElementsByClassName("slot")[i];
-            slotDiv.id = slotId;
+            //If slotId.card visible = true
+                slotDiv = container.getElementsByClassName("slot")[i];
+                slotDiv.id = slotId;
         }
     }
     try {

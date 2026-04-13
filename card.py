@@ -19,6 +19,9 @@
 #Ready draw pile, 123
 #Having foundation cards that do not tick but have health and can take a card on top. They make it faster or sturdier?
 #Make attack, defend and something else? Can defend against bunny hits but you have to do it per slot
+#Only show fog if a card is played there. So you know it's a card, not what.
+#Make a way to combine cards so they both operate in the same area. Have a Mutant image. It stores 2 cards and uses both of their traits.
+#Fix some of the animations
 
 #TODO TODONE
 #Solved targeting multiple entities in target and to by making multiple cards "return home" using their knowledge of owner with "victim-owner" target

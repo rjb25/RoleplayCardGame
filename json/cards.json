@@ -737,7 +737,7 @@
         "triggers": {
             "timer": [
                 {"goal":30, "main":"white", "progress":0, "actions":[
-                    {"action":"trader","next":"trader2"}
+                    {"action":"trader","next":"trader0"}
                 ]}
             ]
         }
