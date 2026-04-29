@@ -1,3 +1,4 @@
+//Index.html contains playable for allowing drag and drop
 function full(){
     document.documentElement.webkitRequestFullScreen();
     document.documentElement.requestFullscreen()
@@ -1071,6 +1072,7 @@ document.addEventListener('DOMContentLoaded', function () {
             }
 
             if (fogs.length < 1){
+            //Need to fix things here for fog resize
                 Array.from(document.getElementById("situations_container").getElementsByClassName("slot")).forEach(function (slot) {
                     bound = slot.getBoundingClientRect();
 

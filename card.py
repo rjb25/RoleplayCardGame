@@ -1,10 +1,11 @@
 #!/usr/bin/env python
 #{"location": "discard","index": "append","entity": "owner"}
 #TODO LIKELY
+#Make cards that are bought free the first time played
+#Fix fog
 #Phone go hot. performance wize getBounding rect seems the culprit, or the size of json messages. Fix with static slots that are known to canvas after a resize, or updates that modify state with a hash instead of resetting it.
 #Some kind of effect from damage to slots. Maybe it puts it on a cooldown after 10 damage. Maybe the damage is conveyed to the next played card.
 #Maybe the damage goes to cards in your hand, then to cards in the shop, then finally to your base.
-#Combine place and create
 
 #TODO Guide
 #Design out stupidity. Make every card playable to every location for some benefit. Shouldn't be any hard fails.
@@ -14,6 +15,7 @@
 #Some form of defense card
 
 #TODO
+#Some kind of state machine
 #If ai leaves then their cards cannot discard
 #Make the beaver discard their deck soon.
 #Ready draw pile, 123
@@ -636,7 +638,10 @@ def act(arg_dict):
 
         case "buy":
             shop_copy = victim
-            username = destination["entity"]
+            if action.get("owner"):
+                username = action["owner"]
+            else:
+                username = destination["entity"]
             captain = owner_card(username)
             if captain["gems"] >= shop_copy["value"]:
                 #session_table["players"][username]["deck"].append(shop_copy["title"])
@@ -646,7 +651,11 @@ def act(arg_dict):
 
                 game_table["running"] = 1
                 captain["gems"] -= shop_copy["value"]
-                init_card(shop_copy["name"], destination)
+
+                owned_by = action.get("owner","")
+                if owned_by == "card":
+                    owned_by = card["owner"]
+                init_card(shop_copy["name"], destination, owned_by)
 
         case "move":
             move(victim,destination)
@@ -1813,8 +1822,14 @@ def handle_play(command):
             if to_hype and card_index != card["index"]:
                 acting({"action": "hype", "target": to_hype[0], "amount":1}, card)
 
-    if card_from == "shop" and card_to != "shop":
-        acting({"action": "buy", "target": card, "to": {"entity":username,"location":"deck", "index": "append"}})
+    if card_from == "shop":
+        if card_to == "tent":
+            acting({"action": "buy", "target": card, "to": {"entity":username,"location":"deck", "index": "append"}})
+        if card_to == "hand":
+            acting({"action": "buy", "target": card, "to": {"entity":username,"location": "hand", "index": card_index}})
+        #Index.html decides which containers are playable for drag and drop
+        if card_to == "board":
+            acting({"action": "buy", "target": card, "to": {"entity":team,"location": "board", "index": card_index}, "owner":username})
 
 async def start_server():
     log("Server started!")
